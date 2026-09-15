@@ -13,6 +13,7 @@ pub mod model;
 pub mod occurrence;
 pub mod quiet;
 pub mod recurrence;
+pub mod scheduler;
 pub mod state;
 pub mod store;
 pub mod sync;
