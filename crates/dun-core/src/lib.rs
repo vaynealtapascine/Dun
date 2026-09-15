@@ -5,6 +5,8 @@
 //! that depends on time takes `now` (and a time zone) as an argument so it can
 //! be driven by a fake clock in tests.
 
+pub mod time;
+
 /// Crate version, surfaced in sync handshakes and backups.
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 
