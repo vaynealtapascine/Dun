@@ -67,6 +67,12 @@ impl Engine {
         &self.store
     }
 
+    /// For device-local tables and settings. Don't write registers through
+    /// this: use [`Engine::apply`] so the projection stays in step.
+    pub fn store_mut(&mut self) -> &mut Store {
+        &mut self.store
+    }
+
     pub fn scheduler(&self) -> &Scheduler {
         &self.scheduler
     }
