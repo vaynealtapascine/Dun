@@ -151,6 +151,16 @@ function cleanTitle(s: string): string {
     .trim();
 }
 
+/**
+ * The preview's "reminder instead" toggle: "Laundry in 45m" parses as a
+ * timer, but the user may want a plain reminder 45 minutes from now.
+ * Anything that isn't a timer is returned unchanged.
+ */
+export function timerAsReminder(parsed: Parsed, now: number): Parsed {
+  if (parsed.schedule?.kind !== "timer") return parsed;
+  return { ...parsed, kind: "once", schedule: { kind: "oneOff", due: now + parsed.schedule.durationMs } };
+}
+
 export function parseQuickAdd(input: string, opts: ParseOptions): Parsed {
   const text = new Text(` ${input.trim()} `);
   const out: Parsed = { title: "", kind: "once", schedule: null, tagId: null, unknownTag: null, nag: null };

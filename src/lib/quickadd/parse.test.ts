@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Schedule, Tag } from "../api/types";
-import { parseClock, parseQuickAdd } from "./parse";
+import { parseClock, parseQuickAdd, timerAsReminder } from "./parse";
 
 // TZ=UTC (vitest.config). "Now" is Wednesday 2026-09-16 10:00.
 const now = Date.parse("2026-09-16T10:00:00Z");
@@ -154,5 +154,18 @@ describe("modifiers", () => {
     const once = p("FYI meeting tomorrow at 2pm ring once");
     expect(once.nag).toEqual({ mode: "once" });
     expect(once.title).toBe("FYI meeting");
+  });
+});
+
+describe("timerAsReminder", () => {
+  it("turns a timer into a reminder that long from now", () => {
+    const r = timerAsReminder(p("Laundry in 45m #home"), now);
+    expect(r).toMatchObject({ kind: "once", title: "Laundry", tagId: "t-home" });
+    expect(r.schedule).toEqual({ kind: "oneOff", due: now + 45 * 60_000 });
+  });
+
+  it("leaves other kinds alone", () => {
+    const once = p("Pay rent tomorrow 9am");
+    expect(timerAsReminder(once, now)).toBe(once);
   });
 });

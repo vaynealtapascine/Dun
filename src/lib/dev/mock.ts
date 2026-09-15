@@ -140,6 +140,16 @@ export function installMockBackend() {
         return history;
       case "app_version":
         return "v0.1.0 (preview)";
+      case "preview_schedule": {
+        // Rough stand-in for the engine: good enough to see the preview UI.
+        const s = (a.draft as { schedule: import("../api/types").Schedule }).schedule;
+        const t = Date.now();
+        if (s.kind === "oneOff") return [s.due];
+        if (s.kind === "timer") return [t + s.durationMs];
+        return [t + 60 * MIN, t + 25 * 60 * MIN, t + 49 * 60 * MIN];
+      }
+      case "create_item":
+        return `preview-${Date.now()}`;
       case "mark_done":
         snapshot.items = snapshot.items.filter((i) => i.id !== a.id);
         return null;

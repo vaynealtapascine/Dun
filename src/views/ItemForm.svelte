@@ -15,7 +15,14 @@
     open = $bindable(false),
     item = null,
     initialKind = "once",
-  }: { open?: boolean; item?: ItemView | null; initialKind?: Kind } = $props();
+    prefill = null,
+  }: {
+    open?: boolean;
+    item?: ItemView | null;
+    initialKind?: Kind;
+    /** Values for a new item, e.g. what quick-add understood. Ignored when editing. */
+    prefill?: Partial<ItemDraft> | null;
+  } = $props();
 
   const NAG_INTERVALS = [1, 2, 3, 5, 10, 15, 30, 60];
 
@@ -49,23 +56,24 @@
     error = null;
     api.chimes().then((c) => (chimes = c)).catch(() => {});
     const now = app.now;
-    const nag: Nag = item?.nag ?? app.snapshot?.settings.nagDefault ?? { mode: "repeat", intervalMin: 1 };
+    const pre = item ? null : prefill;
+    const nag: Nag = item?.nag ?? pre?.nag ?? app.snapshot?.settings.nagDefault ?? { mode: "repeat", intervalMin: 1 };
     nagOn = nag.mode === "repeat";
     nagInterval = nag.mode === "repeat" ? nag.intervalMin : 1;
-    title = item?.title ?? "";
-    notes = item?.notes ?? "";
-    tag = item?.tag ?? null;
-    chime = item?.chime ?? null;
-    quietExempt = item?.quietExemptOverride ?? null;
+    title = item?.title ?? pre?.title ?? "";
+    notes = item?.notes ?? pre?.notes ?? "";
+    tag = item?.tag ?? pre?.tag ?? null;
+    chime = item?.chime ?? pre?.chime ?? null;
+    quietExempt = item?.quietExemptOverride ?? pre?.quietExempt ?? null;
     due = toLocalInput(roundUpMinutes(now, 15));
     startDate = toDateInput(now);
     startAt = toLocalInput(roundUpMinutes(now, 15));
     mode = "fromSchedule";
     rule = { kind: "daily", every: 1, times: ["09:00:00"] };
-    startTimer = true;
+    startTimer = pre?.startTimer ?? true;
     ({ h: durH, m: durM, s: durS } = splitDuration(10 * 60_000));
 
-    const s = item?.schedule;
+    const s = item?.schedule ?? pre?.schedule;
     kind = s ? (s.kind === "oneOff" ? "once" : s.kind === "recurring" ? "repeat" : "timer") : initialKind;
     if (s?.kind === "oneOff") due = toLocalInput(s.due);
     if (s?.kind === "recurring") {

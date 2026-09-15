@@ -1,11 +1,12 @@
 <script lang="ts">
   import { listen } from "@tauri-apps/api/event";
-  import type { ItemView } from "./lib/api/types";
+  import type { ItemDraft, ItemView } from "./lib/api/types";
   import { api } from "./lib/api/commands";
   import { filterItems } from "./lib/grouping";
   import { when } from "./lib/format";
   import { app } from "./lib/stores/app.svelte";
   import Icon from "./lib/components/Icon.svelte";
+  import QuickAdd from "./lib/components/QuickAdd.svelte";
   import TagDot from "./lib/components/TagDot.svelte";
   import AlarmSpike from "./views/AlarmSpike.svelte";
   import History from "./views/History.svelte";
@@ -25,6 +26,7 @@
   let tagFilter = $state<string | null>(null);
   let formOpen = $state(false);
   let editing = $state<ItemView | null>(null);
+  let prefill = $state<Partial<ItemDraft> | null>(null);
 
   $effect(() => {
     if (isAndroid) return;
@@ -50,11 +52,13 @@
 
   function edit(item: ItemView) {
     editing = item;
+    prefill = null;
     formOpen = true;
   }
 
-  function add() {
+  function add(draft: Partial<ItemDraft> | null = null) {
     editing = null;
+    prefill = draft;
     formOpen = true;
   }
 </script>
@@ -88,6 +92,9 @@
       <main><Settings /></main>
     {:else}
       <div class="toolbar">
+        {#if tab !== "history"}
+          <QuickAdd onmore={add} onadded={(title) => app.notify(`Added “${title}”`)} />
+        {/if}
         <label class="search">
           <Icon name="search" size={16} />
           <span class="sr-only">Search</span>
@@ -129,8 +136,12 @@
       </main>
 
       {#if tab !== "history"}
-        <button class="fab" aria-label="Add" onclick={add}><Icon name="plus" size={26} /></button>
+        <button class="fab" aria-label="Add" onclick={() => add()}><Icon name="plus" size={26} /></button>
       {/if}
+    {/if}
+
+    {#if app.notice && !app.error}
+      <div class="notice" role="status">{app.notice}</div>
     {/if}
 
     {#if app.error}
@@ -141,7 +152,7 @@
     {/if}
   </div>
 
-  <ItemForm bind:open={formOpen} item={editing} initialKind={tab === "timers" ? "timer" : "once"} />
+  <ItemForm bind:open={formOpen} item={editing} {prefill} initialKind={tab === "timers" ? "timer" : "once"} />
 {/if}
 
 <style>
@@ -280,6 +291,20 @@
   }
   .error .icon-btn {
     color: #fff;
+  }
+  .notice {
+    position: fixed;
+    left: 0.75rem;
+    bottom: 1.6rem;
+    max-width: calc(100% - 6rem);
+    padding: 0.5rem 0.9rem;
+    border-radius: var(--radius);
+    background: var(--fg);
+    color: var(--bg);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
   .spike {
     padding: max(2rem, env(safe-area-inset-top)) 1rem 2rem;

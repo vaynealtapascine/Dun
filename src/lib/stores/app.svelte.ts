@@ -11,7 +11,16 @@ class AppStore {
   snapshot = $state<Snapshot | null>(null);
   local = $state<LocalSettings | null>(null);
   error = $state<string | null>(null);
+  /** A short confirmation ("Added “Tea”"), cleared after a few seconds. */
+  notice = $state<string | null>(null);
   now = $state(Date.now());
+  #noticeTimer: ReturnType<typeof setTimeout> | undefined;
+
+  notify(message: string) {
+    this.notice = message;
+    clearTimeout(this.#noticeTimer);
+    this.#noticeTimer = setTimeout(() => (this.notice = null), 2500);
+  }
 
   /** Core clock minus browser clock, from the last snapshot. */
   #offset = 0;
