@@ -1,0 +1,17 @@
+//! Platform-neutral core of Dun: domain model, recurrence, the scheduler state
+//! machine, hybrid logical clocks, register merge and SQLite storage.
+//!
+//! Nothing in this crate knows about Tauri, Windows or Android. Every function
+//! that depends on time takes `now` (and a time zone) as an argument so it can
+//! be driven by a fake clock in tests.
+
+/// Crate version, surfaced in sync handshakes and backups.
+pub const VERSION: &str = env!("CARGO_PKG_VERSION");
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn version_is_set() {
+        assert!(!super::VERSION.is_empty());
+    }
+}

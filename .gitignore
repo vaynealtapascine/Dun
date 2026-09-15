@@ -1,0 +1,26 @@
+# Rust
+/target/
+
+# Node / Vite
+node_modules/
+/dist/
+*.local
+
+# Tauri
+/src-tauri/gen/schemas/
+
+# Android signing (never commit)
+keystore.properties
+*.jks
+*.keystore
+
+# Editors / OS
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
