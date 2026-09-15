@@ -141,6 +141,11 @@ impl Scheduler {
         &self.rings
     }
 
+    /// Items currently folded into the missed-rings summary, newest first.
+    pub fn summary(&self) -> &[String] {
+        &self.summary
+    }
+
     /// Occurrences that would alert if evaluated at `now`. A phone reports
     /// these in its check-in so the PC knows the phone is covering them.
     pub fn due_for_alert(
