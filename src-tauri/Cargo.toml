@@ -24,6 +24,10 @@ rusqlite.workspace = true
 tauri = { version = "~2.11.5", features = [] }
 tauri-plugin-dun-android = { path = "../plugins/tauri-plugin-dun-android" }
 
+[target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
+rodio = { version = "0.22", default-features = false, features = ["playback", "wav", "vorbis", "mp3"] }
+sha2 = "0.10"
+
 [target.'cfg(windows)'.dependencies]
 # 0.61 matches Tauri's own windows dependency, so only one copy is built.
 windows = { version = "0.61", features = [
@@ -34,6 +38,9 @@ windows = { version = "0.61", features = [
   "Win32_Security",
   "Win32_System_Com",
   "Win32_System_Registry",
+  "Win32_System_RemoteDesktop",
+  "Win32_System_SystemInformation",
+  "Win32_UI_Input_KeyboardAndMouse",
   "Win32_UI_Notifications",
 ] }
 windows-core = "0.61"

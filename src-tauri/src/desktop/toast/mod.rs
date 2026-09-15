@@ -82,13 +82,21 @@ mod imp {
         let _ = unsafe { CoInitializeEx(None, COINIT_MULTITHREADED) };
     }
 
-    pub fn show(id: Identity, toast: &Toast) -> Result<(), String> {
+    /// Shows `toast`. With `popup` false it goes straight to Notification
+    /// Center without a banner (used for silent alerts). A toast with the same
+    /// tag and group is replaced; note Windows does not re-pop the banner for
+    /// a replacement once the user dismissed it, so callers that need a fresh
+    /// banner remove first (see docs/spikes/windows-toast.md).
+    pub fn show(id: Identity, toast: &Toast, popup: bool) -> Result<(), String> {
         ensure_com();
         let doc = XmlDocument::new().map_err(|e| e.to_string())?;
         doc.LoadXml(&HSTRING::from(toast.to_xml()))
             .map_err(|e| format!("toast XML rejected: {e}"))?;
         let notification =
             ToastNotification::CreateToastNotification(&doc).map_err(|e| e.to_string())?;
+        notification
+            .SetSuppressPopup(!popup)
+            .map_err(|e| e.to_string())?;
         notification
             .SetTag(&HSTRING::from(toast.tag.as_str()))
             .map_err(|e| e.to_string())?;
