@@ -5,6 +5,7 @@
   import { toCivilTime, toTimeInput } from "../lib/dates";
   import { when } from "../lib/format";
   import { app } from "../lib/stores/app.svelte";
+  import HotkeyInput from "../lib/components/HotkeyInput.svelte";
   import Icon from "../lib/components/Icon.svelte";
   import TagDot from "../lib/components/TagDot.svelte";
 
@@ -16,10 +17,14 @@
   let chimes = $state<ChimeOption[]>([]);
   let newTag = $state("");
   let version = $state("");
+  let hotkeyError = $state<string | null>(null);
+
+  const DEFAULT_HOTKEY = "CommandOrControl+Alt+N";
 
   $effect(() => {
     api.chimes().then((c) => (chimes = c)).catch(() => {});
     invoke<string>("app_version").then((v) => (version = v)).catch(() => {});
+    api.hotkeyStatus().then((s) => (hotkeyError = s)).catch(() => {});
   });
 
   function setQuiet(patch: Partial<QuietHours>) {
@@ -31,11 +36,15 @@
     app.run(() => api.setSetting("nagDefault", nag));
   }
 
-  function setLocal(patch: Partial<LocalSettings>) {
+  async function setLocal(patch: Partial<LocalSettings>) {
     if (!local) return;
+    const previous = local;
     const next = { ...local, ...patch };
     app.local = next;
-    app.run(() => api.setLocalSettings(next));
+    await app.run(() => api.setLocalSettings(next));
+    // Refused (e.g. a shortcut another app owns): show what's really saved.
+    if (app.error) app.local = previous;
+    else if (patch.hotkey !== undefined) hotkeyError = null;
   }
 
   const chimeKey = (c: ChimeRef) => (c.kind === "bundled" ? `b:${c.id}` : `c:${c.sha256}`);
@@ -155,6 +164,11 @@
 
     <section class="card">
       <h3>This PC <span class="scope">this device</span></h3>
+      <div class="field">
+        <span>Quick-add shortcut (works from any app)</span>
+        <HotkeyInput value={local.hotkey} defaultValue={DEFAULT_HOTKEY} onchange={(hotkey) => setLocal({ hotkey })} />
+        {#if hotkeyError}<p class="hint warn">{hotkeyError}</p>{/if}
+      </div>
       <label class="switch">
         <span>Start Dun when I sign in</span>
         <input type="checkbox" checked={local.autostart} onchange={(e) => setLocal({ autostart: e.currentTarget.checked })} />
@@ -255,6 +269,9 @@
   .hint {
     margin: 0;
     font-size: 0.83rem;
+  }
+  .warn {
+    color: var(--overdue);
   }
   .status {
     margin: 0;

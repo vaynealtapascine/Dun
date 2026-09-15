@@ -35,9 +35,12 @@
       const item = app.snapshot?.items.find((i) => i.id === e.payload);
       if (item) edit(item);
     });
+    // "More" in the quick-add window continues here.
+    const openForm = listen<Partial<ItemDraft>>("open-form", (e) => add(e.payload));
     return () => {
       app.stop();
       focus.then((f) => f());
+      openForm.then((f) => f());
     };
   });
 

@@ -126,6 +126,8 @@ export type LocalSettings = {
   autostart: boolean;
   idleThresholdS: number;
   theme: "system" | "light" | "dark";
+  /** Sounds imported on this device. */
+  customSounds: ChimeRef[];
 };
 
 export type ItemDraft = {

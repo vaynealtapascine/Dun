@@ -291,10 +291,41 @@ pub fn set_local_settings<R: Runtime>(
     if !["system", "light", "dark"].contains(&settings.theme.as_str()) {
         return Err("theme must be system, light or dark".into());
     }
+    let previous = core.local_settings();
+    if previous.hotkey != settings.hotkey {
+        // Refuse the whole change if the new shortcut can't be registered,
+        // so the saved value always matches what's active.
+        crate::desktop::hotkey::apply(&app, &previous.hotkey, &settings.hotkey)?;
+        crate::desktop::hotkey::set_status(&app, None);
+    }
     core.set_local_settings(&settings)?;
     crate::desktop::window::apply_theme(&app, &settings.theme);
     crate::desktop::sync_autostart(&app, settings.autostart);
     let _ = app.emit("local-settings-changed", &settings);
     core.wake_scheduler();
     Ok(())
+}
+
+/// Why the saved quick-add shortcut isn't active (e.g. another app owns it).
+#[tauri::command]
+pub fn hotkey_status(status: State<'_, crate::desktop::hotkey::HotkeyStatus>) -> Option<String> {
+    status.0.lock().unwrap_or_else(|p| p.into_inner()).clone()
+}
+
+#[tauri::command]
+pub fn quickadd_hide<R: Runtime>(app: AppHandle<R>) {
+    crate::desktop::quickadd::hide(&app);
+}
+
+#[tauri::command]
+pub fn quickadd_fit<R: Runtime>(app: AppHandle<R>, height: f64) {
+    crate::desktop::quickadd::fit(&app, height);
+}
+
+/// "More" in the quick-add window: continue in the main window's form.
+#[tauri::command]
+pub fn quickadd_open_form<R: Runtime>(app: AppHandle<R>, draft: serde_json::Value) {
+    crate::desktop::quickadd::hide(&app);
+    crate::desktop::window::show_main(&app);
+    let _ = app.emit_to("main", "open-form", draft);
 }

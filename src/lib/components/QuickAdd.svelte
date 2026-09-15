@@ -146,8 +146,8 @@
           e.preventDefault();
           submit(e.shiftKey);
         } else if (e.key === "Escape") {
-          if (text) clear();
-          else onescape?.();
+          clear();
+          onescape?.();
         }
       }}
     />
@@ -158,7 +158,14 @@
   <div id="quick-preview" class="preview" aria-live="polite">
     {#if parsed && summary}
       <div class="line" class:error={previewError}>
-        <span class="what"><strong>{parsed.title || "…"}</strong> · {summary}{#if tagName} · {tagName}{/if}{#if parsed.nag} · {nagSummary(parsed.nag).toLowerCase()}{/if}</span>
+        <span class="what"><strong>{parsed.title || "…"}</strong>{[
+            "",
+            summary,
+            tagName,
+            parsed.nag && nagSummary(parsed.nag).toLowerCase(),
+          ]
+            .filter((part) => part !== null && part !== false)
+            .join(" · ")}</span>
         {#if parsed.schedule?.kind === "timer" || asReminder}
           <button class="link" onclick={() => (asReminder = !asReminder)}>
             {isTimer ? "Reminder instead" : "Timer instead"}

@@ -29,16 +29,31 @@ pub fn run() {
     #[cfg(windows)]
     desktop::toasts::init(tx.clone());
 
+    // `dun.exe --quick-add` from a shortcut usually just hands off to the
+    // running Dun. This process was started by the user so it may take the
+    // foreground; pass that right on, or the bar would open behind other windows.
+    #[cfg(windows)]
+    if desktop::window::wants_quick_add(&std::env::args().collect::<Vec<_>>()) {
+        use windows::Win32::UI::WindowsAndMessaging::{AllowSetForegroundWindow, ASFW_ANY};
+        let _ = unsafe { AllowSetForegroundWindow(ASFW_ANY) };
+    }
+
     tauri::Builder::default()
         // Must be the first plugin: a second launch just brings Dun forward.
-        .plugin(tauri_plugin_single_instance::init(|app, _argv, _cwd| {
-            desktop::window::show_main(app);
+        .plugin(tauri_plugin_single_instance::init(|app, argv, _cwd| {
+            if desktop::window::wants_quick_add(&argv) {
+                desktop::quickadd::show(app);
+            } else {
+                desktop::window::show_main(app);
+            }
         }))
         .plugin(tauri_plugin_autostart::init(
             tauri_plugin_autostart::MacosLauncher::LaunchAgent,
             Some(vec!["--hidden"]),
         ))
+        .plugin(desktop::hotkey::plugin())
         .plugin(tauri_plugin_dun_android::init())
+        .manage(desktop::hotkey::HotkeyStatus::default())
         .setup(move |app| {
             let dir = app.path().app_data_dir()?;
             let core = Arc::new(app_core::AppCore::open(&dir)?);
@@ -60,10 +75,14 @@ pub fn run() {
             desktop::window::apply_theme(app.handle(), &local.theme);
             desktop::sync_autostart(app.handle(), local.autostart);
             desktop::tray::create(app.handle())?;
+            desktop::quickadd::setup(app.handle());
+            desktop::hotkey::register_saved(app.handle(), &local.hotkey);
             if let Some(main) = app.get_webview_window("main") {
                 desktop::window::keep_alive_on_close(&main);
                 let args: Vec<String> = std::env::args().collect();
-                if !desktop::window::launched_hidden(&args) {
+                if desktop::window::wants_quick_add(&args) {
+                    desktop::quickadd::show(app.handle());
+                } else if !desktop::window::launched_hidden(&args) {
                     main.show()?;
                 }
             }
@@ -108,6 +127,10 @@ pub fn run() {
             commands::set_local_settings,
             commands::list_chimes,
             commands::play_chime,
+            commands::hotkey_status,
+            commands::quickadd_hide,
+            commands::quickadd_fit,
+            commands::quickadd_open_form,
         ])
         .run(tauri::generate_context!())
         .expect("error while running Dun");

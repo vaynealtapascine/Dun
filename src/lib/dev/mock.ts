@@ -120,6 +120,7 @@ export function installMockBackend() {
     autostart: true,
     idleThresholdS: 300,
     theme: "system",
+    customSounds: [],
   };
 
   const history: HistoryRow[] = [
@@ -148,6 +149,11 @@ export function installMockBackend() {
         if (s.kind === "timer") return [t + s.durationMs];
         return [t + 60 * MIN, t + 25 * 60 * MIN, t + 49 * 60 * MIN];
       }
+      case "hotkey_status":
+        return null;
+      case "set_local_settings":
+        Object.assign(local, a.settings);
+        return null;
       case "create_item":
         return `preview-${Date.now()}`;
       case "mark_done":

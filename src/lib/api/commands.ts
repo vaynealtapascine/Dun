@@ -47,6 +47,11 @@ export const api = {
 
   chimes: () => invoke<ChimeOption[]>("list_chimes"),
   playChime: (chime: ChimeRef | null) => invoke<void>("play_chime", { chime }),
+
+  hotkeyStatus: () => invoke<string | null>("hotkey_status"),
+  quickaddHide: () => invoke<void>("quickadd_hide"),
+  quickaddFit: (height: number) => invoke<void>("quickadd_fit", { height }),
+  quickaddOpenForm: (draft: Partial<ItemDraft>) => invoke<void>("quickadd_open_form", { draft }),
 };
 
 /** Tauri rejects with the Rust error string; normalise for display. */

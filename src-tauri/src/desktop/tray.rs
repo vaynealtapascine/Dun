@@ -1,4 +1,4 @@
-//! Tray icon: menu (open, mute, quit), a tooltip with what's next, and a red
+//! Tray icon: menu (open, quick add, mute, quit), a tooltip with what's next, and a red
 //! badge on the icon while anything is ringing.
 
 use dun_core::scheduler::when;
@@ -19,6 +19,7 @@ const TOOLTIP_MAX: usize = 127;
 
 pub fn create<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<()> {
     let open = MenuItem::with_id(app, "open", "Open Dun", true, None::<&str>)?;
+    let quick = MenuItem::with_id(app, "quickadd", "Quick add…", true, None::<&str>)?;
     let mute_15 = MenuItem::with_id(app, "mute:15", "15 minutes", true, None::<&str>)?;
     let mute_60 = MenuItem::with_id(app, "mute:60", "1 hour", true, None::<&str>)?;
     let mute_tomorrow =
@@ -41,6 +42,7 @@ pub fn create<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<()> {
         app,
         &[
             &open,
+            &quick,
             &PredefinedMenuItem::separator(app)?,
             &mute,
             &PredefinedMenuItem::separator(app)?,
@@ -71,6 +73,7 @@ pub fn create<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<()> {
 fn on_menu<R: Runtime>(app: &AppHandle<R>, id: &str) {
     match id {
         "open" => window::show_main(app),
+        "quickadd" => super::quickadd::show(app),
         "quit" => app.exit(0),
         mute if mute.starts_with("mute:") => {
             let Some(core) = app.try_state::<std::sync::Arc<AppCore>>() else {

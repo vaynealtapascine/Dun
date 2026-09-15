@@ -29,6 +29,7 @@ rodio = { version = "0.22", default-features = false, features = ["playback", "w
 sha2 = "0.10"
 tauri-plugin-single-instance = "~2.4.4"
 tauri-plugin-autostart = "~2.5.1"
+tauri-plugin-global-shortcut = "~2.3.2"
 
 [target.'cfg(windows)'.dependencies]
 # 0.61 matches Tauri's own windows dependency, so only one copy is built.
@@ -44,6 +45,7 @@ windows = { version = "0.61", features = [
   "Win32_System_SystemInformation",
   "Win32_UI_Input_KeyboardAndMouse",
   "Win32_UI_Notifications",
+  "Win32_UI_WindowsAndMessaging",
 ] }
 windows-core = "0.61"
 

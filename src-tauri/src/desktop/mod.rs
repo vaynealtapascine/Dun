@@ -2,6 +2,8 @@
 
 pub mod attended;
 pub mod audio;
+pub mod hotkey;
+pub mod quickadd;
 pub mod scheduler_loop;
 pub mod toast;
 pub mod toasts;
