@@ -19,4 +19,11 @@ tauri-build = { version = "~2.6.3", features = [] }
 dun-core.workspace = true
 serde.workspace = true
 serde_json.workspace = true
+jiff.workspace = true
+rusqlite.workspace = true
 tauri = { version = "~2.11.5", features = [] }
+tauri-plugin-dun-android = { path = "../plugins/tauri-plugin-dun-android" }
+
+[target.'cfg(target_os = "android")'.dependencies]
+# Same version Tauri uses, so only one copy is built.
+jni = "0.21"
