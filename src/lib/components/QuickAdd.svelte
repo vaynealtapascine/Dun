@@ -98,6 +98,14 @@
     return t ? `#${t.name}` : null;
   });
 
+  /** " · Timer · 4m · #kitchen · nags every 5 minutes" */
+  const detail = $derived(
+    [summary, tagName, parsed?.nag ? nagSummary(parsed.nag).toLowerCase() : null]
+      .filter((part): part is string => !!part)
+      .map((part) => ` · ${part}`)
+      .join(""),
+  );
+
   async function resolveTag(p: Parsed): Promise<string | null> {
     if (!p.unknownTag || !app.snapshot) return p.tagId;
     // "#garden" for a tag that doesn't exist yet creates it.
@@ -158,14 +166,7 @@
   <div id="quick-preview" class="preview" aria-live="polite">
     {#if parsed && summary}
       <div class="line" class:error={previewError}>
-        <span class="what"><strong>{parsed.title || "…"}</strong>{[
-            "",
-            summary,
-            tagName,
-            parsed.nag && nagSummary(parsed.nag).toLowerCase(),
-          ]
-            .filter((part) => part !== null && part !== false)
-            .join(" · ")}</span>
+        <span class="what"><strong>{parsed.title || "…"}</strong>{detail}</span>
         {#if parsed.schedule?.kind === "timer" || asReminder}
           <button class="link" onclick={() => (asReminder = !asReminder)}>
             {isTimer ? "Reminder instead" : "Timer instead"}
