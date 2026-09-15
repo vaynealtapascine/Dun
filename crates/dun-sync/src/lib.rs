@@ -4,5 +4,7 @@
 //! bytes and proves who is on the other end.
 
 pub mod cert;
+pub mod client;
 pub mod pairing;
 pub mod pin;
+pub mod server;

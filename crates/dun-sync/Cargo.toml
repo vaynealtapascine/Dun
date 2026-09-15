@@ -17,6 +17,7 @@ axum-server = { version = "0.8", default-features = false, features = ["tls-rust
 reqwest = { version = "0.13", default-features = false, features = ["rustls-no-provider", "json", "http2"] }
 rustls = { version = "0.23", default-features = false, features = ["ring", "std", "tls12", "logging"] }
 rustls-pki-types = "1"
+rustls-pemfile = "2"
 rcgen = { version = "0.14", default-features = false, features = ["ring", "pem", "x509-parser"] }
 tokio = { version = "1", features = ["rt-multi-thread", "net", "time", "sync"] }
 sha2 = "0.10"
@@ -24,3 +25,4 @@ getrandom = "0.3"
 
 [dev-dependencies]
 tempfile = "3"
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "time"] }
