@@ -73,6 +73,26 @@ impl State {
         }
     }
 
+    /// Rebuilds one entity from its complete set of registers (after a merge
+    /// changed some of them). For settings, pass every settings register.
+    pub fn replace_entity(&mut self, entity: Entity, id: &str, regs: &[Reg]) {
+        match entity {
+            Entity::Item => {
+                self.items.remove(id);
+            }
+            Entity::Tag => {
+                self.tags.remove(id);
+            }
+            Entity::Preset => {
+                self.presets.remove(id);
+            }
+            Entity::Setting => self.settings = Settings::default(),
+        }
+        for r in regs {
+            self.apply(r);
+        }
+    }
+
     /// Live (not deleted) items.
     pub fn live_items(&self) -> impl Iterator<Item = &Item> {
         self.items.values().filter(|i| !i.deleted)

@@ -7,6 +7,7 @@
 
 pub mod actions;
 pub mod backup;
+pub mod engine;
 pub mod hlc;
 pub mod ids;
 pub mod model;
