@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- Alarm-style app, sideloaded: USE_EXACT_ALARM is granted at install and
+         cannot be revoked. SCHEDULE_EXACT_ALARM covers Android 12L and older. -->
+    <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
+    <uses-permission
+        android:name="android.permission.SCHEDULE_EXACT_ALARM"
+        android:maxSdkVersion="32" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.VIBRATE" />
+
+    <application>
+        <!-- Alarm fires, notification buttons and swipe-away. Only our own
+             PendingIntents target it. -->
+        <receiver
+            android:name="app.dun.android.DunReceiver"
+            android:exported="false" />
+
+        <receiver
+            android:name="app.dun.android.SystemEventReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+                <action android:name="android.intent.action.TIME_SET" />
+                <action android:name="android.intent.action.TIMEZONE_CHANGED" />
+                <action android:name="android.app.action.SCHEDULE_EXACT_ALARM_PERMISSION_STATE_CHANGED" />
+                <!-- Re-evaluate on demand; harmless if another app sends it. Used by
+                     tests because the shell cannot send BOOT_COMPLETED. -->
+                <action android:name="app.dun.RESCHEDULE" />
+            </intent-filter>
+        </receiver>
+    </application>
+</manifest>

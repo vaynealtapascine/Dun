@@ -1,0 +1,17 @@
+[package]
+name = "tauri-plugin-dun-android"
+description = "Dun's Android integration: exact alarms, notifications with actions, boot rescheduling"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+links = "tauri-plugin-dun-android"
+
+[dependencies]
+tauri = { version = "~2.11.5", features = [] }
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+
+[build-dependencies]
+tauri-plugin = { version = "~2.6.3", features = ["build"] }

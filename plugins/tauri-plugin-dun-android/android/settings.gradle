@@ -1,0 +1,20 @@
+// Only used when opening this plugin on its own in Android Studio. The app build
+// includes the module through the generated tauri.settings.gradle instead.
+pluginManagement {
+    repositories {
+        mavenCentral()
+        gradlePluginPortal()
+        google()
+    }
+}
+
+dependencyResolutionManagement {
+    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+    repositories {
+        mavenCentral()
+        google()
+    }
+}
+
+include ':tauri-android'
+project(':tauri-android').projectDir = new File('./.tauri/tauri-api')
