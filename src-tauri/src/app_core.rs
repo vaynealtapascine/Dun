@@ -64,6 +64,69 @@ impl AppCore {
         })
     }
 
+    /// Debug builds only: `--dev-seed` (or `DUN_DEV_SEED=1`) adds a few items that ring within a
+    /// minute, for exercising toasts, chimes and the UI end to end.
+    pub fn dev_seed(&self) {
+        if !cfg!(debug_assertions) {
+            return;
+        }
+        use dun_core::actions::ItemDraft;
+        use dun_core::model::Schedule;
+        use dun_core::recurrence::{IntervalUnit, Recurrence, Rule};
+        use dun_core::time::{MINUTE, SECOND};
+
+        let now = self.now();
+        let start = (now.plus(MINUTE)).to_zoned(&self.tz()).datetime();
+        let draft = |title: &str, schedule: Schedule, start_timer: bool| ItemDraft {
+            title: title.into(),
+            notes: "Created by --dev-seed".into(),
+            tag: None,
+            schedule,
+            nag: None,
+            chime: None,
+            quiet_exempt: None,
+            start_timer,
+        };
+        let seeds = [
+            draft(
+                "Seed: reminder",
+                Schedule::OneOff {
+                    due: now.plus(30 * SECOND),
+                },
+                false,
+            ),
+            draft(
+                "Seed: timer",
+                Schedule::Timer {
+                    duration_ms: 45 * SECOND,
+                },
+                true,
+            ),
+            draft(
+                "Seed: every 2 minutes",
+                Schedule::Recurring {
+                    recurrence: Recurrence {
+                        rule: Rule::Interval {
+                            every: 2,
+                            unit: IntervalUnit::Minutes,
+                        },
+                        start,
+                        tz: None,
+                    },
+                    mode: Default::default(),
+                    effective_from: now,
+                },
+                false,
+            ),
+        ];
+        let mut engine = self.engine();
+        for seed in seeds {
+            if let Err(e) = engine.create_item(now, seed) {
+                eprintln!("dev seed failed: {e}");
+            }
+        }
+    }
+
     pub fn engine(&self) -> MutexGuard<'_, Engine> {
         self.engine.lock().unwrap_or_else(|p| p.into_inner())
     }

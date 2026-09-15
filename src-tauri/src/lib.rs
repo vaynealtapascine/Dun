@@ -50,6 +50,11 @@ pub fn run() {
                     .send(desktop::scheduler_loop::Msg::Wake);
             });
             app.manage(core.clone());
+            if std::env::args().any(|a| a == "--dev-seed")
+                || std::env::var_os("DUN_DEV_SEED").is_some()
+            {
+                core.dev_seed();
+            }
 
             let local = core.local_settings();
             desktop::window::apply_theme(app.handle(), &local.theme);
