@@ -23,6 +23,19 @@ pub fn run() {
     use std::sync::{Arc, Mutex};
     use tauri::Manager;
 
+    // The elevated helper run does one job and exits; no window, no engine.
+    let args: Vec<String> = std::env::args().collect();
+    if let Some(port) = desktop::firewall::setup_request(&args) {
+        let code = match desktop::firewall::apply(port) {
+            Ok(()) => 0,
+            Err(e) => {
+                eprintln!("firewall: {e}");
+                1
+            }
+        };
+        std::process::exit(code);
+    }
+
     let (tx, rx) = std::sync::mpsc::channel::<desktop::scheduler_loop::Msg>();
     // Register for toast clicks before anything else so a click that launched
     // this process is delivered.

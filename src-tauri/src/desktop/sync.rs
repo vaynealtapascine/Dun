@@ -147,7 +147,12 @@ impl<R: Runtime> SyncHub<R> {
         *self.server.lock().unwrap_or_else(|p| p.into_inner()) = None;
     }
 
-    pub fn set_enabled(self: &Arc<Self>, enabled: bool) -> Result<(), String> {
+    /// Turns sync on or off. Enabling adds the firewall rule first (one UAC
+    /// prompt); skip_firewall is the "enable anyway" path after a refusal.
+    pub fn set_enabled(self: &Arc<Self>, enabled: bool, skip_firewall: bool) -> Result<(), String> {
+        if enabled && !skip_firewall {
+            super::firewall::ensure(PORT)?;
+        }
         self.set_enabled_setting(enabled)?;
         if enabled {
             self.start()?;

@@ -2,6 +2,7 @@
 
 pub mod attended;
 pub mod audio;
+pub mod firewall;
 pub mod hotkey;
 pub mod quickadd;
 pub mod scheduler_loop;

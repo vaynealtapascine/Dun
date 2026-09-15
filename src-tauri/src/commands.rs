@@ -464,8 +464,9 @@ pub fn sync_set_enabled<R: Runtime>(
     _app: AppHandle<R>,
     hub: Hub<'_, R>,
     enabled: bool,
+    skip_firewall: Option<bool>,
 ) -> CmdResult<()> {
-    hub.set_enabled(enabled)
+    hub.set_enabled(enabled, skip_firewall.unwrap_or(false))
 }
 
 /// Opens the Pairing dialog: a code and QR good for five minutes.
