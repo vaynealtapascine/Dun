@@ -5,6 +5,7 @@ pub mod audio;
 pub mod hotkey;
 pub mod quickadd;
 pub mod scheduler_loop;
+pub mod sync;
 pub mod toast;
 pub mod toasts;
 pub mod tray;

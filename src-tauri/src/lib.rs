@@ -88,6 +88,14 @@ pub fn run() {
                 }
             }
 
+            let sync = desktop::sync::SyncHub::new(app.handle().clone(), core.clone())?;
+            if sync.enabled() {
+                if let Err(e) = sync.start() {
+                    eprintln!("sync: {e}");
+                }
+            }
+            app.manage(sync.clone());
+
             let audio = desktop::audio::Audio::start(dir.join("sounds"));
             app.manage(audio.clone());
             let tray = Arc::new(Mutex::new(desktop::scheduler_loop::TrayStatus::default()));
@@ -98,6 +106,7 @@ pub fn run() {
                 audio,
                 rx,
                 tray,
+                sync,
                 move |app, status| {
                     desktop::tray::update(app, status, tray_core.now(), &tray_core.tz());
                 },
@@ -135,6 +144,11 @@ pub fn run() {
             commands::backup_export,
             commands::backup_import,
             commands::import_sound,
+            commands::sync_status,
+            commands::sync_set_enabled,
+            commands::pairing_open,
+            commands::pairing_close,
+            commands::forget_peer,
         ])
         .run(tauri::generate_context!())
         .expect("error while running Dun");

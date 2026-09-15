@@ -446,3 +446,44 @@ pub async fn import_sound<R: Runtime>(
     }
     Ok(Some(chime))
 }
+
+// ---- sync ----
+
+use crate::desktop::sync::{PairingView, SyncHub, SyncStatus};
+
+type Hub<'a, R> = State<'a, Arc<SyncHub<R>>>;
+
+#[tauri::command]
+pub fn sync_status<R: Runtime>(_app: AppHandle<R>, hub: Hub<'_, R>) -> SyncStatus {
+    hub.status()
+}
+
+/// Starts or stops listening for the phone.
+#[tauri::command]
+pub fn sync_set_enabled<R: Runtime>(
+    _app: AppHandle<R>,
+    hub: Hub<'_, R>,
+    enabled: bool,
+) -> CmdResult<()> {
+    hub.set_enabled(enabled)
+}
+
+/// Opens the Pairing dialog: a code and QR good for five minutes.
+#[tauri::command]
+pub fn pairing_open<R: Runtime>(_app: AppHandle<R>, hub: Hub<'_, R>) -> CmdResult<PairingView> {
+    hub.open_pairing()
+}
+
+#[tauri::command]
+pub fn pairing_close<R: Runtime>(_app: AppHandle<R>, hub: Hub<'_, R>) {
+    hub.close_pairing();
+}
+
+#[tauri::command]
+pub fn forget_peer<R: Runtime>(
+    _app: AppHandle<R>,
+    hub: Hub<'_, R>,
+    device_id: String,
+) -> CmdResult<()> {
+    hub.forget_peer(&device_id)
+}
