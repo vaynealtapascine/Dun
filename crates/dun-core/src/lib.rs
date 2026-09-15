@@ -7,6 +7,7 @@
 
 pub mod model;
 pub mod occurrence;
+pub mod quiet;
 pub mod recurrence;
 pub mod time;
 
