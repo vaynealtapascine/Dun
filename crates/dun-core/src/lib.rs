@@ -6,10 +6,12 @@
 //! be driven by a fake clock in tests.
 
 pub mod hlc;
+pub mod ids;
 pub mod model;
 pub mod occurrence;
 pub mod quiet;
 pub mod recurrence;
+pub mod store;
 pub mod sync;
 pub mod time;
 
