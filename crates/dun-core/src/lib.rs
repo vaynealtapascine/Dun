@@ -10,6 +10,7 @@ pub mod model;
 pub mod occurrence;
 pub mod quiet;
 pub mod recurrence;
+pub mod sync;
 pub mod time;
 
 /// Crate version, surfaced in sync handshakes and backups.
