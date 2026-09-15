@@ -5,7 +5,7 @@ use serde::Serialize;
 use crate::model::{ChimeRef, Item};
 use crate::time::{TimeZone, Timestamp};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub enum AlertLevel {
     /// Pop the notification (fresh banner) and chime.
@@ -79,11 +79,24 @@ pub enum Effect {
         label: AlertLabel,
     },
     #[serde(rename_all = "camelCase")]
-    ClearAlert { item_id: String },
+    ClearAlert {
+        item_id: String,
+    },
+    /// One alert standing in for several missed rings, newest first.
     #[serde(rename_all = "camelCase")]
-    PlayChime { chime: Option<ChimeRef> },
+    ShowSummary {
+        items: Vec<(String, String)>,
+        level: AlertLevel,
+    },
+    ClearSummary,
     #[serde(rename_all = "camelCase")]
-    ScheduleWake { at: Timestamp },
+    PlayChime {
+        chime: Option<ChimeRef>,
+    },
+    #[serde(rename_all = "camelCase")]
+    ScheduleWake {
+        at: Timestamp,
+    },
     #[serde(rename_all = "camelCase")]
     TrayStatus {
         ringing: usize,

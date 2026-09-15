@@ -58,7 +58,12 @@ impl Harness {
     }
 
     fn eval(&mut self) -> Vec<Effect> {
-        self.sched.evaluate(&self.state, self.now, &self.tz)
+        self.sched
+            .evaluate(&self.state, self.now, &self.tz, Role::Solo)
+    }
+
+    fn eval_as(&mut self, role: Role<'_>) -> Vec<Effect> {
+        self.sched.evaluate(&self.state, self.now, &self.tz, role)
     }
 
     fn done(&mut self, id: &str) {
@@ -445,4 +450,277 @@ fn settings_change<T: serde::Serialize>(key: &str, value: T) -> Change {
         )],
         history: Vec::new(),
     }
+}
+
+// ---- missed summary ----
+
+#[test]
+fn a_burst_of_missed_rings_collapses_into_a_summary() {
+    let mut h = Harness::at(date(2026, 9, 16).at(6, 0, 0, 0));
+    for (i, hour) in [7, 8, 9, 10, 11].iter().enumerate() {
+        let due = resolve(date(2026, 9, 16).at(*hour, 0, 0, 0), &h.tz);
+        h.create(&format!("m{i}"), reminder(&format!("Item {hour}"), due));
+    }
+    h.eval();
+    // PC was asleep all morning (threshold is 3; five are missed).
+    h.set_to(date(2026, 9, 16).at(12, 0, 0, 0));
+    let e = h.eval();
+    let mut individual = alerts(&e);
+    individual.sort();
+    assert_eq!(
+        individual,
+        [("m3", AlertLevel::Full), ("m4", AlertLevel::Full)],
+        "newest two alert alone"
+    );
+    let summary = e
+        .iter()
+        .find_map(|e| match e {
+            Effect::ShowSummary { items, level } => Some((items.clone(), *level)),
+            _ => None,
+        })
+        .expect("summary");
+    let ids: Vec<&str> = summary.0.iter().map(|(id, _)| id.as_str()).collect();
+    assert_eq!(ids, ["m2", "m1", "m0"]);
+    assert_eq!(summary.1, AlertLevel::Full);
+    assert_eq!(chimes(&e), 1);
+
+    // Finishing one updates the summary quietly; finishing the rest clears it.
+    h.done("m1");
+    let e = h.eval();
+    assert!(e.iter().any(|e| matches!(e, Effect::ShowSummary { items, level: AlertLevel::Silent } if items.len() == 2)));
+    h.done("m0");
+    h.done("m2");
+    let e = h.eval();
+    assert!(e.iter().any(|e| matches!(e, Effect::ClearSummary)));
+
+    // Summarized rings still nag, as a summary, on the next minute.
+    let mut h2 = Harness::at(date(2026, 9, 16).at(6, 0, 0, 0));
+    for i in 0..4 {
+        h2.create(
+            &format!("x{i}"),
+            reminder("x", h2.now.plus(i64::from(i) * MINUTE)),
+        );
+    }
+    h2.set_to(date(2026, 9, 16).at(9, 0, 0, 0));
+    h2.eval();
+    h2.advance(MINUTE);
+    let e = h2.eval();
+    assert!(e.iter().any(|e| matches!(
+        e,
+        Effect::ShowSummary {
+            level: AlertLevel::Full,
+            ..
+        }
+    )));
+}
+
+#[test]
+fn a_few_missed_rings_alert_individually() {
+    let mut h = Harness::at(date(2026, 9, 16).at(6, 0, 0, 0));
+    for i in 0..3 {
+        h.create(
+            &format!("m{i}"),
+            reminder("x", h.now.plus(i64::from(i) * MINUTE)),
+        );
+    }
+    h.set_to(date(2026, 9, 16).at(9, 0, 0, 0));
+    let e = h.eval();
+    assert_eq!(alerts(&e).len(), 3);
+    assert!(!e.iter().any(|e| matches!(e, Effect::ShowSummary { .. })));
+}
+
+// ---- handoff ----
+
+fn hub(attended: bool, acks: &BTreeMap<String, Ack>) -> Role<'_> {
+    Role::Hub { attended, acks }
+}
+
+#[test]
+fn unattended_pc_defers_then_fails_loud_without_a_phone_ack() {
+    let mut h = Harness::at(date(2026, 9, 16).at(9, 0, 0, 0));
+    let due = h.now;
+    h.create("a", reminder("Pay rent", due));
+    let no_acks = BTreeMap::new();
+
+    let e = h.eval_as(hub(false, &no_acks));
+    assert_eq!(
+        alerts(&e),
+        [("a", AlertLevel::Silent)],
+        "waiting for the phone, quietly"
+    );
+    assert_eq!(chimes(&e), 0);
+    assert_eq!(wake(&e), Some(due.plus(120 * SECOND)));
+
+    h.advance(60 * SECOND);
+    assert!(alerts(&h.eval_as(hub(false, &no_acks))).is_empty());
+
+    h.advance(60 * SECOND);
+    let e = h.eval_as(hub(false, &no_acks));
+    assert_eq!(
+        alerts(&e),
+        [("a", AlertLevel::Full)],
+        "phone never checked in: ring anyway"
+    );
+
+    h.advance(MINUTE);
+    assert_eq!(
+        alerts(&h.eval_as(hub(false, &no_acks))),
+        [("a", AlertLevel::Full)],
+        "and keep nagging"
+    );
+}
+
+#[test]
+fn phone_acks_keep_the_unattended_pc_quiet_until_they_stop() {
+    let mut h = Harness::at(date(2026, 9, 16).at(9, 0, 0, 0));
+    let due = h.now;
+    h.create("a", reminder("Stretch", due));
+    let mut acks = BTreeMap::new();
+    acks.insert(
+        "a".to_string(),
+        Ack {
+            occurrence: due,
+            at: due.plus(2 * SECOND),
+        },
+    );
+
+    let e = h.eval_as(hub(false, &acks));
+    assert_eq!(alerts(&e), [("a", AlertLevel::Silent)]);
+    // Covered until the phone's next nag (1 min) plus grace (2 min).
+    assert_eq!(wake(&e), Some(due.plus(2 * SECOND + MINUTE + 120 * SECOND)));
+
+    // The phone checks in again at its next nag.
+    h.advance(62 * SECOND);
+    acks.insert(
+        "a".to_string(),
+        Ack {
+            occurrence: due,
+            at: h.now,
+        },
+    );
+    assert!(alerts(&h.eval_as(hub(false, &acks))).is_empty());
+
+    // Then goes silent (battery died): PC rings once the cover lapses.
+    h.set_to(date(2026, 9, 16).at(9, 4, 3, 0));
+    assert_eq!(
+        alerts(&h.eval_as(hub(false, &acks))),
+        [("a", AlertLevel::Full)]
+    );
+}
+
+#[test]
+fn an_ack_for_another_occurrence_does_not_cover() {
+    let mut h = Harness::at(date(2026, 9, 16).at(9, 0, 0, 0));
+    let due = h.now;
+    h.create("a", reminder("x", due));
+    let mut acks = BTreeMap::new();
+    acks.insert(
+        "a".to_string(),
+        Ack {
+            occurrence: due.minus(60 * MINUTE),
+            at: due,
+        },
+    );
+    h.eval_as(hub(false, &acks));
+    h.advance(121 * SECOND);
+    assert_eq!(
+        alerts(&h.eval_as(hub(false, &acks))),
+        [("a", AlertLevel::Full)]
+    );
+}
+
+#[test]
+fn coming_back_to_the_pc_rings_deferred_items_immediately() {
+    let mut h = Harness::at(date(2026, 9, 16).at(9, 0, 0, 0));
+    h.create("a", reminder("x", h.now));
+    let no_acks = BTreeMap::new();
+    h.eval_as(hub(false, &no_acks));
+    h.advance(10 * SECOND);
+    assert_eq!(
+        alerts(&h.eval_as(hub(true, &no_acks))),
+        [("a", AlertLevel::Full)]
+    );
+}
+
+#[test]
+fn attended_pc_or_disabled_handoff_rings_normally() {
+    let mut h = Harness::at(date(2026, 9, 16).at(9, 0, 0, 0));
+    h.create("a", reminder("x", h.now));
+    let no_acks = BTreeMap::new();
+    assert_eq!(
+        alerts(&h.eval_as(hub(true, &no_acks))),
+        [("a", AlertLevel::Full)]
+    );
+
+    let mut h = Harness::at(date(2026, 9, 16).at(9, 0, 0, 0));
+    let mut handoff = h.state.settings.handoff;
+    handoff.enabled = false;
+    h.apply(settings_change(
+        crate::model::item::setting_key::HANDOFF,
+        handoff,
+    ));
+    h.create("a", reminder("x", h.now));
+    assert_eq!(
+        alerts(&h.eval_as(hub(false, &no_acks))),
+        [("a", AlertLevel::Full)]
+    );
+}
+
+#[test]
+fn phone_stays_quiet_while_the_attended_pc_rings_and_takes_over_otherwise() {
+    let mut h = Harness::at(date(2026, 9, 16).at(9, 0, 0, 0));
+    let due = h.now;
+    h.create("a", reminder("x", due));
+
+    let unreachable = Role::Phone { pc: None };
+    assert_eq!(alerts(&h.eval_as(unreachable)), [("a", AlertLevel::Full)]);
+
+    let mut pc = PcView {
+        attended: true,
+        ringing: BTreeSet::new(),
+    };
+    pc.ringing.insert(("a".to_string(), due));
+    h.advance(MINUTE);
+    let e = h.eval_as(Role::Phone { pc: Some(&pc) });
+    assert!(alerts(&e).is_empty());
+    assert_eq!(
+        cleared(&e),
+        ["a"],
+        "the phone takes its notification down while the PC has it"
+    );
+    assert_eq!(
+        wake(&e),
+        Some(h.now.plus(MINUTE)),
+        "and checks again at the next nag"
+    );
+
+    pc.attended = false;
+    h.advance(MINUTE);
+    assert_eq!(
+        alerts(&h.eval_as(Role::Phone { pc: Some(&pc) })),
+        [("a", AlertLevel::Full)]
+    );
+}
+
+#[test]
+fn due_for_alert_and_ringing_soon_report_what_check_ins_need() {
+    let mut h = Harness::at(date(2026, 9, 16).at(9, 0, 0, 0));
+    let due = h.now;
+    h.create("a", reminder("x", due));
+    h.create("b", reminder("y", due.plus(3 * SECOND)));
+
+    assert_eq!(
+        h.sched.due_for_alert(&h.state, h.now, &h.tz),
+        [("a".to_string(), due)]
+    );
+    let soon = ringing_soon(&h.state, h.now, &h.tz, 5 * SECOND);
+    assert_eq!(soon.len(), 2);
+
+    h.eval();
+    assert!(
+        h.sched.due_for_alert(&h.state, h.now, &h.tz).is_empty(),
+        "just alerted"
+    );
+    h.advance(MINUTE);
+    assert_eq!(h.sched.due_for_alert(&h.state, h.now, &h.tz).len(), 2);
 }
