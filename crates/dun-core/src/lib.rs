@@ -6,6 +6,7 @@
 //! be driven by a fake clock in tests.
 
 pub mod actions;
+pub mod backup;
 pub mod hlc;
 pub mod ids;
 pub mod model;

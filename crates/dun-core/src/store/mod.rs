@@ -426,6 +426,18 @@ impl Store {
         Ok(())
     }
 
+    pub fn local_settings(&self) -> Result<Vec<(String, serde_json::Value)>> {
+        let mut stmt = self
+            .conn
+            .prepare("SELECT key, value FROM local_setting ORDER BY key")?;
+        let rows = stmt.query_map([], |r| Ok((r.get::<_, String>(0)?, r.get::<_, String>(1)?)))?;
+        rows.map(|r| {
+            let (k, v) = r?;
+            Ok((k, serde_json::from_str(&v)?))
+        })
+        .collect()
+    }
+
     /// Raw connection for later modules (ring state, peers) that own their tables.
     pub fn conn(&self) -> &Connection {
         &self.conn
