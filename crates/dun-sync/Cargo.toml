@@ -26,3 +26,4 @@ getrandom = "0.3"
 [dev-dependencies]
 tempfile = "3"
 tokio = { version = "1", features = ["rt-multi-thread", "macros", "time"] }
+jiff.workspace = true
