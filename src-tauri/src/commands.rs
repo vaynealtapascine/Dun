@@ -230,6 +230,44 @@ pub fn mute<R: Runtime>(
     })
 }
 
+#[derive(serde::Serialize)]
+pub struct ChimeOption {
+    chime: dun_core::model::ChimeRef,
+    label: String,
+}
+
+#[tauri::command]
+pub fn list_chimes(core: Core<'_>) -> Vec<ChimeOption> {
+    let bundled = crate::desktop::audio::BUNDLED
+        .iter()
+        .map(|(id, label, _)| ChimeOption {
+            chime: dun_core::model::ChimeRef::Bundled { id: id.to_string() },
+            label: label.to_string(),
+        });
+    let custom = core
+        .local_settings()
+        .custom_sounds
+        .into_iter()
+        .map(|chime| {
+            let label = match &chime {
+                dun_core::model::ChimeRef::Custom { name, .. } => name.clone(),
+                dun_core::model::ChimeRef::Bundled { id } => id.clone(),
+            };
+            ChimeOption { chime, label }
+        });
+    bundled.chain(custom).collect()
+}
+
+#[tauri::command]
+pub fn play_chime(
+    core: Core<'_>,
+    audio: State<'_, crate::desktop::audio::Audio>,
+    chime: Option<dun_core::model::ChimeRef>,
+) {
+    let local = core.local_settings();
+    audio.play(chime.as_ref(), &local.chime, local.volume);
+}
+
 #[tauri::command]
 pub fn get_local_settings(core: Core<'_>) -> LocalSettings {
     core.local_settings()

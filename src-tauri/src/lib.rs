@@ -64,6 +64,7 @@ pub fn run() {
             }
 
             let audio = desktop::audio::Audio::start(dir.join("sounds"));
+            app.manage(audio.clone());
             let tray = Arc::new(Mutex::new(desktop::scheduler_loop::TrayStatus::default()));
             let tray_core = core.clone();
             desktop::scheduler_loop::spawn(
@@ -99,6 +100,8 @@ pub fn run() {
             commands::mute,
             commands::get_local_settings,
             commands::set_local_settings,
+            commands::list_chimes,
+            commands::play_chime,
         ])
         .run(tauri::generate_context!())
         .expect("error while running Dun");

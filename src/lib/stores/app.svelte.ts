@@ -1,0 +1,61 @@
+import { listen, type UnlistenFn } from "@tauri-apps/api/event";
+import { api, errorText } from "../api/commands";
+import type { LocalSettings, Snapshot } from "../api/types";
+
+/**
+ * App-wide reactive state: the latest snapshot from Rust (pushed on every
+ * change), device-local settings, and a ticking "now" aligned to the core's
+ * clock so countdowns agree with when things actually ring.
+ */
+class AppStore {
+  snapshot = $state<Snapshot | null>(null);
+  local = $state<LocalSettings | null>(null);
+  error = $state<string | null>(null);
+  now = $state(Date.now());
+
+  /** Core clock minus browser clock, from the last snapshot. */
+  #offset = 0;
+  #unlisten: UnlistenFn[] = [];
+  #tick: ReturnType<typeof setInterval> | undefined;
+
+  setSnapshot(snap: Snapshot) {
+    this.#offset = snap.now - Date.now();
+    this.snapshot = snap;
+    this.now = snap.now;
+  }
+
+  async start() {
+    try {
+      this.setSnapshot(await api.snapshot());
+      this.local = await api.localSettings();
+    } catch (e) {
+      this.error = errorText(e);
+    }
+    this.#unlisten.push(await listen<Snapshot>("state-changed", (e) => this.setSnapshot(e.payload)));
+    this.#unlisten.push(await listen<LocalSettings>("local-settings-changed", (e) => (this.local = e.payload)));
+    this.#tick = setInterval(() => (this.now = Date.now() + this.#offset), 1000);
+  }
+
+  stop() {
+    this.#unlisten.forEach((f) => f());
+    this.#unlisten = [];
+    clearInterval(this.#tick);
+  }
+
+  /** Runs a command, surfacing its error in the UI instead of throwing. */
+  async run<T>(fn: () => Promise<T>): Promise<T | undefined> {
+    try {
+      this.error = null;
+      return await fn();
+    } catch (e) {
+      this.error = errorText(e);
+      return undefined;
+    }
+  }
+
+  tag(id: string | null) {
+    return id ? this.snapshot?.tags.find((t) => t.id === id) : undefined;
+  }
+}
+
+export const app = new AppStore();

@@ -24,6 +24,8 @@ pub struct LocalSettings {
     pub idle_threshold_s: u32,
     /// "system", "light" or "dark".
     pub theme: String,
+    /// Sounds imported on this device, for the chime pickers.
+    pub custom_sounds: Vec<ChimeRef>,
 }
 
 impl Default for LocalSettings {
@@ -35,6 +37,7 @@ impl Default for LocalSettings {
             autostart: true,
             idle_threshold_s: 300,
             theme: "system".into(),
+            custom_sounds: Vec::new(),
         }
     }
 }
