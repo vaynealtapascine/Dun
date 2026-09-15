@@ -306,6 +306,20 @@ impl Engine {
         self.apply(now, actions::unmute()).map(|_| ())
     }
 
+    // ---- peers (device-local) ----
+
+    pub fn peers(&self) -> crate::sync::peers::Peers {
+        self.store
+            .local_get(crate::sync::peers::PEERS_KEY)
+            .ok()
+            .flatten()
+            .unwrap_or_default()
+    }
+
+    pub fn save_peers(&mut self, peers: &crate::sync::peers::Peers) -> Result<()> {
+        Ok(self.store.local_set(crate::sync::peers::PEERS_KEY, peers)?)
+    }
+
     // ---- backup ----
 
     pub fn export_backup(&self, now: Timestamp) -> Result<Backup> {
