@@ -1,0 +1,22 @@
+[package]
+name = "dun"
+description = "Dun: reminders and timers that nag until they're done"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[lib]
+# The cdylib is what Android loads (System.loadLibrary("dun_lib")); JNI exports
+# used by the background receiver must live in this crate.
+name = "dun_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "~2.6.3", features = [] }
+
+[dependencies]
+dun-core.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+tauri = { version = "~2.11.5", features = [] }

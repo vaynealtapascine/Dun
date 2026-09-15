@@ -1,5 +1,7 @@
 # Rust
 /target/
+# Machine-local cargo config (e.g. target-dir on another drive); see README
+/.cargo/config.toml
 
 # Node / Vite
 node_modules/
