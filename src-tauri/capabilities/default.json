@@ -3,5 +3,5 @@
   "identifier": "default",
   "description": "Permissions for Dun's windows",
   "windows": ["main"],
-  "permissions": ["core:default"]
+  "permissions": ["core:default", "core:event:default"]
 }

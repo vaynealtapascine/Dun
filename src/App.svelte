@@ -1,6 +1,7 @@
 <script lang="ts">
   import { invoke } from "@tauri-apps/api/core";
   import AlarmSpike from "./views/AlarmSpike.svelte";
+  import ToastSpike from "./views/ToastSpike.svelte";
 
   let version = $state("");
   const isAndroid = navigator.userAgent.includes("Android");
@@ -17,6 +18,8 @@
   <p class="muted">{version}</p>
   {#if isAndroid}
     <AlarmSpike />
+  {:else}
+    <ToastSpike />
   {/if}
 </main>
 

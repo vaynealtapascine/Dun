@@ -719,6 +719,8 @@ dependencies = [
  "tauri",
  "tauri-build",
  "tauri-plugin-dun-android",
+ "windows",
+ "windows-core 0.61.2",
 ]
 
 [[package]]
