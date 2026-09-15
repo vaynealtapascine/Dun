@@ -248,6 +248,8 @@ pub fn set_local_settings<R: Runtime>(
         return Err("theme must be system, light or dark".into());
     }
     core.set_local_settings(&settings)?;
+    crate::desktop::window::apply_theme(&app, &settings.theme);
+    crate::desktop::sync_autostart(&app, settings.autostart);
     let _ = app.emit("local-settings-changed", &settings);
     core.wake_scheduler();
     Ok(())

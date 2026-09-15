@@ -1,0 +1,4 @@
+# Gradle and Tauri write build output here during Android builds; don't let it
+# restart `tauri dev` on the desktop.
+android/
+
