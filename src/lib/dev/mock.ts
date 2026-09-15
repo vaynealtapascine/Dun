@@ -3,7 +3,7 @@
 // main.ts only imports this when running under Vite dev outside Tauri.
 
 import { mockIPC } from "@tauri-apps/api/mocks";
-import type { HistoryRow, ItemView, LocalSettings, Snapshot, StatusView } from "../api/types";
+import type { HistoryRow, ItemView, LocalSettings, Snapshot, StatusView, SyncStatus } from "../api/types";
 
 const MIN = 60_000;
 
@@ -123,6 +123,29 @@ export function installMockBackend() {
     customSounds: [],
   };
 
+  // A blocky stand-in for the real QR, just to see the layout.
+  const PREVIEW_QR =
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 21 21" shape-rendering="crispEdges">' +
+    '<rect width="21" height="21" fill="#fff"/>' +
+    Array.from({ length: 21 * 21 }, (_, i) =>
+      (i * 7919) % 3 === 0
+        ? `<rect x="${i % 21}" y="${Math.floor(i / 21)}" width="1" height="1" fill="#000"/>`
+        : "",
+    ).join("") +
+    "</svg>";
+
+  const sync: SyncStatus = {
+    enabled: true,
+    listening: true,
+    port: 47823,
+    addrs: ["192.168.1.10", "100.64.0.2"],
+    fingerprint: "ab".repeat(32),
+    peers: [
+      { deviceId: "phone-1", name: "Pixel 8", pairedAt: now - 3 * 86_400_000, lastSeenAt: now - 4 * MIN },
+    ],
+    pairing: null,
+  };
+
   const history: HistoryRow[] = [
     { id: "h1", itemId: "stretch", kind: "done", occurrence: now - 20 * 60 * MIN, at: now - 19 * 60 * MIN, snoozeCount: 1, title: "Stretch", refId: null, prevCompletion: null, device: "phone" },
     { id: "h2", itemId: "rent", kind: "done", occurrence: now - 2 * 86_400_000, at: now - 2 * 86_400_000 + 7 * MIN, snoozeCount: 0, title: "Water plants", refId: null, prevCompletion: null, device: "preview" },
@@ -155,6 +178,28 @@ export function installMockBackend() {
         return { registersChanged: 42, historyAdded: 3, deleted: 0, localSettings: 1 };
       case "import_sound":
         return { kind: "custom", sha256: "abc123", name: "My alarm" };
+      case "sync_status":
+        return sync;
+      case "sync_set_enabled":
+        sync.enabled = a.enabled as boolean;
+        sync.listening = sync.enabled;
+        return null;
+      case "pairing_open": {
+        sync.pairing = {
+          code: "418302",
+          expiresAt: Date.now() + 5 * MIN,
+          triesLeft: 5,
+          uri: "dun://pair?v=1&id=preview&n=Desk%20PC&p=47823&a=192.168.1.10,100.64.0.2&fp=" + "ab".repeat(32) + "&c=418302",
+          qrSvg: PREVIEW_QR,
+        };
+        return sync.pairing;
+      }
+      case "pairing_close":
+        sync.pairing = null;
+        return null;
+      case "forget_peer":
+        sync.peers = sync.peers.filter((p) => p.deviceId !== a.deviceId);
+        return null;
       case "hotkey_status":
         return null;
       case "set_local_settings":

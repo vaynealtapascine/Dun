@@ -130,6 +130,32 @@ export type LocalSettings = {
   customSounds: ChimeRef[];
 };
 
+export type PeerView = {
+  deviceId: string;
+  name: string;
+  pairedAt: Ms;
+  lastSeenAt: Ms | null;
+};
+
+export type PairingView = {
+  code: string;
+  expiresAt: Ms;
+  triesLeft: number;
+  /** The text behind the QR code, for pasting. */
+  uri: string;
+  qrSvg: string;
+};
+
+export type SyncStatus = {
+  enabled: boolean;
+  listening: boolean;
+  port: number;
+  addrs: string[];
+  fingerprint: string;
+  peers: PeerView[];
+  pairing: PairingView | null;
+};
+
 export type ImportReport = {
   registersChanged: number;
   historyAdded: number;

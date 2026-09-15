@@ -9,7 +9,9 @@ import type {
   Ms,
   PresetDraft,
   Settings,
+  PairingView,
   Snapshot,
+  SyncStatus,
 } from "./types";
 
 export const api = {
@@ -57,6 +59,13 @@ export const api = {
   backupExport: () => invoke<string | null>("backup_export"),
   backupImport: (mode: "merge" | "replace") => invoke<ImportReport | null>("backup_import", { mode }),
   importSound: () => invoke<ChimeRef | null>("import_sound"),
+
+  syncStatus: () => invoke<SyncStatus>("sync_status"),
+  syncSetEnabled: (enabled: boolean, skipFirewall = false) =>
+    invoke<void>("sync_set_enabled", { enabled, skipFirewall }),
+  pairingOpen: () => invoke<PairingView>("pairing_open"),
+  pairingClose: () => invoke<void>("pairing_close"),
+  forgetPeer: (deviceId: string) => invoke<void>("forget_peer", { deviceId }),
 };
 
 /** Tauri rejects with the Rust error string; normalise for display. */

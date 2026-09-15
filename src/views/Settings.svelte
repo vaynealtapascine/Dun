@@ -1,11 +1,13 @@
 <script lang="ts">
   import { invoke } from "@tauri-apps/api/core";
-  import type { ChimeOption, ChimeRef, LocalSettings, Nag, QuietHours } from "../lib/api/types";
+  import { listen } from "@tauri-apps/api/event";
+  import type { ChimeOption, ChimeRef, LocalSettings, Nag, QuietHours, SyncStatus } from "../lib/api/types";
   import { api } from "../lib/api/commands";
   import { toCivilTime, toTimeInput } from "../lib/dates";
   import { when } from "../lib/format";
   import { app } from "../lib/stores/app.svelte";
   import HotkeyInput from "../lib/components/HotkeyInput.svelte";
+  import Pairing from "./Pairing.svelte";
   import Icon from "../lib/components/Icon.svelte";
   import TagDot from "../lib/components/TagDot.svelte";
 
@@ -18,6 +20,9 @@
   let newTag = $state("");
   let version = $state("");
   let hotkeyError = $state<string | null>(null);
+  let sync = $state<SyncStatus | null>(null);
+  let syncError = $state<string | null>(null);
+  let pairingOpen = $state(false);
 
   const DEFAULT_HOTKEY = "CommandOrControl+Alt+N";
 
@@ -25,6 +30,9 @@
     api.chimes().then((c) => (chimes = c)).catch(() => {});
     invoke<string>("app_version").then((v) => (version = v)).catch(() => {});
     api.hotkeyStatus().then((s) => (hotkeyError = s)).catch(() => {});
+    api.syncStatus().then((s) => (sync = s)).catch(() => {});
+    const changed = listen<SyncStatus>("sync-changed", (e) => (sync = e.payload));
+    return () => changed.then((f) => f());
   });
 
   function setQuiet(patch: Partial<QuietHours>) {
@@ -68,6 +76,22 @@
     if (report.historyAdded) parts.push(`${report.historyAdded} history entries`);
     if (report.deleted) parts.push(`${report.deleted} removed`);
     app.notify(`${mode === "merge" ? "Merged" : "Replaced"}: ${parts.join(", ")}`);
+  }
+
+  async function setSyncEnabled(enabled: boolean, skipFirewall = false) {
+    syncError = null;
+    try {
+      await api.syncSetEnabled(enabled, skipFirewall);
+      sync = await api.syncStatus();
+    } catch (e) {
+      syncError = String(e);
+    }
+  }
+
+  async function forget(deviceId: string, name: string) {
+    if (!confirm(`Forget ${name}? It will stop syncing until you pair it again.`)) return;
+    await app.run(() => api.forgetPeer(deviceId));
+    sync = await api.syncStatus();
   }
 
   const chimeKey = (c: ChimeRef) => (c.kind === "bundled" ? `b:${c.id}` : `c:${c.sha256}`);
@@ -259,6 +283,47 @@
     </section>
 
     <section class="card">
+      <h3>Sync <span class="scope">this device</span></h3>
+      <label class="switch">
+        <span>Sync with my phone over the local network</span>
+        <input
+          type="checkbox"
+          checked={sync?.enabled ?? false}
+          onchange={(e) => setSyncEnabled(e.currentTarget.checked)}
+        />
+      </label>
+      {#if syncError}
+        <p class="hint warn">{syncError}</p>
+        <div class="buttons">
+          <button class="btn" onclick={() => setSyncEnabled(true, true)}>Turn on anyway</button>
+        </div>
+      {/if}
+      {#if sync?.enabled}
+        <p class="hint muted">
+          {#if sync.listening}
+            Listening on {sync.addrs.length ? sync.addrs.join(" · ") : "this PC"}, port {sync.port}.
+          {:else}
+            Not listening yet.
+          {/if}
+        </p>
+        {#if sync.peers.length > 0}
+          <div class="peers">
+            {#each sync.peers as peer (peer.deviceId)}
+              <div class="peer">
+                <span class="name">{peer.name}</span>
+                <span class="muted">{peer.lastSeenAt ? `last synced ${when(peer.lastSeenAt, app.now)}` : "not synced yet"}</span>
+                <button class="btn btn-quiet small" onclick={() => forget(peer.deviceId, peer.name)}>Forget</button>
+              </div>
+            {/each}
+          </div>
+        {/if}
+        <div class="buttons">
+          <button class="btn btn-primary" onclick={() => (pairingOpen = true)}>Pair a phone…</button>
+        </div>
+      {/if}
+    </section>
+
+    <section class="card">
       <h3>Backup</h3>
       <p class="hint muted">
         A backup is one JSON file with every reminder, timer, tag, preset and setting, plus this device's own
@@ -274,6 +339,8 @@
         devices — match the file.
       </p>
     </section>
+
+    <Pairing bind:open={pairingOpen} status={sync} />
 
     <p class="about muted">Dun {version}</p>
   </div>
@@ -332,6 +399,28 @@
   .tags {
     display: grid;
     gap: 0.5rem;
+  }
+  .peers {
+    display: grid;
+    gap: 0.35rem;
+  }
+  .peer {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    font-size: 0.9rem;
+  }
+  .peer .name {
+    font-weight: 600;
+  }
+  .peer .muted {
+    flex: 1;
+    font-size: 0.83rem;
+  }
+  .small {
+    min-height: 2rem;
+    font-size: 0.85rem;
   }
   .tag {
     display: flex;
