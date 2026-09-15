@@ -21,6 +21,14 @@
 <dialog
   bind:this={dialog}
   onclose={() => (open = false)}
+  onkeydown={(e) => {
+    // Chromium only fires `cancel` for Escape after certain user activation,
+    // so don't rely on it.
+    if (e.key === "Escape" && !e.defaultPrevented) {
+      e.preventDefault();
+      open = false;
+    }
+  }}
   onclick={(e) => {
     // Click on the backdrop closes.
     if (e.target === dialog) open = false;
