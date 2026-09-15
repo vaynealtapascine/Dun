@@ -5,6 +5,7 @@
 //! that depends on time takes `now` (and a time zone) as an argument so it can
 //! be driven by a fake clock in tests.
 
+pub mod hlc;
 pub mod model;
 pub mod occurrence;
 pub mod quiet;
