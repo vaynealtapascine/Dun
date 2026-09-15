@@ -88,6 +88,23 @@ pub struct ItemDraft {
     pub start_timer: bool,
 }
 
+/// Validates a draft exactly as saving would and returns when it would next
+/// ring (up to `count` times), so previews can't disagree with the engine.
+/// Timers preview as if started now.
+pub fn preview(
+    draft: &ItemDraft,
+    now: Timestamp,
+    tz: &TimeZone,
+    count: usize,
+) -> Result<Vec<Timestamp>> {
+    validate(draft)?;
+    Ok(match &draft.schedule {
+        Schedule::OneOff { due } => vec![*due],
+        Schedule::Timer { duration_ms } => vec![now.plus(*duration_ms)],
+        Schedule::Recurring { recurrence, .. } => recurrence.upcoming(now, count, tz),
+    })
+}
+
 fn validate(draft: &ItemDraft) -> Result<()> {
     if draft.title.trim().is_empty() {
         return Err(ActionError::EmptyTitle);
@@ -1107,5 +1124,48 @@ mod tests {
 
         let all = snooze_many(&s, now, &UTC, &["a".into(), "b".into(), "gone".into()], 15).unwrap();
         assert_eq!(all.writes.len(), 2);
+    }
+    #[test]
+    fn preview_validates_and_lists_next_rings() {
+        use crate::recurrence::{Recurrence, Rule};
+        let now = at(date(2026, 9, 16).at(10, 0, 0, 0));
+        let daily = ItemDraft {
+            schedule: Schedule::Recurring {
+                recurrence: Recurrence {
+                    rule: Rule::Daily {
+                        every: 1,
+                        times: vec![time(9, 0, 0, 0), time(21, 0, 0, 0)],
+                    },
+                    start: date(2026, 9, 16).at(0, 0, 0, 0),
+                    tz: None,
+                },
+                mode: Default::default(),
+                effective_from: Timestamp(0),
+            },
+            ..reminder("Meds", Timestamp(0))
+        };
+        let next = preview(&daily, now, &UTC, 3).unwrap();
+        assert_eq!(
+            next,
+            [
+                at(date(2026, 9, 16).at(21, 0, 0, 0)),
+                at(date(2026, 9, 17).at(9, 0, 0, 0)),
+                at(date(2026, 9, 17).at(21, 0, 0, 0))
+            ]
+        );
+        let timer = ItemDraft {
+            schedule: Schedule::Timer {
+                duration_ms: 45 * MINUTE,
+            },
+            ..reminder("x", now)
+        };
+        assert_eq!(
+            preview(&timer, now, &UTC, 3).unwrap(),
+            [now.plus(45 * MINUTE)]
+        );
+        assert_eq!(
+            preview(&reminder(" ", now), now, &UTC, 3),
+            Err(ActionError::EmptyTitle)
+        );
     }
 }

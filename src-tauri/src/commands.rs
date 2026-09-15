@@ -58,6 +58,12 @@ pub fn create_item<R: Runtime>(
     mutate(&app, &core, |e, now, _| e.create_item(now, draft))
 }
 
+/// When a draft would next ring (up to 3 times), validated like a save.
+#[tauri::command]
+pub fn preview_schedule(core: Core<'_>, draft: ItemDraft) -> CmdResult<Vec<Timestamp>> {
+    dun_core::actions::preview(&draft, core.now(), &core.tz(), 3).map_err(|e| e.to_string())
+}
+
 #[tauri::command]
 pub fn update_item<R: Runtime>(
     app: AppHandle<R>,

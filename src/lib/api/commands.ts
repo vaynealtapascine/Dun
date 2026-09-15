@@ -15,6 +15,7 @@ export const api = {
   snapshot: () => invoke<Snapshot>("get_snapshot"),
 
   createItem: (draft: ItemDraft) => invoke<string>("create_item", { draft }),
+  previewSchedule: (draft: ItemDraft) => invoke<Ms[]>("preview_schedule", { draft }),
   updateItem: (id: string, draft: ItemDraft) => invoke<void>("update_item", { id, draft }),
   deleteItem: (id: string, deleted = true) => invoke<void>("delete_item", { id, deleted }),
 

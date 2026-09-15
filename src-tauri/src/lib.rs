@@ -88,6 +88,7 @@ pub fn run() {
             app_version,
             commands::get_snapshot,
             commands::create_item,
+            commands::preview_schedule,
             commands::update_item,
             commands::delete_item,
             commands::mark_done,
