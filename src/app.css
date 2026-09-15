@@ -1,25 +1,50 @@
 :root {
   color-scheme: light dark;
-  --bg: #f6f6f4;
+  --bg: #f4f4f2;
   --bg-raised: #ffffff;
+  --bg-sunken: #ebebe7;
   --fg: #1c1c1e;
   --fg-muted: #6b6b70;
-  --border: #e2e2de;
-  --accent: #e0483e;
-  font-family: "Segoe UI Variable", "Segoe UI", system-ui, -apple-system, Roboto, sans-serif;
+  --fg-faint: #a0a0a5;
+  --border: #e0e0db;
+  --accent: #d9443a;
+  --accent-fg: #ffffff;
+  --ringing: #d9443a;
+  --ringing-bg: #fdeceb;
+  --overdue: #b7791f;
+  --overdue-bg: #fbf3e4;
+  --ok: #2f855a;
+  --focus: #3a86ff;
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.06), 0 4px 16px rgba(0, 0, 0, 0.06);
+  --radius: 12px;
+  --radius-sm: 8px;
+  font-family: "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, Roboto, sans-serif;
   font-size: 15px;
   line-height: 1.4;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #161618;
-    --bg-raised: #202023;
+    --bg: #141416;
+    --bg-raised: #1e1e21;
+    --bg-sunken: #0f0f11;
     --fg: #ececee;
     --fg-muted: #9a9aa0;
-    --border: #2e2e33;
+    --fg-faint: #5e5e64;
+    --border: #2c2c31;
     --accent: #ff6259;
+    --accent-fg: #1a0907;
+    --ringing: #ff6259;
+    --ringing-bg: #3a1917;
+    --overdue: #e8b04a;
+    --overdue-bg: #33270f;
+    --ok: #5fcf8e;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 6px 20px rgba(0, 0, 0, 0.35);
   }
+}
+
+* {
+  box-sizing: border-box;
 }
 
 html,
@@ -27,8 +52,177 @@ body {
   margin: 0;
   background: var(--bg);
   color: var(--fg);
+  -webkit-font-smoothing: antialiased;
 }
 
-* {
-  box-sizing: border-box;
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+
+:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  min-height: 2.25rem;
+  padding: 0.4rem 0.85rem;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--bg-raised);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.btn:hover {
+  border-color: var(--fg-faint);
+}
+.btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.btn-primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-fg);
+  font-weight: 600;
+}
+.btn-primary:hover {
+  border-color: var(--accent);
+  filter: brightness(1.05);
+}
+.btn-danger {
+  color: var(--ringing);
+}
+.btn-quiet {
+  border-color: transparent;
+  background: transparent;
+}
+
+.icon-btn {
+  display: inline-grid;
+  place-items: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 999px;
+  border: none;
+  background: transparent;
+  color: var(--fg-muted);
+  cursor: pointer;
+}
+.icon-btn:hover {
+  background: var(--bg-sunken);
+  color: var(--fg);
+}
+
+.muted {
+  color: var(--fg-muted);
+}
+
+.field {
+  display: grid;
+  gap: 0.3rem;
+}
+.field > span {
+  font-size: 0.8rem;
+  color: var(--fg-muted);
+}
+.input,
+select.input,
+textarea.input {
+  width: 100%;
+  min-height: 2.4rem;
+  padding: 0.45rem 0.7rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--bg-raised);
+}
+textarea.input {
+  resize: vertical;
+  min-height: 4rem;
+}
+
+.segmented {
+  display: flex;
+  padding: 3px;
+  border-radius: 999px;
+  background: var(--bg-sunken);
+}
+.segmented button {
+  flex: 1;
+  padding: 0.35rem 0.6rem;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--fg-muted);
+  cursor: pointer;
+}
+.segmented button[aria-pressed="true"],
+.segmented button[aria-selected="true"] {
+  background: var(--bg-raised);
+  color: var(--fg);
+  box-shadow: var(--shadow);
+  font-weight: 600;
+}
+
+.switch {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  min-height: 2.4rem;
+  cursor: pointer;
+}
+.switch input {
+  appearance: none;
+  flex: none;
+  width: 2.6rem;
+  height: 1.5rem;
+  border-radius: 999px;
+  background: var(--bg-sunken);
+  border: 1px solid var(--border);
+  position: relative;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.switch input::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 1.1rem;
+  height: 1.1rem;
+  border-radius: 999px;
+  background: var(--fg-faint);
+  transition: transform 0.15s, background 0.15s;
+}
+.switch input:checked {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+.switch input:checked::after {
+  transform: translateX(1.1rem);
+  background: #fff;
+}
+
+.card {
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
 }
