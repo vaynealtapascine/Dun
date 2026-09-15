@@ -47,6 +47,29 @@
     else if (patch.hotkey !== undefined) hotkeyError = null;
   }
 
+  async function importSound() {
+    const chime = await app.run(() => api.importSound());
+    if (!chime) return;
+    chimes = await api.chimes();
+    setLocal({ chime });
+    app.notify(`Added ${chime.kind === "custom" ? chime.name : chime.id}`);
+    api.playChime(chime);
+  }
+
+  async function exportBackup() {
+    const path = await app.run(() => api.backupExport());
+    if (path) app.notify(`Saved to ${path}`);
+  }
+
+  async function importBackup(mode: "merge" | "replace") {
+    const report = await app.run(() => api.backupImport(mode));
+    if (!report) return; // cancelled
+    const parts = [`${report.registersChanged} changes`];
+    if (report.historyAdded) parts.push(`${report.historyAdded} history entries`);
+    if (report.deleted) parts.push(`${report.deleted} removed`);
+    app.notify(`${mode === "merge" ? "Merged" : "Replaced"}: ${parts.join(", ")}`);
+  }
+
   const chimeKey = (c: ChimeRef) => (c.kind === "bundled" ? `b:${c.id}` : `c:${c.sha256}`);
   const muted = $derived(settings?.muteUntil != null && settings.muteUntil > app.now);
 </script>
@@ -144,6 +167,7 @@
             {/each}
           </select>
           <button class="icon-btn" aria-label="Play" onclick={() => api.playChime(local.chime)}><Icon name="play" size={16} /></button>
+          <button class="btn" onclick={importSound}>Import…</button>
         </div>
       </div>
       <label class="field">
@@ -232,6 +256,23 @@
           <button class="btn" type="submit"><Icon name="plus" size={14} /> Add</button>
         </form>
       </div>
+    </section>
+
+    <section class="card">
+      <h3>Backup</h3>
+      <p class="hint muted">
+        A backup is one JSON file with every reminder, timer, tag, preset and setting, plus this device's own
+        settings.
+      </p>
+      <div class="buttons">
+        <button class="btn" onclick={exportBackup}>Export…</button>
+        <button class="btn" onclick={() => importBackup("merge")}>Merge a backup…</button>
+        <button class="btn btn-danger" onclick={() => importBackup("replace")}>Replace from backup…</button>
+      </div>
+      <p class="hint muted">
+        Merge keeps whatever is newer on either side. Replace makes this device — and, once they sync, your other
+        devices — match the file.
+      </p>
     </section>
 
     <p class="about muted">Dun {version}</p>

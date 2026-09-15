@@ -329,3 +329,120 @@ pub fn quickadd_open_form<R: Runtime>(app: AppHandle<R>, draft: serde_json::Valu
     crate::desktop::window::show_main(&app);
     let _ = app.emit_to("main", "open-form", draft);
 }
+
+// ---- backup and sounds (native dialogs; async so the blocking dialog never
+// runs on the main thread) ----
+
+use dun_core::backup::{ImportMode, ImportReport};
+use tauri_plugin_dialog::{DialogExt, MessageDialogButtons, MessageDialogKind};
+
+/// Writes a JSON backup wherever the user picks. Returns the path, or None if
+/// they cancelled.
+#[tauri::command]
+pub async fn backup_export<R: Runtime>(
+    app: AppHandle<R>,
+    core: Core<'_>,
+) -> CmdResult<Option<String>> {
+    let (now, tz) = (core.now(), core.tz());
+    let suggested = format!("dun-backup-{}.json", now.to_zoned(&tz).strftime("%Y-%m-%d"));
+    let Some(file) = app
+        .dialog()
+        .file()
+        .add_filter("Dun backup", &["json"])
+        .set_file_name(suggested)
+        .blocking_save_file()
+    else {
+        return Ok(None);
+    };
+    let path = file.into_path().map_err(|e| e.to_string())?;
+    let json = {
+        let engine = core.engine();
+        let backup = engine.export_backup(now).map_err(|e| e.to_string())?;
+        serde_json::to_string_pretty(&backup).map_err(|e| e.to_string())?
+    };
+    std::fs::write(&path, json).map_err(|e| format!("{}: {e}", path.display()))?;
+    Ok(Some(path.display().to_string()))
+}
+
+/// Restores a backup. "merge" keeps whatever is newer on either side;
+/// "replace" makes this device (and its peers) match the file, so it asks
+/// first.
+#[tauri::command]
+pub async fn backup_import<R: Runtime>(
+    app: AppHandle<R>,
+    core: Core<'_>,
+    mode: String,
+) -> CmdResult<Option<ImportReport>> {
+    let mode = match mode.as_str() {
+        "merge" => ImportMode::Merge,
+        "replace" => ImportMode::Replace,
+        other => return Err(format!("unknown import mode '{other}'")),
+    };
+    let Some(file) = app
+        .dialog()
+        .file()
+        .add_filter("Dun backup", &["json"])
+        .blocking_pick_file()
+    else {
+        return Ok(None);
+    };
+    let path = file.into_path().map_err(|e| e.to_string())?;
+    let text = std::fs::read_to_string(&path).map_err(|e| format!("{}: {e}", path.display()))?;
+    let backup = dun_core::backup::parse(&text).map_err(|e| e.to_string())?;
+
+    if mode == ImportMode::Replace {
+        let confirmed = app
+            .dialog()
+            .message(format!(
+                "Replace everything on this device with the {} reminders in this backup?\n\nAnything not in the file is deleted here and on your phone.",
+                backup.registers.iter().filter(|r| r.field == "created").count()
+            ))
+            .title("Replace from backup")
+            .kind(MessageDialogKind::Warning)
+            .buttons(MessageDialogButtons::OkCancelCustom(
+                "Replace".into(),
+                "Cancel".into(),
+            ))
+            .blocking_show();
+        if !confirmed {
+            return Ok(None);
+        }
+    }
+
+    let now = core.now();
+    let report = {
+        let mut engine = core.engine();
+        engine
+            .import_backup(now, &backup, mode)
+            .map_err(|e| e.to_string())?
+    };
+    changed(&app, &core);
+    Ok(Some(report))
+}
+
+/// Copies a sound file into Dun's sounds folder and remembers it for the
+/// chime pickers.
+#[tauri::command]
+pub async fn import_sound<R: Runtime>(
+    app: AppHandle<R>,
+    core: Core<'_>,
+) -> CmdResult<Option<dun_core::model::ChimeRef>> {
+    let Some(file) = app
+        .dialog()
+        .file()
+        .add_filter("Sound", crate::desktop::audio::IMPORT_EXTENSIONS)
+        .blocking_pick_file()
+    else {
+        return Ok(None);
+    };
+    let path = file.into_path().map_err(|e| e.to_string())?;
+    let chime = crate::desktop::audio::import(&path, &core.data_dir().join("sounds"))?;
+
+    let mut settings = core.local_settings();
+    if !settings.custom_sounds.contains(&chime) {
+        settings.custom_sounds.push(chime.clone());
+        core.set_local_settings(&settings)?;
+        let _ = app.emit("local-settings-changed", &settings);
+    }
+    Ok(Some(chime))
+}

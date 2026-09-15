@@ -130,6 +130,13 @@ export type LocalSettings = {
   customSounds: ChimeRef[];
 };
 
+export type ImportReport = {
+  registersChanged: number;
+  historyAdded: number;
+  deleted: number;
+  localSettings: number;
+};
+
 export type ItemDraft = {
   title: string;
   notes: string;

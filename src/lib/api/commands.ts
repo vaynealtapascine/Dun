@@ -1,6 +1,7 @@
 import { invoke } from "@tauri-apps/api/core";
 import type {
   ChimeOption,
+  ImportReport,
   ChimeRef,
   HistoryRow,
   ItemDraft,
@@ -52,6 +53,10 @@ export const api = {
   quickaddHide: () => invoke<void>("quickadd_hide"),
   quickaddFit: (height: number) => invoke<void>("quickadd_fit", { height }),
   quickaddOpenForm: (draft: Partial<ItemDraft>) => invoke<void>("quickadd_open_form", { draft }),
+
+  backupExport: () => invoke<string | null>("backup_export"),
+  backupImport: (mode: "merge" | "replace") => invoke<ImportReport | null>("backup_import", { mode }),
+  importSound: () => invoke<ChimeRef | null>("import_sound"),
 };
 
 /** Tauri rejects with the Rust error string; normalise for display. */

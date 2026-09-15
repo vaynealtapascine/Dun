@@ -149,6 +149,12 @@ export function installMockBackend() {
         if (s.kind === "timer") return [t + s.durationMs];
         return [t + 60 * MIN, t + 25 * 60 * MIN, t + 49 * 60 * MIN];
       }
+      case "backup_export":
+        return "C:/Users/you/Documents/dun-backup.json";
+      case "backup_import":
+        return { registersChanged: 42, historyAdded: 3, deleted: 0, localSettings: 1 };
+      case "import_sound":
+        return { kind: "custom", sha256: "abc123", name: "My alarm" };
       case "hotkey_status":
         return null;
       case "set_local_settings":

@@ -51,6 +51,7 @@ pub fn run() {
             tauri_plugin_autostart::MacosLauncher::LaunchAgent,
             Some(vec!["--hidden"]),
         ))
+        .plugin(tauri_plugin_dialog::init())
         .plugin(desktop::hotkey::plugin())
         .plugin(tauri_plugin_dun_android::init())
         .manage(desktop::hotkey::HotkeyStatus::default())
@@ -131,6 +132,9 @@ pub fn run() {
             commands::quickadd_hide,
             commands::quickadd_fit,
             commands::quickadd_open_form,
+            commands::backup_export,
+            commands::backup_import,
+            commands::import_sound,
         ])
         .run(tauri::generate_context!())
         .expect("error while running Dun");
