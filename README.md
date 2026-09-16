@@ -39,6 +39,12 @@ target-dir = "F:/DunBuild/target"
 `scripts/dev-env.ps1` uses the same root (`DUN_BUILD_ROOT`, default `F:\DunBuild`) for the NDK (`android-sdk\ndk\<version>`) and `GRADLE_USER_HOME`.
 
 ### Common commands
+A debug build loads its UI from the Vite dev server, so start it with
+`npm run tauri dev` (which starts both). Running `target/debug/dun.exe` on its
+own gives a window saying *localhost refused to connect* — the Rust side is
+running fine, it just has no UI to show. Release builds have the UI baked in
+and need nothing else.
+
 ```powershell
 npm install
 npm run tauri dev                 # desktop app with hot reload

@@ -119,6 +119,13 @@ Things that cost an hour once and shouldn't cost another:
   UI automation that looks for buttons by name finds only the window frame.
   Prefer driving the app through its own commands, or a dev flag, over poking
   the UI.
+- **A debug binary run on its own shows "localhost refused to connect."** Its
+  UI comes from the Vite dev server, so it needs `npm run tauri dev` (or a
+  separate `npm run dev`). Everything in Rust still runs, which makes this easy
+  to miss when testing the backend — and alarming to walk past.
+- **Samsung won't enter deep Doze over USB.** `dumpsys deviceidle force-idle`
+  stops at INACTIVE however the battery is faked, so Doze has to be tested with
+  the cable out, over Wi-Fi debugging.
 - **Native file dialogs** (backup export/import, sound import) block automation
   outright; those flows need a person.
 - **`setAlarmClock` is the only alarm that nags every minute.**
