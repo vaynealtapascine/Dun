@@ -11,11 +11,26 @@ pub const LABEL: &str = "quickadd";
 const WIDTH: f64 = 560.0;
 const MAX_HEIGHT: f64 = 400.0;
 
-/// Hides the window when the user switches away from it.
-pub fn setup<R: Runtime>(app: &AppHandle<R>) {
-    let Some(window) = app.get_webview_window(LABEL) else {
-        return;
-    };
+/// Creates the bar (hidden) and hides it again when the user switches away.
+///
+/// Built here rather than in `tauri.conf.json` because that config is shared
+/// with Android, where a second window turns into *the* window.
+pub fn setup<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<()> {
+    let window = tauri::WebviewWindowBuilder::new(app, LABEL, tauri::WebviewUrl::default())
+        .title("Dun quick add")
+        .inner_size(WIDTH, 64.0)
+        .decorations(false)
+        .always_on_top(true)
+        .skip_taskbar(true)
+        .resizable(false)
+        .visible(false)
+        .focused(false)
+        .build()?;
+    watch(window);
+    Ok(())
+}
+
+fn watch<R: Runtime>(window: WebviewWindow<R>) {
     let w = window.clone();
     window.on_window_event(move |event| match event {
         // On Windows `Focused(false)` comes from WebView2's LostFocus, which also

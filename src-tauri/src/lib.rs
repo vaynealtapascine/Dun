@@ -86,7 +86,7 @@ pub fn run() {
             desktop::window::apply_theme(app.handle(), &local.theme);
             desktop::sync_autostart(app.handle(), local.autostart);
             desktop::tray::create(app.handle())?;
-            desktop::quickadd::setup(app.handle());
+            desktop::quickadd::setup(app.handle())?;
             desktop::hotkey::register_saved(app.handle(), &local.hotkey);
             if let Some(main) = app.get_webview_window("main") {
                 desktop::window::keep_alive_on_close(&main);

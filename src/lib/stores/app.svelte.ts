@@ -1,6 +1,18 @@
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { api, errorText } from "../api/commands";
+import { isDesktop } from "../platform";
 import type { LocalSettings, Snapshot } from "../api/types";
+
+/** Stand-in so shared views that read device settings still render on Android. */
+const PHONE_LOCAL: LocalSettings = {
+  chime: { kind: "bundled", id: "bell" },
+  volume: 1,
+  hotkey: "",
+  autostart: false,
+  idleThresholdS: 300,
+  theme: "system",
+  customSounds: [],
+};
 
 /**
  * App-wide reactive state: the latest snapshot from Rust (pushed on every
@@ -36,7 +48,9 @@ class AppStore {
   async start() {
     try {
       this.setSnapshot(await api.snapshot());
-      this.local = await api.localSettings();
+      // Device settings are the desktop's (tray, hotkey, autostart); the phone
+      // keeps its own handful in Android settings and its sync status.
+      this.local = isDesktop ? await api.localSettings() : PHONE_LOCAL;
     } catch (e) {
       this.error = errorText(e);
     }

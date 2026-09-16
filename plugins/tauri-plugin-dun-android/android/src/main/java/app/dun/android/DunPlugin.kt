@@ -9,10 +9,14 @@ import android.net.Uri
 import android.os.Build
 import android.os.PowerManager
 import android.provider.Settings
+import android.content.res.Configuration
+import android.view.View
 import android.webkit.WebView
 import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import app.tauri.annotation.Command
 import app.tauri.annotation.TauriPlugin
 import app.tauri.plugin.Invoke
@@ -26,12 +30,38 @@ class DunPlugin(private val activity: Activity) : Plugin(activity) {
 
     override fun load(webView: WebView) {
         Channels.ensure(activity)
+        fitSystemBars(webView)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
             ContextCompat.checkSelfPermission(activity, Manifest.permission.POST_NOTIFICATIONS) !=
             PackageManager.PERMISSION_GRANTED
         ) {
             ActivityCompat.requestPermissions(activity, arrayOf(Manifest.permission.POST_NOTIFICATIONS), 7001)
         }
+    }
+
+    /**
+     * Android draws the app edge to edge, so pad the web view by the status
+     * bar, navigation bar, any display cutout and the keyboard. Without this
+     * the first row of the UI sits under the clock.
+     */
+    private fun fitSystemBars(webView: WebView) {
+        val night = activity.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK ==
+            Configuration.UI_MODE_NIGHT_YES
+        // Matches the page background so the padded strip isn't a white band.
+        webView.setBackgroundColor(if (night) 0xFF141416.toInt() else 0xFFF4F4F2.toInt())
+        // The listener goes on the activity's content view: Tauri's own layout
+        // sits between it and the web view and would otherwise swallow them.
+        val content: View = activity.findViewById(android.R.id.content)
+        ViewCompat.setOnApplyWindowInsetsListener(content) { view: View, insets: WindowInsetsCompat ->
+            val bars = insets.getInsets(
+                WindowInsetsCompat.Type.systemBars() or
+                    WindowInsetsCompat.Type.displayCutout() or
+                    WindowInsetsCompat.Type.ime()
+            )
+            view.setPadding(bars.left, bars.top, bars.right, bars.bottom)
+            WindowInsetsCompat.CONSUMED
+        }
+        ViewCompat.requestApplyInsets(content)
     }
 
     /** In-app path: Rust already computed the plan; carry it out like a receiver would. */

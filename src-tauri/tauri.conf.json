@@ -19,18 +19,6 @@
         "minWidth": 360,
         "minHeight": 480,
         "visible": false
-      },
-      {
-        "label": "quickadd",
-        "title": "Dun quick add",
-        "width": 560,
-        "height": 64,
-        "decorations": false,
-        "alwaysOnTop": true,
-        "skipTaskbar": true,
-        "resizable": false,
-        "visible": false,
-        "focus": false
       }
     ],
     "security": {
