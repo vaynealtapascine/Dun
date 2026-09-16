@@ -42,7 +42,13 @@ object PlanExecutor {
         apply(context, response.getJSONObject("plan"))
     }
 
-    fun apply(context: Context, plan: JSONObject) {
+    /**
+     * [fromWorker] is set by [PendingPushWorker], which decides its own fate by
+     * returning retry or success — cancelling its own job from in here would
+     * interrupt it mid-run.
+     */
+    @JvmOverloads
+    fun apply(context: Context, plan: JSONObject, fromWorker: Boolean = false) {
         Channels.ensure(context)
         val nm = NotificationManagerCompat.from(context)
 
@@ -58,6 +64,16 @@ object PlanExecutor {
             cancelAlarm(context)
         } else {
             setAlarm(context, plan.getLong("nextWakeAt"))
+        }
+
+        // Changes the PC hasn't acknowledged need a way through that doesn't
+        // depend on something else being due.
+        if (!fromWorker) {
+            if (plan.optBoolean("pendingPush", false)) {
+                PendingPushWorker.ensure(context)
+            } else {
+                PendingPushWorker.cancel(context)
+            }
         }
 
         plan.optString("log").takeIf { it.isNotEmpty() }?.let { Log.i(TAG, it) }

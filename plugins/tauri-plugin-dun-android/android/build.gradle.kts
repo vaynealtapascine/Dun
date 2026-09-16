@@ -29,5 +29,7 @@ android {
 dependencies {
     implementation("androidx.core:core-ktx:1.13.1")
     implementation("androidx.appcompat:appcompat:1.7.1")
+    // Retries a push the PC didn't acknowledge, once there's a network again.
+    implementation("androidx.work:work-runtime-ktx:2.10.1")
     implementation(project(":tauri-android"))
 }
