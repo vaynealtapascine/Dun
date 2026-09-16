@@ -314,6 +314,13 @@
             Not listening yet.
           {/if}
         </p>
+        {#if sync.publicNetworks.length > 0}
+          <p class="hint warn">
+            Windows has {sync.publicNetworks.join(" and ")} set to Public, and blocks incoming connections there. In
+            Windows network settings, change {sync.publicNetworks.length > 1 ? "them" : "it"} to Private, or your phone
+            won't reach this PC.
+          </p>
+        {/if}
         {#if sync.peers.length > 0}
           <div class="peers">
             {#each sync.peers as peer (peer.deviceId)}

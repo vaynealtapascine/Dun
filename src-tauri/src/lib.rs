@@ -113,6 +113,14 @@ pub fn run() {
             if let Err(e) = started {
                 eprintln!("sync: {e}");
             }
+            // The invite is otherwise only on screen, as a QR code and six
+            // digits; printing it lets a test pair a device without a person.
+            if dev_sync {
+                match sync.open_pairing() {
+                    Ok(view) => eprintln!("sync: pairing invite {}", view.uri),
+                    Err(e) => eprintln!("sync: {e}"),
+                }
+            }
             app.manage(sync.clone());
 
             let audio = desktop::audio::Audio::start(dir.join("sounds"));

@@ -55,6 +55,9 @@ pub struct SyncStatus {
     pub peers: Vec<PeerView>,
     /// Set while the Pairing dialog is open.
     pub pairing: Option<PairingView>,
+    /// Connected networks Windows has marked Public, where it blocks the phone
+    /// however well everything else is set up.
+    pub public_networks: Vec<String>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -210,6 +213,11 @@ impl<R: Runtime> SyncHub<R> {
                 })
                 .collect(),
             pairing: pairing.as_ref().and_then(|p| self.view_of(p).ok()),
+            public_networks: if self.listening() {
+                super::network::public_networks()
+            } else {
+                Vec::new()
+            },
         }
     }
 

@@ -144,6 +144,7 @@ export function installMockBackend() {
       { deviceId: "phone-1", name: "Pixel 8", pairedAt: now - 3 * 86_400_000, lastSeenAt: now - 4 * MIN },
     ],
     pairing: null,
+    publicNetworks: [],
   };
 
   const history: HistoryRow[] = [

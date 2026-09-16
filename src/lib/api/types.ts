@@ -154,6 +154,8 @@ export type SyncStatus = {
   fingerprint: string;
   peers: PeerView[];
   pairing: PairingView | null;
+  /** Connected networks Windows treats as Public, where it blocks the phone. */
+  publicNetworks: string[];
 };
 
 export type ImportReport = {
