@@ -8,7 +8,6 @@
   import Icon from "./lib/components/Icon.svelte";
   import QuickAdd from "./lib/components/QuickAdd.svelte";
   import TagDot from "./lib/components/TagDot.svelte";
-  import AlarmSpike from "./views/AlarmSpike.svelte";
   import History from "./views/History.svelte";
   import ItemForm from "./views/ItemForm.svelte";
   import Reminders from "./views/Reminders.svelte";
@@ -16,9 +15,6 @@
   import Timers from "./views/Timers.svelte";
 
   type Tab = "reminders" | "timers" | "history";
-
-  // The Android build still runs the alarm spike until the phone app lands.
-  const isAndroid = navigator.userAgent.includes("Android") && !("__DUN_PREVIEW__" in window);
 
   let tab = $state<Tab>("reminders");
   let showSettings = $state(false);
@@ -29,7 +25,6 @@
   let prefill = $state<Partial<ItemDraft> | null>(null);
 
   $effect(() => {
-    if (isAndroid) return;
     app.start();
     const focus = listen<string>("focus-item", (e) => {
       const item = app.snapshot?.items.find((i) => i.id === e.payload);
@@ -66,10 +61,7 @@
   }
 </script>
 
-{#if isAndroid}
-  <main class="spike"><h1>Dun</h1><AlarmSpike /></main>
-{:else}
-  <div class="app">
+<div class="app">
     <header>
       {#if showSettings}
         <button class="icon-btn" aria-label="Back" onclick={() => (showSettings = false)}>
@@ -155,8 +147,7 @@
     {/if}
   </div>
 
-  <ItemForm bind:open={formOpen} item={editing} {prefill} initialKind={tab === "timers" ? "timer" : "once"} />
-{/if}
+<ItemForm bind:open={formOpen} item={editing} {prefill} initialKind={tab === "timers" ? "timer" : "once"} />
 
 <style>
   .app {
@@ -308,8 +299,5 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-  }
-  .spike {
-    padding: max(2rem, env(safe-area-inset-top)) 1rem 2rem;
   }
 </style>

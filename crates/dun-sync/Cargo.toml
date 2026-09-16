@@ -11,17 +11,23 @@ serde.workspace = true
 serde_json.workspace = true
 thiserror.workspace = true
 
-axum = { version = "0.8", default-features = false, features = ["http1", "json", "tokio"] }
+axum = { version = "0.8", default-features = false, features = ["http1", "json", "tokio"], optional = true }
 # No provider feature: we install ring ourselves (aws-lc needs NASM on Windows).
-axum-server = { version = "0.8", default-features = false, features = ["tls-rustls-no-provider"] }
-reqwest = { version = "0.13", default-features = false, features = ["rustls-no-provider", "json", "http2"] }
+axum-server = { version = "0.8", default-features = false, features = ["tls-rustls-no-provider"], optional = true }
+reqwest = { version = "0.13", default-features = false, features = ["rustls-no-provider", "json", "http2"], optional = true }
 rustls = { version = "0.23", default-features = false, features = ["ring", "std", "tls12", "logging"] }
 rustls-pki-types = "1"
-rustls-pemfile = "2"
+rustls-pemfile = { version = "2", optional = true }
 rcgen = { version = "0.14", default-features = false, features = ["ring", "pem", "x509-parser"] }
 tokio = { version = "1", features = ["rt-multi-thread", "net", "time", "sync"] }
 sha2 = "0.10"
 getrandom = "0.3"
+
+[features]
+default = ["server", "client"]
+# The PC listens; the phone only ever connects.
+server = ["dep:axum", "dep:axum-server", "dep:rustls-pemfile"]
+client = ["dep:reqwest"]
 
 [dev-dependencies]
 tempfile = "3"

@@ -74,11 +74,6 @@ pub enum Event {
     },
     AppStarted,
     SyncOnly,
-    /// M1 spike only: schedule a test ring `delay_ms` from now.
-    #[serde(rename_all = "camelCase")]
-    SpikeStart {
-        delay_ms: i64,
-    },
 }
 
 #[derive(Debug, Clone, Serialize)]

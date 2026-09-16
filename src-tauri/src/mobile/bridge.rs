@@ -1,34 +1,31 @@
 //! Entry point shared by Android's background receivers (through JNI) and the
-//! in-app command path. It opens the process-wide database, applies one event
-//! and returns the plan Kotlin should carry out.
+//! in-app command path.
 //!
-//! **M1 spike:** the event handling below drives a single test ring so the
-//! alarm → receiver → JNI → SQLite → notification loop can be exercised on a
-//! real device before the core scheduler exists. It is replaced by the real
-//! core in M10; the JSON contract in `plan.rs` stays.
+//! One event in, one [`Plan`] out: apply what the user pressed, check in with
+//! the PC if anything is about to ring or is waiting to be pushed, evaluate as
+//! the phone, and hand Kotlin the exact notifications and next alarm. Kotlin
+//! decides nothing.
 
-use std::path::{Path, PathBuf};
-use std::sync::Mutex;
 use std::time::Instant;
 
-use rusqlite::{params, Connection, OptionalExtension};
+use dun_core::engine::Engine;
+use dun_core::model::ChimeRef;
+use dun_core::scheduler::{AlertLevel, Effect, Role};
+use dun_core::sync::protocol::DueItem;
+use dun_core::time::{TimeZone, Timestamp};
 
+use super::core;
 use super::plan::{Button, Event, Plan, Post, Response};
+use super::sync::{self, CheckIn};
 
-pub const SPIKE_ITEM: &str = "spike";
-const SPIKE_NOTIF: i32 = 1;
-const NAG_INTERVAL_MS: i64 = 60_000;
-/// Alarms can arrive a little early; treat anything this close as due.
-const EARLY_TOLERANCE_MS: i64 = 1_500;
+/// Reserved notification ids. Item notifications hash into everything else.
+pub const SUMMARY_NOTIF_ID: i32 = 1;
+/// Kotlin's fail-loud notification uses `Int.MAX_VALUE`.
+const RESERVED_HIGH: i32 = i32::MAX;
 
-struct Shared {
-    dir: PathBuf,
-    store: SpikeStore,
-}
-
-/// One connection for the whole process. Receivers and the app run in the same
-/// process and load the same `.so`, so this is the only SQLite handle on the file.
-static SHARED: Mutex<Option<Shared>> = Mutex::new(None);
+/// Channel names Kotlin creates; `ring_<chime>` for the bundled chimes.
+pub const CHANNEL_SILENT: &str = "ring_silent";
+pub const CHANNEL_DEFAULT: &str = "ring_default";
 
 /// JNI and in-app entry point. Never panics across the boundary: all failures
 /// become `{"ok":false,...}` so Kotlin can fall back loud.
@@ -50,7 +47,7 @@ pub fn handle_event_json(data_dir: &str, tz_id: &str, now_ms: i64, event_json: &
         .unwrap_or_else(|e| format!(r#"{{"ok":false,"error":"serialize: {e}","handlerMs":0}}"#))
 }
 
-fn handle_event(
+pub fn handle_event(
     data_dir: &str,
     tz_id: &str,
     now_ms: i64,
@@ -58,441 +55,396 @@ fn handle_event(
 ) -> Result<Plan, String> {
     let event: Event =
         serde_json::from_str(event_json).map_err(|e| format!("bad event {event_json}: {e}"))?;
-    let tz = jiff::tz::TimeZone::get(tz_id).unwrap_or(jiff::tz::TimeZone::UTC);
+    let tz = core::zone(tz_id);
+    let now = core::now(now_ms);
 
-    let mut cold = false;
-    let mut plan = with_store(data_dir, |store, opened| {
-        cold = opened;
-        store.handle(now_ms, &tz, &event)
+    // 1. What the user pressed, if anything.
+    core::with_engine(data_dir, |engine| apply(engine, &event, now, &tz))??;
+
+    // 2. What we would alert, and who we sync with.
+    let (device_id, peer, due, needs_sync) = core::with_engine(data_dir, |engine| {
+        let due: Vec<DueItem> = engine
+            .due_for_alert(now, &tz)
+            .into_iter()
+            .map(|(item, occurrence)| DueItem { item, occurrence })
+            .collect();
+        let peer = sync::paired_pc(&engine.peers());
+        let needs_sync = peer
+            .as_ref()
+            .is_some_and(|p| sync::should_sync(engine, p, &due));
+        (engine.device_id().to_string(), peer, due, needs_sync)
     })?;
-    if cold {
-        plan.log = format!("[cold init] {}", plan.log);
-    }
-    Ok(plan)
+
+    // 3. Check in before alerting, so the PC can stay quiet while we cover it.
+    let check_in = match (peer, needs_sync || matches!(event, Event::SyncOnly)) {
+        (Some(peer), true) => sync::check_in(data_dir, device_id, peer, due, now, &tz),
+        (Some(_), false) => CheckIn {
+            note: "nothing to sync".into(),
+            ..Default::default()
+        },
+        (None, _) => CheckIn {
+            note: "no PC paired".into(),
+            ..Default::default()
+        },
+    };
+
+    // 4. Decide, and turn the decision into notifications.
+    core::with_engine(data_dir, |engine| {
+        let effects = engine
+            .evaluate(
+                now,
+                &tz,
+                Role::Phone {
+                    pc: check_in.pc.as_ref(),
+                },
+            )
+            .map_err(|e| e.to_string())?;
+        Ok(plan_from(&effects, engine, &check_in, now, &tz))
+    })?
 }
 
-/// Recent spike log lines, newest first.
-pub fn recent_log(data_dir: &str, limit: usize) -> Result<Vec<(i64, String, String)>, String> {
-    with_store(data_dir, |store, _| store.recent_log(limit))
+/// Decides and plans without syncing: used after a local change, where the
+/// push follows separately so the UI never waits on the network.
+pub fn plan_now(data_dir: &str, tz_id: &str, now_ms: i64) -> Result<Plan, String> {
+    let tz = core::zone(tz_id);
+    let now = core::now(now_ms);
+    core::with_engine(data_dir, |engine| {
+        let effects = engine
+            .evaluate(now, &tz, Role::Phone { pc: None })
+            .map_err(|e| e.to_string())?;
+        Ok(plan_from(&effects, engine, &CheckIn::default(), now, &tz))
+    })?
 }
 
-/// Runs `f` against the process-wide store, opening it on first use. Opening
-/// happens under the same lock, so two threads can never hold two connections.
-/// `f` gets `true` when this call opened the database.
-fn with_store<T>(
-    data_dir: &str,
-    f: impl FnOnce(&mut SpikeStore, bool) -> Result<T, String>,
-) -> Result<T, String> {
-    let mut guard = SHARED
-        .lock()
-        .unwrap_or_else(|poisoned| poisoned.into_inner());
-    let opened = guard.is_none();
-    if opened {
-        let store = SpikeStore::open(&Path::new(data_dir).join("dun-spike.sqlite3"))?;
-        *guard = Some(Shared {
-            dir: PathBuf::from(data_dir),
-            store,
-        });
+/// Applies a button press. Everything else only moves time along.
+fn apply(engine: &mut Engine, event: &Event, now: Timestamp, tz: &TimeZone) -> Result<(), String> {
+    match event {
+        Event::Action {
+            item_id,
+            occ,
+            button,
+        } => {
+            let occurrence = Some(Timestamp(*occ));
+            let result = match button {
+                Button::Done => engine.done(now, tz, item_id, occurrence),
+                Button::Snooze5 => engine.snooze(now, tz, item_id, occurrence, 5),
+                Button::Snooze15 => engine.snooze(now, tz, item_id, occurrence, 15),
+            };
+            match result {
+                // The item may have been finished or deleted on the PC in the
+                // meantime; the notification is simply stale.
+                Err(e) => Err(format!("{button:?} on {item_id}: {e}")),
+                Ok(()) => Ok(()),
+            }
+        }
+        // Swiping away doesn't count as done: the nagging continues.
+        Event::Dismissed { .. }
+        | Event::Alarm { .. }
+        | Event::Reschedule { .. }
+        | Event::AppStarted
+        | Event::SyncOnly => Ok(()),
     }
-    let shared = guard.as_mut().expect("opened above");
-    if shared.dir != Path::new(data_dir) {
-        return Err(format!(
-            "data dir changed from {} to {data_dir}; refusing to open a second database",
-            shared.dir.display()
-        ));
+}
+
+fn plan_from(
+    effects: &[Effect],
+    engine: &Engine,
+    check_in: &CheckIn,
+    now: Timestamp,
+    tz: &TimeZone,
+) -> Plan {
+    let default_chime = engine
+        .store()
+        .local_get::<ChimeRef>("chime")
+        .ok()
+        .flatten()
+        .unwrap_or(ChimeRef::Bundled { id: "bell".into() });
+
+    let mut plan = Plan {
+        log: check_in.note.clone(),
+        pending_push: check_in.pending_push,
+        ..Plan::default()
+    };
+
+    for effect in effects {
+        match effect {
+            Effect::ShowAlert {
+                item_id,
+                occurrence,
+                level,
+                title,
+                notes,
+                label,
+            } => {
+                let item = engine.state().items.get(item_id);
+                let chime = item
+                    .and_then(|i| i.chime.clone())
+                    .unwrap_or_else(|| default_chime.clone());
+                plan.post.push(Post {
+                    notif_id: notif_id(item_id),
+                    item_id: item_id.clone(),
+                    occ: occurrence.0,
+                    channel: channel_for(&chime, *level),
+                    silent: *level == AlertLevel::Silent,
+                    title: title.clone(),
+                    text: label.describe(now, tz),
+                    notes: (!notes.is_empty()).then(|| notes.clone()),
+                    when: Some(occurrence.0),
+                    actions: Button::RING.to_vec(),
+                });
+            }
+            Effect::ClearAlert { item_id } => plan.cancel.push(notif_id(item_id)),
+            Effect::ShowSummary { items, level } => {
+                let titles: Vec<&str> = items.iter().map(|(_, title)| title.as_str()).collect();
+                plan.post.push(Post {
+                    notif_id: SUMMARY_NOTIF_ID,
+                    item_id: String::new(),
+                    occ: 0,
+                    channel: channel_for(&default_chime, *level),
+                    silent: *level == AlertLevel::Silent,
+                    title: format!("{} missed reminders", items.len()),
+                    text: titles.join(", "),
+                    notes: None,
+                    when: None,
+                    // Tapping opens Dun; there's nothing sensible to press per item.
+                    actions: Vec::new(),
+                });
+            }
+            Effect::ClearSummary => plan.cancel.push(SUMMARY_NOTIF_ID),
+            Effect::ScheduleWake { at } => plan.next_wake_at = Some(at.0),
+            // The channel carries the sound on Android, and there's no tray.
+            Effect::PlayChime { .. } | Effect::TrayStatus { .. } => {}
+        }
     }
-    f(&mut shared.store, opened)
+    plan
+}
+
+/// Bundled chimes get their own channel (Android ties sounds to channels);
+/// anything else falls back to the default one.
+fn channel_for(chime: &ChimeRef, level: AlertLevel) -> String {
+    if level == AlertLevel::Silent {
+        return CHANNEL_SILENT.to_string();
+    }
+    match chime {
+        ChimeRef::Bundled { id } if is_bundled(id) => format!("ring_{id}"),
+        _ => CHANNEL_DEFAULT.to_string(),
+    }
+}
+
+fn is_bundled(id: &str) -> bool {
+    matches!(id, "bell" | "rise" | "pulse" | "soft")
+}
+
+/// A stable notification id per item: FNV-1a, folded into a positive i32 that
+/// avoids the reserved ids.
+pub fn notif_id(item_id: &str) -> i32 {
+    let mut hash: u32 = 2_166_136_261;
+    for byte in item_id.as_bytes() {
+        hash ^= u32::from(*byte);
+        hash = hash.wrapping_mul(16_777_619);
+    }
+    let id = (hash & 0x7fff_ffff) as i32;
+    match id {
+        SUMMARY_NOTIF_ID | RESERVED_HIGH | 0 => id.wrapping_add(2).abs(),
+        other => other,
+    }
 }
 
 fn panic_message(panic: &Box<dyn std::any::Any + Send>) -> String {
     panic
         .downcast_ref::<&str>()
-        .map(|s| s.to_string())
+        .map(|s| (*s).to_string())
         .or_else(|| panic.downcast_ref::<String>().cloned())
         .unwrap_or_else(|| "unknown".into())
-}
-
-#[derive(Debug, Clone, PartialEq)]
-struct SpikeRow {
-    active: bool,
-    occ: i64,
-    next_at: i64,
-    rings: i64,
-}
-
-pub struct SpikeStore {
-    conn: Connection,
-}
-
-impl SpikeStore {
-    pub fn open(path: &Path) -> Result<Self, String> {
-        let conn = Connection::open(path).map_err(|e| format!("open {}: {e}", path.display()))?;
-        Self::init(conn)
-    }
-
-    pub fn open_in_memory() -> Result<Self, String> {
-        Self::init(Connection::open_in_memory().map_err(|e| e.to_string())?)
-    }
-
-    fn init(conn: Connection) -> Result<Self, String> {
-        conn.execute_batch(
-            "PRAGMA journal_mode=WAL;
-             PRAGMA busy_timeout=5000;
-             CREATE TABLE IF NOT EXISTS spike(
-               id INTEGER PRIMARY KEY CHECK(id = 1),
-               active INTEGER NOT NULL, occ INTEGER NOT NULL,
-               next_at INTEGER NOT NULL, rings INTEGER NOT NULL);
-             CREATE TABLE IF NOT EXISTS spike_log(
-               at INTEGER NOT NULL, event TEXT NOT NULL, detail TEXT NOT NULL);",
-        )
-        .map_err(|e| format!("init schema: {e}"))?;
-        Ok(Self { conn })
-    }
-
-    fn load(&self) -> Result<Option<SpikeRow>, String> {
-        self.conn
-            .query_row(
-                "SELECT active, occ, next_at, rings FROM spike WHERE id = 1",
-                [],
-                |r| {
-                    Ok(SpikeRow {
-                        active: r.get(0)?,
-                        occ: r.get(1)?,
-                        next_at: r.get(2)?,
-                        rings: r.get(3)?,
-                    })
-                },
-            )
-            .optional()
-            .map_err(|e| e.to_string())
-    }
-
-    fn save(&self, row: &SpikeRow) -> Result<(), String> {
-        self.conn
-            .execute(
-                "INSERT INTO spike(id, active, occ, next_at, rings) VALUES (1, ?1, ?2, ?3, ?4)
-                 ON CONFLICT(id) DO UPDATE SET active=?1, occ=?2, next_at=?3, rings=?4",
-                params![row.active, row.occ, row.next_at, row.rings],
-            )
-            .map(|_| ())
-            .map_err(|e| e.to_string())
-    }
-
-    fn log(&self, now: i64, event: &Event, detail: &str) -> Result<(), String> {
-        let name = serde_json::to_string(event).unwrap_or_default();
-        self.conn
-            .execute(
-                "INSERT INTO spike_log(at, event, detail) VALUES (?1, ?2, ?3)",
-                params![now, name, detail],
-            )
-            .map(|_| ())
-            .map_err(|e| e.to_string())
-    }
-
-    /// Recent log lines, newest first, for the spike screen and the spike doc.
-    pub fn recent_log(&self, limit: usize) -> Result<Vec<(i64, String, String)>, String> {
-        let mut stmt = self
-            .conn
-            .prepare("SELECT at, event, detail FROM spike_log ORDER BY rowid DESC LIMIT ?1")
-            .map_err(|e| e.to_string())?;
-        let rows = stmt
-            .query_map([limit as i64], |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)))
-            .map_err(|e| e.to_string())?;
-        rows.collect::<Result<_, _>>().map_err(|e| e.to_string())
-    }
-
-    pub fn handle(
-        &mut self,
-        now: i64,
-        tz: &jiff::tz::TimeZone,
-        event: &Event,
-    ) -> Result<Plan, String> {
-        let mut plan = Plan::default();
-        let row = self.load()?;
-
-        let detail = match (event, row) {
-            (Event::SpikeStart { delay_ms }, _) => {
-                let occ = now + (*delay_ms).max(0);
-                self.save(&SpikeRow {
-                    active: true,
-                    occ,
-                    next_at: occ,
-                    rings: 0,
-                })?;
-                plan.cancel.push(SPIKE_NOTIF);
-                plan.next_wake_at = Some(occ);
-                format!("armed for {}", clock(occ, tz))
-            }
-
-            (_, None) | (_, Some(SpikeRow { active: false, .. })) => {
-                plan.cancel.push(SPIKE_NOTIF);
-                "nothing active".to_string()
-            }
-
-            (
-                Event::Action {
-                    item_id,
-                    occ,
-                    button,
-                },
-                Some(mut r),
-            ) => {
-                if item_id != SPIKE_ITEM || *occ != r.occ {
-                    plan.next_wake_at = Some(r.next_at);
-                    format!("stale action for occ {occ}; current {}", r.occ)
-                } else {
-                    plan.cancel.push(SPIKE_NOTIF);
-                    match button {
-                        Button::Done => {
-                            r.active = false;
-                            self.save(&r)?;
-                            format!("done after {} rings", r.rings)
-                        }
-                        Button::Snooze5 | Button::Snooze15 => {
-                            let mins = if *button == Button::Snooze5 { 5 } else { 15 };
-                            r.next_at = now + mins * 60_000;
-                            self.save(&r)?;
-                            plan.next_wake_at = Some(r.next_at);
-                            format!("snoozed {mins}m to {}", clock(r.next_at, tz))
-                        }
-                    }
-                }
-            }
-
-            (Event::Dismissed { .. }, Some(r)) => {
-                // Swiping away doesn't stop nagging; the next alarm stays armed.
-                plan.next_wake_at = Some(r.next_at);
-                format!("dismissed; next nag {}", clock(r.next_at, tz))
-            }
-
-            (
-                Event::Alarm { .. }
-                | Event::Reschedule { .. }
-                | Event::AppStarted
-                | Event::SyncOnly,
-                Some(mut r),
-            ) => {
-                if now + EARLY_TOLERANCE_MS >= r.next_at {
-                    let late = now - r.next_at;
-                    r.rings += 1;
-                    r.next_at = now + NAG_INTERVAL_MS;
-                    self.save(&r)?;
-                    let missed = matches!(event, Event::Reschedule { .. } | Event::AppStarted)
-                        && late > 90_000;
-                    let label = if missed {
-                        format!("Missed at {}", clock(r.occ, tz))
-                    } else {
-                        format!("Due {}", clock(r.occ, tz))
-                    };
-                    plan.post.push(Post {
-                        notif_id: SPIKE_NOTIF,
-                        item_id: SPIKE_ITEM.into(),
-                        occ: r.occ,
-                        channel: "ring_default".into(),
-                        silent: false,
-                        title: "Dun test ring".into(),
-                        text: format!("{label} · ring #{}", r.rings),
-                        notes: Some(format!(
-                            "Fired {} late. Next nag {}.",
-                            secs(late),
-                            clock(r.next_at, tz)
-                        )),
-                        when: Some(r.occ),
-                        actions: Button::RING.to_vec(),
-                    });
-                    plan.next_wake_at = Some(r.next_at);
-                    format!("ring #{} ({} late)", r.rings, secs(late))
-                } else {
-                    plan.next_wake_at = Some(r.next_at);
-                    format!("early by {}; re-armed", secs(r.next_at - now))
-                }
-            }
-        };
-
-        self.log(now, event, &detail)?;
-        plan.log = detail;
-        Ok(plan)
-    }
-}
-
-fn clock(ms: i64, tz: &jiff::tz::TimeZone) -> String {
-    jiff::Timestamp::from_millisecond(ms)
-        .map(|t| t.to_zoned(tz.clone()).strftime("%H:%M:%S").to_string())
-        .unwrap_or_else(|_| ms.to_string())
-}
-
-fn secs(ms: i64) -> String {
-    format!("{:.1}s", ms as f64 / 1000.0)
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use dun_core::actions::ItemDraft;
+    use dun_core::model::Schedule;
+    use dun_core::time::{resolve, MINUTE, SECOND};
+    use jiff::civil::date;
 
-    const T0: i64 = 1_789_500_000_000;
+    const UTC_ID: &str = "UTC";
 
-    fn store() -> SpikeStore {
-        SpikeStore::open_in_memory().unwrap()
+    fn dir() -> tempfile::TempDir {
+        core::reset();
+        tempfile::tempdir().unwrap()
     }
 
-    fn utc() -> jiff::tz::TimeZone {
-        jiff::tz::TimeZone::UTC
+    fn reminder(title: &str, due: Timestamp) -> ItemDraft {
+        ItemDraft {
+            title: title.into(),
+            notes: "take the blue one".into(),
+            tag: None,
+            schedule: Schedule::OneOff { due },
+            nag: None,
+            chime: None,
+            quiet_exempt: None,
+            start_timer: false,
+        }
+    }
+
+    fn event(data_dir: &std::path::Path, now: Timestamp, json: &str) -> Plan {
+        let raw = handle_event_json(&data_dir.display().to_string(), UTC_ID, now.0, json);
+        let response: serde_json::Value = serde_json::from_str(&raw).unwrap();
+        assert_eq!(response["ok"], true, "event failed: {raw}");
+        serde_json::from_value(response["plan"].clone()).unwrap()
     }
 
     #[test]
-    fn start_arms_alarm_without_ringing() {
-        let mut s = store();
-        let plan = s
-            .handle(T0, &utc(), &Event::SpikeStart { delay_ms: 30_000 })
-            .unwrap();
+    fn an_alarm_posts_the_ringing_item_and_the_next_wake() {
+        let dir = dir();
+        let t0 = resolve(date(2026, 9, 16).at(9, 0, 0, 0), &TimeZone::UTC);
+        let id = core::with_engine(&dir.path().display().to_string(), |engine| {
+            engine
+                .create_item(t0.minus(MINUTE), reminder("Meds", t0))
+                .unwrap()
+        })
+        .unwrap();
+
+        let plan = event(dir.path(), t0, r#"{"type":"alarm","lateByMs":40}"#);
+        assert_eq!(plan.post.len(), 1);
+        let post = &plan.post[0];
+        assert_eq!(post.item_id, id);
+        assert_eq!(post.occ, t0.0);
+        assert_eq!(post.title, "Meds");
+        assert_eq!(post.text, "Due 9:00 AM");
+        assert_eq!(post.notes.as_deref(), Some("take the blue one"));
+        assert_eq!(post.channel, "ring_bell");
+        assert!(!post.silent);
+        assert_eq!(post.actions, Button::RING.to_vec());
+        // Nagging every minute by default.
+        assert_eq!(plan.next_wake_at, Some(t0.plus(MINUTE).0));
+    }
+
+    #[test]
+    fn done_from_a_notification_clears_it_and_stops_the_alarm() {
+        let dir = dir();
+        let path = dir.path().display().to_string();
+        let t0 = resolve(date(2026, 9, 16).at(9, 0, 0, 0), &TimeZone::UTC);
+        let id = core::with_engine(&path, |engine| {
+            engine
+                .create_item(t0.minus(MINUTE), reminder("Meds", t0))
+                .unwrap()
+        })
+        .unwrap();
+        event(dir.path(), t0, r#"{"type":"alarm"}"#);
+
+        let plan = event(
+            dir.path(),
+            t0.plus(10 * SECOND),
+            &format!(
+                r#"{{"type":"action","itemId":"{id}","occ":{},"button":"done"}}"#,
+                t0.0
+            ),
+        );
+        assert_eq!(plan.cancel, [notif_id(&id)]);
         assert!(plan.post.is_empty());
-        assert_eq!(plan.next_wake_at, Some(T0 + 30_000));
+        assert_eq!(plan.next_wake_at, None, "nothing left to ring");
     }
 
     #[test]
-    fn alarm_rings_and_nags_every_minute_until_done() {
-        let mut s = store();
-        s.handle(T0, &utc(), &Event::SpikeStart { delay_ms: 30_000 })
-            .unwrap();
+    fn snooze_moves_the_alarm_and_says_so_next_time() {
+        let dir = dir();
+        let path = dir.path().display().to_string();
+        let t0 = resolve(date(2026, 9, 16).at(9, 0, 0, 0), &TimeZone::UTC);
+        let id = core::with_engine(&path, |engine| {
+            engine
+                .create_item(t0.minus(MINUTE), reminder("Stretch", t0))
+                .unwrap()
+        })
+        .unwrap();
+        event(dir.path(), t0, r#"{"type":"alarm"}"#);
 
-        let ring1 = s
-            .handle(T0 + 30_200, &utc(), &Event::Alarm { late_by_ms: None })
-            .unwrap();
-        assert_eq!(ring1.post.len(), 1);
-        assert_eq!(ring1.post[0].actions, Button::RING.to_vec());
-        assert_eq!(ring1.next_wake_at, Some(T0 + 30_200 + 60_000));
+        let plan = event(
+            dir.path(),
+            t0,
+            &format!(
+                r#"{{"type":"action","itemId":"{id}","occ":{},"button":"snooze5"}}"#,
+                t0.0
+            ),
+        );
+        assert_eq!(plan.cancel, [notif_id(&id)]);
+        assert_eq!(plan.next_wake_at, Some(t0.plus(5 * MINUTE).0));
 
-        let ring2 = s
-            .handle(T0 + 90_200, &utc(), &Event::Alarm { late_by_ms: None })
-            .unwrap();
-        assert!(ring2.post[0].text.contains("ring #2"));
-
-        let done = s
-            .handle(
-                T0 + 95_000,
-                &utc(),
-                &Event::Action {
-                    item_id: SPIKE_ITEM.into(),
-                    occ: T0 + 30_000,
-                    button: Button::Done,
-                },
-            )
-            .unwrap();
-        assert_eq!(done.cancel, vec![SPIKE_NOTIF]);
-        assert_eq!(done.next_wake_at, None);
-
-        let after = s
-            .handle(T0 + 200_000, &utc(), &Event::Alarm { late_by_ms: None })
-            .unwrap();
-        assert!(after.post.is_empty());
-        assert_eq!(after.next_wake_at, None);
-    }
-
-    #[test]
-    fn dismiss_keeps_nagging_and_snooze_pushes_out() {
-        let mut s = store();
-        s.handle(T0, &utc(), &Event::SpikeStart { delay_ms: 0 })
-            .unwrap();
-        s.handle(T0, &utc(), &Event::Alarm { late_by_ms: None })
-            .unwrap();
-
-        let dismissed = s
-            .handle(
-                T0 + 5_000,
-                &utc(),
-                &Event::Dismissed {
-                    item_id: SPIKE_ITEM.into(),
-                    occ: T0,
-                },
-            )
-            .unwrap();
-        assert_eq!(dismissed.next_wake_at, Some(T0 + 60_000));
-
-        let snoozed = s
-            .handle(
-                T0 + 10_000,
-                &utc(),
-                &Event::Action {
-                    item_id: SPIKE_ITEM.into(),
-                    occ: T0,
-                    button: Button::Snooze15,
-                },
-            )
-            .unwrap();
-        assert_eq!(snoozed.next_wake_at, Some(T0 + 10_000 + 15 * 60_000));
-    }
-
-    #[test]
-    fn stale_action_from_old_occurrence_is_ignored() {
-        let mut s = store();
-        s.handle(T0, &utc(), &Event::SpikeStart { delay_ms: 0 })
-            .unwrap();
-        s.handle(T0 + 1_000, &utc(), &Event::SpikeStart { delay_ms: 0 })
-            .unwrap();
-        let plan = s
-            .handle(
-                T0 + 2_000,
-                &utc(),
-                &Event::Action {
-                    item_id: SPIKE_ITEM.into(),
-                    occ: T0,
-                    button: Button::Done,
-                },
-            )
-            .unwrap();
-        assert!(plan.log.starts_with("stale"));
+        let later = event(dir.path(), t0.plus(5 * MINUTE), r#"{"type":"alarm"}"#);
+        assert_eq!(later.post.len(), 1);
         assert!(
-            plan.next_wake_at.is_some(),
-            "the current occurrence must stay armed"
+            later.post[0].text.contains("snoozed 1×"),
+            "{}",
+            later.post[0].text
         );
     }
 
     #[test]
-    fn early_alarm_rearms_without_ringing() {
-        let mut s = store();
-        s.handle(T0, &utc(), &Event::SpikeStart { delay_ms: 60_000 })
-            .unwrap();
-        let plan = s
-            .handle(T0 + 50_000, &utc(), &Event::Alarm { late_by_ms: None })
-            .unwrap();
+    fn swiping_a_notification_away_does_not_stop_the_nagging() {
+        let dir = dir();
+        let path = dir.path().display().to_string();
+        let t0 = resolve(date(2026, 9, 16).at(9, 0, 0, 0), &TimeZone::UTC);
+        let id = core::with_engine(&path, |engine| {
+            engine
+                .create_item(t0.minus(MINUTE), reminder("Meds", t0))
+                .unwrap()
+        })
+        .unwrap();
+        event(dir.path(), t0, r#"{"type":"alarm"}"#);
+
+        let plan = event(
+            dir.path(),
+            t0.plus(SECOND),
+            &format!(r#"{{"type":"dismissed","itemId":"{id}","occ":{}}}"#, t0.0),
+        );
+        assert!(plan.cancel.is_empty());
+        assert_eq!(
+            plan.next_wake_at,
+            Some(t0.plus(MINUTE).0),
+            "still due to nag"
+        );
+    }
+
+    #[test]
+    fn a_reboot_reschedules_from_what_is_stored() {
+        let dir = dir();
+        let path = dir.path().display().to_string();
+        let t0 = resolve(date(2026, 9, 16).at(9, 0, 0, 0), &TimeZone::UTC);
+        core::with_engine(&path, |engine| {
+            engine
+                .create_item(t0, reminder("Later today", t0.plus(120 * MINUTE)))
+                .unwrap()
+        })
+        .unwrap();
+
+        // A fresh process (no in-memory state) still knows when to wake.
+        core::reset();
+        let plan = event(
+            dir.path(),
+            t0.plus(MINUTE),
+            r#"{"type":"reschedule","reason":"boot"}"#,
+        );
         assert!(plan.post.is_empty());
-        assert_eq!(plan.next_wake_at, Some(T0 + 60_000));
+        assert_eq!(plan.next_wake_at, Some(t0.plus(120 * MINUTE).0));
     }
 
     #[test]
-    fn reboot_after_due_rings_as_missed() {
-        let mut s = store();
-        s.handle(T0, &utc(), &Event::SpikeStart { delay_ms: 0 })
-            .unwrap();
-        let plan = s
-            .handle(
-                T0 + 10 * 60_000,
-                &utc(),
-                &Event::Reschedule {
-                    reason: "boot".into(),
-                },
-            )
-            .unwrap();
-        assert!(plan.post[0].text.starts_with("Missed at"));
-        assert_eq!(s.recent_log(10).unwrap().len(), 2);
+    fn a_bad_event_fails_loud_rather_than_panicking() {
+        let dir = dir();
+        let raw = handle_event_json(&dir.path().display().to_string(), UTC_ID, 0, "not json");
+        let response: serde_json::Value = serde_json::from_str(&raw).unwrap();
+        assert_eq!(response["ok"], false);
+        assert!(response["error"].as_str().unwrap().contains("bad event"));
     }
 
     #[test]
-    fn json_entry_point_reports_errors_instead_of_panicking() {
-        let dir = std::env::temp_dir().join(format!("dun-bridge-test-{}", std::process::id()));
-        std::fs::create_dir_all(&dir).unwrap();
-        let out = handle_event_json(dir.to_str().unwrap(), "UTC", T0, "{not json");
-        let v: serde_json::Value = serde_json::from_str(&out).unwrap();
-        assert_eq!(v["ok"], false);
-        assert!(v["error"].as_str().unwrap().contains("bad event"));
-
-        let out = handle_event_json(
-            dir.to_str().unwrap(),
-            "Nowhere/Invalid",
-            T0,
-            r#"{"type":"appStarted"}"#,
-        );
-        let v: serde_json::Value = serde_json::from_str(&out).unwrap();
-        assert_eq!(v["ok"], true, "unknown tz falls back to UTC: {out}");
+    fn notification_ids_are_stable_and_avoid_the_reserved_ones() {
+        assert_eq!(notif_id("abc"), notif_id("abc"));
+        assert_ne!(notif_id("abc"), notif_id("abd"));
+        for id in ["", "a", "item-1", "01a0a699-4c73-70de-962a-c0e5a4b7d32a"] {
+            let n = notif_id(id);
+            assert!(n > 0, "{id} -> {n}");
+            assert_ne!(n, SUMMARY_NOTIF_ID);
+            assert_ne!(n, RESERVED_HIGH);
+        }
     }
 }

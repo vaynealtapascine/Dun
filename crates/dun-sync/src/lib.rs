@@ -4,7 +4,9 @@
 //! bytes and proves who is on the other end.
 
 pub mod cert;
+#[cfg(feature = "client")]
 pub mod client;
 pub mod pairing;
 pub mod pin;
+#[cfg(feature = "server")]
 pub mod server;

@@ -10,9 +10,6 @@ mod commands;
 #[cfg(desktop)]
 pub mod desktop;
 
-#[cfg(mobile)]
-mod spike;
-
 #[tauri::command]
 fn app_version() -> String {
     format!("v{}", env!("CARGO_PKG_VERSION"))
@@ -174,9 +171,31 @@ pub fn run() {
         .plugin(tauri_plugin_dun_android::init())
         .invoke_handler(tauri::generate_handler![
             app_version,
-            spike::spike_app_started,
-            spike::spike_start,
-            spike::spike_status,
+            mobile::commands::get_snapshot,
+            mobile::commands::create_item,
+            mobile::commands::preview_schedule,
+            mobile::commands::update_item,
+            mobile::commands::delete_item,
+            mobile::commands::mark_done,
+            mobile::commands::snooze,
+            mobile::commands::snooze_all,
+            mobile::commands::undo,
+            mobile::commands::get_history,
+            mobile::commands::timer_action,
+            mobile::commands::save_preset,
+            mobile::commands::delete_preset,
+            mobile::commands::start_preset,
+            mobile::commands::save_tag,
+            mobile::commands::delete_tag,
+            mobile::commands::set_setting,
+            mobile::commands::mute,
+            mobile::commands::set_chime,
+            mobile::commands::sync_status,
+            mobile::commands::sync_now,
+            mobile::commands::pair_with_pc,
+            mobile::commands::forget_pc,
+            mobile::commands::setup_status,
+            mobile::commands::open_setting,
         ])
         .run(tauri::generate_context!())
         .expect("error while running Dun");

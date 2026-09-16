@@ -4,6 +4,7 @@
   import { api } from "../lib/api/commands";
   import { fromLocalInput, joinDuration, roundUpMinutes, splitDuration, toDateInput, toLocalInput } from "../lib/dates";
   import { relative } from "../lib/format";
+  import { isPhone } from "../lib/platform";
   import { app } from "../lib/stores/app.svelte";
   import Icon from "../lib/components/Icon.svelte";
   import Modal from "../lib/components/Modal.svelte";
@@ -25,6 +26,10 @@
   } = $props();
 
   const NAG_INTERVALS = [1, 2, 3, 5, 10, 15, 30, 60];
+  const PHONE_CHIMES: ChimeOption[] = ["bell", "rise", "pulse", "soft"].map((id) => ({
+    chime: { kind: "bundled", id },
+    label: id[0]!.toUpperCase() + id.slice(1),
+  }));
 
   let kind = $state<Kind>("once");
   let title = $state("");
@@ -54,7 +59,9 @@
 
   function reset() {
     error = null;
-    api.chimes().then((c) => (chimes = c)).catch(() => {});
+    // The phone's sounds are notification channels, so the list is fixed there.
+    if (isPhone) chimes = PHONE_CHIMES;
+    else api.chimes().then((c) => (chimes = c)).catch(() => {});
     const now = app.now;
     const pre = item ? null : prefill;
     const nag: Nag = item?.nag ?? pre?.nag ?? app.snapshot?.settings.nagDefault ?? { mode: "repeat", intervalMin: 1 };
@@ -237,9 +244,11 @@
             <option value={chimeKey(c.chime)}>{c.label}</option>
           {/each}
         </select>
-        <button type="button" class="icon-btn" aria-label="Play sound" onclick={() => api.playChime(chime)}>
-          <Icon name="play" size={16} />
-        </button>
+        {#if !isPhone}
+          <button type="button" class="icon-btn" aria-label="Play sound" onclick={() => api.playChime(chime)}>
+            <Icon name="play" size={16} />
+          </button>
+        {/if}
       </div>
     </div>
   </div>

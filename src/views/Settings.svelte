@@ -6,7 +6,9 @@
   import { toCivilTime, toTimeInput } from "../lib/dates";
   import { when } from "../lib/format";
   import { app } from "../lib/stores/app.svelte";
+  import { isDesktop } from "../lib/platform";
   import HotkeyInput from "../lib/components/HotkeyInput.svelte";
+  import PhoneSettings from "./PhoneSettings.svelte";
   import Pairing from "./Pairing.svelte";
   import Icon from "../lib/components/Icon.svelte";
   import TagDot from "../lib/components/TagDot.svelte";
@@ -173,6 +175,7 @@
       </div>
     </section>
 
+    {#if isDesktop}
     <section class="card">
       <h3>Sound <span class="scope">this device</span></h3>
       <div class="field">
@@ -239,6 +242,10 @@
       </label>
     </section>
 
+    {:else}
+      <PhoneSettings />
+    {/if}
+
     <section class="card">
       <h3>Tags</h3>
       <div class="tags">
@@ -282,6 +289,7 @@
       </div>
     </section>
 
+    {#if isDesktop}
     <section class="card">
       <h3>Sync <span class="scope">this device</span></h3>
       <label class="switch">
@@ -341,6 +349,7 @@
     </section>
 
     <Pairing bind:open={pairingOpen} status={sync} />
+    {/if}
 
     <p class="about muted">Dun {version}</p>
   </div>
