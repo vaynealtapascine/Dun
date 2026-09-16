@@ -6,7 +6,16 @@ Reminders and countdown timers that keep nagging, every minute by default, until
 - Snooze from the notification (Done · +1m · +5m · +15m on Windows).
 - An Android build shares the same list with the PC over your LAN or Tailscale, with no cloud. The PC rings while you're at it; otherwise the phone does.
 
-> Status: early development. See `docs/` for what is implemented and verified so far.
+> Status: in development, and usable. Everything above works on Windows and on
+> Android, including pairing and two-way sync.
+
+| Doc | What |
+|---|---|
+| [docs/HELP.md](docs/HELP.md) | Using Dun: quick-add phrases, nagging, handoff, and the phone settings that decide whether reminders arrive |
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | How the pieces fit: pure core, two shells, the rules that hold it together |
+| [docs/SYNC-PROTOCOL.md](docs/SYNC-PROTOCOL.md) | Pairing, the wire format, merge rules, handoff timings |
+| [docs/TESTING.md](docs/TESTING.md) | What the tests cover, the manual matrices, debug flags |
+| [docs/RELEASE.md](docs/RELEASE.md) | Building the installer and a signed APK |
 
 ## Development setup (Windows)
 
@@ -50,5 +59,7 @@ pwsh scripts/verify.ps1           # plus the NSIS installer
 | `src/` | Svelte 5 UI, shared by desktop and Android |
 | `crates/dun-core/` | Platform-neutral domain model, recurrence, scheduler, sync merge, SQLite storage |
 | `src-tauri/` | Tauri app shell (desktop and Android), commands, Windows integration |
+| `crates/dun-sync/` | TLS, certificate pinning, pairing, the HTTPS server and client |
+| `plugins/tauri-plugin-dun-android/` | The Kotlin side: alarms, notification channels, receivers |
 | `src-tauri/gen/android/` | Generated Android project, committed. Custom Kotlin lives in the local plugin, not here |
 | `scripts/` | `dev-env.ps1`, `verify.ps1` |
