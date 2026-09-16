@@ -4,6 +4,8 @@
   import { api } from "./lib/api/commands";
   import { filterItems } from "./lib/grouping";
   import { when } from "./lib/format";
+  import { isPhone } from "./lib/platform";
+  import { startForegroundSync } from "./lib/phoneSync";
   import { app } from "./lib/stores/app.svelte";
   import Icon from "./lib/components/Icon.svelte";
   import QuickAdd from "./lib/components/QuickAdd.svelte";
@@ -26,6 +28,9 @@
 
   $effect(() => {
     app.start();
+    // The phone's alarms sync before every alert; this keeps the list honest
+    // in between, while someone is actually looking at it.
+    const stopSync = isPhone ? startForegroundSync() : undefined;
     const focus = listen<string>("focus-item", (e) => {
       const item = app.snapshot?.items.find((i) => i.id === e.payload);
       if (item) edit(item);
@@ -34,6 +39,7 @@
     const openForm = listen<Partial<ItemDraft>>("open-form", (e) => add(e.payload));
     return () => {
       app.stop();
+      stopSync?.();
       focus.then((f) => f());
       openForm.then((f) => f());
     };
