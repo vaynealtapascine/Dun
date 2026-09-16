@@ -66,6 +66,9 @@ object PlanExecutor {
             setAlarm(context, plan.getLong("nextWakeAt"))
         }
 
+        // Slow catch-up for changes made on the PC while nothing here is due.
+        PendingPushWorker.ensurePeriodic(context)
+
         // Changes the PC hasn't acknowledged need a way through that doesn't
         // depend on something else being due.
         if (!fromWorker) {

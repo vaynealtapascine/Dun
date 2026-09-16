@@ -2,9 +2,11 @@ package app.dun.android
 
 import android.content.Context
 import androidx.work.Constraints
+import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.ExistingWorkPolicy
 import androidx.work.NetworkType
 import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.Worker
 import androidx.work.WorkerParameters
@@ -45,7 +47,9 @@ class PendingPushWorker(context: Context, params: WorkerParameters) : Worker(con
 
     companion object {
         private const val NAME = "dun-pending-push"
+        private const val PERIODIC_NAME = "dun-catch-up"
         private const val RETRY_MINUTES = 2L
+        private const val PERIOD_MINUTES = 30L
 
         /** Starts the job, or leaves a running one alone so its backoff holds. */
         fun ensure(context: Context) {
@@ -58,6 +62,29 @@ class PendingPushWorker(context: Context, params: WorkerParameters) : Worker(con
 
         fun cancel(context: Context) {
             WorkManager.getInstance(context).cancelUniqueWork(NAME)
+        }
+
+        /**
+         * A slow catch-up, so the phone hears about things nothing else would
+         * wake it for.
+         *
+         * Alarms sync before every alert and the app syncs while it is on
+         * screen, which covers everything the phone already knows is coming.
+         * What it doesn't cover: an item added on the PC while the phone has
+         * nothing due and is closed — no alarm is set, so nothing checks in,
+         * and the phone could stay unaware of it until it next wakes for some
+         * other reason. Half an hour is slow enough to be free and fast enough
+         * that a reminder made on the PC is known about long before it rings.
+         *
+         * Enqueued on every plan, which costs nothing: KEEP leaves an existing
+         * schedule alone, and WorkManager keeps it across reboots and updates.
+         */
+        fun ensurePeriodic(context: Context) {
+            val request = PeriodicWorkRequestBuilder<PendingPushWorker>(PERIOD_MINUTES, TimeUnit.MINUTES)
+                .setConstraints(Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build())
+                .build()
+            WorkManager.getInstance(context)
+                .enqueueUniquePeriodicWork(PERIODIC_NAME, ExistingPeriodicWorkPolicy.KEEP, request)
         }
     }
 }
