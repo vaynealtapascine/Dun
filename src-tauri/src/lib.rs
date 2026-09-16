@@ -99,10 +99,19 @@ pub fn run() {
             }
 
             let sync = desktop::sync::SyncHub::new(app.handle().clone(), core.clone())?;
-            if sync.enabled() {
-                if let Err(e) = sync.start() {
-                    eprintln!("sync: {e}");
-                }
+            // Debug builds only: `--sync-on` turns sync on without the firewall
+            // prompt, so a phone reached over `adb reverse` (loopback, which the
+            // firewall never sees) can be tested without a UAC click.
+            let dev_sync = cfg!(debug_assertions) && std::env::args().any(|a| a == "--sync-on");
+            let started = if dev_sync {
+                sync.set_enabled(true, true)
+            } else if sync.enabled() {
+                sync.start().map(|_| ())
+            } else {
+                Ok(())
+            };
+            if let Err(e) = started {
+                eprintln!("sync: {e}");
             }
             app.manage(sync.clone());
 
