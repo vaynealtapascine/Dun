@@ -85,6 +85,11 @@ adb logcat -s DunNative DunReceiver DunPlugin PlanExecutor
 - **Reboot** — `adb reboot`, unlock, and check alarms are re-registered and
   missed items ring. (Nothing fires before the first unlock: storage is
   credential-encrypted.)
+- **A push with nothing due** — the case the alarm path can't cover. Stop Dun
+  on the PC, add an item on the phone dated days away, background the app and
+  `adb shell am kill app.dun`. `dumpsys alarm` should show no alarm before that
+  date, so only the pending-push job is left to deliver it. Start the PC again
+  and leave the phone alone: the item must reach the PC anyway.
 - **Standby** — `adb shell am set-standby-bucket app.dun rare`.
 - **Handoff** — PC attended → phone silent; PC locked → phone rings; phone in
   airplane mode → PC loud after two minutes; Done on the phone → the PC stops

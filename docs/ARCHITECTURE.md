@@ -116,6 +116,11 @@ Two rules hold the design together:
 Alerts always come from AlarmManager, never from a Rust thread, so the app in
 the foreground and a receiver in the background cannot both ring.
 
+Two smaller paths keep the phone honest between alarms: the app syncs when it
+comes to the foreground and every half minute while it stays there, and a
+WorkManager job carries a change the PC hasn't acknowledged — the case where
+nothing is due, so no alarm is coming to retry it.
+
 ## Sync
 
 `dun-sync` is transport only: a self-signed certificate (`cert.rs`),
