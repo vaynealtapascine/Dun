@@ -84,7 +84,15 @@ impl Server {
             .with_state(backend);
 
         let handle = Handle::new();
-        let server = axum_server::from_tcp_rustls(listener, tls)?.handle(handle.clone());
+        // Adopting the listener registers it with a reactor, so this has to run
+        // inside our runtime. The desktop starts the server from a plain thread,
+        // where `block_on` would be fine but panics when a caller already has a
+        // runtime (as the tests do); entering panics in neither case.
+        let server = {
+            let _guard = runtime.enter();
+            axum_server::from_tcp_rustls(listener, tls)?
+        }
+        .handle(handle.clone());
         runtime.spawn(async move {
             if let Err(e) = server.serve(router.into_make_service()).await {
                 eprintln!("sync server stopped: {e}");

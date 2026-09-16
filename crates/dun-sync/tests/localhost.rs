@@ -275,3 +275,21 @@ async fn a_dead_address_falls_through_to_a_live_one() {
         Some("127.0.0.1")
     );
 }
+
+/// The desktop starts the server from its setup thread, where no runtime is
+/// running — unlike every test above, which tokio has already entered. That
+/// difference used to panic ("no reactor running") on the real app's first
+/// start, so this proves a bare thread can start it *and* be reached.
+#[test]
+fn starts_and_serves_without_a_runtime_in_the_caller() {
+    let running = start(true);
+    let port = running.server.port();
+    assert_ne!(port, 0, "the server should have picked a port");
+
+    let paired = tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .build()
+        .unwrap()
+        .block_on(pair_ok(&running));
+    assert!(!paired.is_empty(), "the server should have answered");
+}
