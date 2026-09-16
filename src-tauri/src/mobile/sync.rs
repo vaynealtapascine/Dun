@@ -21,6 +21,10 @@ use dun_sync::client::SyncClient;
 /// Total budget for a check-in, comfortably inside a receiver's 10 s.
 const BUDGET: Duration = Duration::from_millis(4_000);
 
+/// Device-local setting: how far this phone's clock was from the PC's at the
+/// last check-in, in ms, or null when they agreed.
+pub const SKEW_KEY: &str = "lastSkewMs";
+
 /// Serializes sessions: two receivers firing at once shouldn't both sync.
 static GATE: Mutex<()> = Mutex::new(());
 
@@ -163,6 +167,11 @@ pub fn check_in(
             }
         }
         let _ = engine.save_peers(&peers);
+        // Kept so Settings can say so: clocks far apart mean reminders ring at
+        // the wrong moment, and nothing else would ever explain that.
+        let _ = engine
+            .store_mut()
+            .local_set(SKEW_KEY, &response.skew_warning);
     });
 
     let _ = tz;

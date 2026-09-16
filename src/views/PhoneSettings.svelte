@@ -12,6 +12,8 @@
     lastSeenAt: Ms | null;
     addrs: string[];
     chime: ChimeRef;
+    /** Set when this phone's clock and the PC's disagree enough to matter. */
+    skewMs: number | null;
   };
 
   // Android ties a sound to a notification channel, so only the bundled ones.
@@ -116,6 +118,13 @@
     </p>
     {#if sync.addrs.length}
       <p class="hint muted">Tries: {sync.addrs.join(" · ")}</p>
+    {/if}
+    {#if sync.skewMs != null}
+      <p class="hint warn">
+        This phone's clock is {Math.abs(Math.round(sync.skewMs / 1000))} s {sync.skewMs > 0 ? "ahead of" : "behind"}
+        {sync.pcName ?? "the PC"}, so reminders can ring at the wrong moment. Set both to update the time
+        automatically.
+      </p>
     {/if}
     <div class="buttons">
       <button class="btn" disabled={busy} onclick={syncNow}><Icon name="repeat" size={15} /> Sync now</button>

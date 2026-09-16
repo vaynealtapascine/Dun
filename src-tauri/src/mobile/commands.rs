@@ -269,6 +269,9 @@ pub struct PhoneSyncStatus {
     pub last_seen_at: Option<Timestamp>,
     pub addrs: Vec<String>,
     pub chime: dun_core::model::ChimeRef,
+    /// How far this phone's clock was from the PC's at the last check-in, when
+    /// they disagreed enough to matter.
+    pub skew_ms: Option<i64>,
 }
 
 #[tauri::command]
@@ -287,6 +290,12 @@ pub fn sync_status<R: Runtime>(app: AppHandle<R>) -> CmdResult<PhoneSyncStatus> 
                 .ok()
                 .flatten()
                 .unwrap_or(dun_core::model::ChimeRef::Bundled { id: "bell".into() }),
+            skew_ms: engine
+                .store()
+                .local_get(sync::SKEW_KEY)
+                .ok()
+                .flatten()
+                .flatten(),
         }
     })
 }
