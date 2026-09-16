@@ -14,7 +14,7 @@ minutes, five tries, one success.
 
 ```
 → {"code":"904018","deviceId":"…","name":"Galaxy A56"}
-← {"token":"<64 hex>","pcDeviceId":"…","pcName":"DESKTOP-2HH45TP"}
+← {"token":"<64 hex>","pcDeviceId":"…","pcName":"DESKTOP-ABC1234"}
 ```
 
 The PC stores `sha256(token)` and compares in constant time, so a stolen
