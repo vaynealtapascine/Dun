@@ -1,3 +1,5 @@
+![AI Disclosure: Repo code is fully AI-generated. Makes use of anthropic/claude-opus-5](assets/ai-transparency.png)
+
 # Dun
 
 Reminders and countdown timers that keep nagging, every minute by default, until you mark them done. Inspired by Due for iOS.
