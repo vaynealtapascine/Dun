@@ -43,12 +43,29 @@ object Channels {
      */
     private const val DND_SUFFIX = "_dnd"
 
+    /**
+     * Bumped whenever a channel's definition changes.
+     *
+     * Android freezes a channel the first time it sees it, and deleting one
+     * only to recreate it under the same id brings the old settings back — so
+     * a fix to a channel can only reach a phone that already has it under a
+     * new id. Generation 2 repairs generation 1, whose chime sounds pointed at
+     * numeric resource ids: those are renumbered by every build, so the ids
+     * baked into the channels drifted onto whatever resource happened to take
+     * them (a dialog style, as it turned out) and every ring was silent.
+     */
+    private const val GENERATION = 2
+
+    /** The concrete channel id for one of the names Rust uses. */
+    fun id(base: String, dnd: Boolean = false): String =
+        base + (if (dnd) DND_SUFFIX else "") + "_g" + GENERATION
+
     /** Bundled chimes, matching `res/raw/chime_*.wav` and the desktop's list. */
     private val CHIMES = listOf(
-        Triple("bell", "Bell", R.raw.chime_bell),
-        Triple("rise", "Rise", R.raw.chime_rise),
-        Triple("pulse", "Pulse", R.raw.chime_pulse),
-        Triple("soft", "Soft", R.raw.chime_soft),
+        "bell" to "Bell",
+        "rise" to "Rise",
+        "pulse" to "Pulse",
+        "soft" to "Soft",
     )
 
     fun ensure(context: Context) {
@@ -70,39 +87,55 @@ object Channels {
         val systemAlarm = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM) ?: systemSound
 
         val channels = mutableListOf(
-            ringing(RING_DEFAULT, "Reminders", systemSound, attrs),
-            NotificationChannel(RING_SILENT, "Reminders (quiet)", NotificationManager.IMPORTANCE_LOW).apply {
+            ringing(id(RING_DEFAULT), "Reminders", systemSound, attrs),
+            NotificationChannel(id(RING_SILENT), "Reminders (quiet)", NotificationManager.IMPORTANCE_LOW).apply {
                 description = "Reminders shown without a sound, because Dun is muted or your PC is ringing"
                 setSound(null, null)
                 enableVibration(false)
             },
-            NotificationChannel(ERRORS, "Problems", NotificationManager.IMPORTANCE_HIGH).apply {
+            NotificationChannel(id(ERRORS), "Problems", NotificationManager.IMPORTANCE_HIGH).apply {
                 description = "Shown when Dun could not check your reminders"
                 setSound(systemSound, attrs)
             },
-            alarming(TIMER_DEFAULT, "Timers", systemAlarm, alarmAttrs),
-            NotificationChannel(TIMERS_RUNNING, "Running timers", NotificationManager.IMPORTANCE_LOW).apply {
+            alarming(id(TIMER_DEFAULT), "Timers", systemAlarm, alarmAttrs),
+            NotificationChannel(id(TIMERS_RUNNING), "Running timers", NotificationManager.IMPORTANCE_LOW).apply {
                 description = "The countdown a running timer keeps on screen"
                 setSound(null, null)
                 enableVibration(false)
                 setShowBadge(false)
             },
         )
-        for ((id, label, res) in CHIMES) {
-            val sound = rawUri(context, res)
-            channels += ringing("ring_$id", "Reminders ($label)", sound, attrs)
-            channels += alarming("timer_$id", "Timers ($label)", sound, alarmAttrs)
+        for ((chime, label) in CHIMES) {
+            val sound = rawUri(context, "chime_$chime")
+            channels += ringing(id("ring_$chime"), "Reminders ($label)", sound, attrs)
+            channels += alarming(id("timer_$chime"), "Timers ($label)", sound, alarmAttrs)
         }
         if (nm.isNotificationPolicyAccessGranted) {
-            channels += alarming(TIMER_DEFAULT + DND_SUFFIX, "Timers", systemAlarm, alarmAttrs)
-            for ((id, label, res) in CHIMES) {
+            channels += alarming(id(TIMER_DEFAULT, dnd = true), "Timers", systemAlarm, alarmAttrs)
+            for ((chime, label) in CHIMES) {
                 channels += alarming(
-                    "timer_$id$DND_SUFFIX", "Timers ($label)", rawUri(context, res), alarmAttrs
+                    id("timer_$chime", dnd = true),
+                    "Timers ($label)",
+                    rawUri(context, "chime_$chime"),
+                    alarmAttrs
                 )
             }
         }
         nm.createNotificationChannels(channels)
+
+        // Channels from an older generation are broken, not merely stale, and
+        // leaving them behind fills the user's notification settings with
+        // duplicates that do nothing.
+        val keep = channels.map { it.id }.toSet()
+        for (existing in nm.notificationChannels) {
+            if (existing.id !in keep && MINE.any { existing.id.startsWith(it) }) {
+                nm.deleteNotificationChannel(existing.id)
+            }
+        }
     }
+
+    /** Prefixes of every channel Dun has ever created. */
+    private val MINE = listOf("ring_", "timer_", "timers_", "errors")
 
     /**
      * The channel to actually post on for the one Rust asked for.
@@ -111,12 +144,12 @@ object Channels {
      * timer channel and this swaps in the bypassing twin when there is one.
      */
     fun effective(context: Context, channel: String): String {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O || !channel.startsWith("timer_")) {
-            return channel
-        }
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return channel
         val nm = context.getSystemService(NotificationManager::class.java)
-        val twin = channel + DND_SUFFIX
-        return if (nm.getNotificationChannel(twin) != null) twin else channel
+        if (channel.startsWith("timer_") && nm.getNotificationChannel(id(channel, dnd = true)) != null) {
+            return id(channel, dnd = true)
+        }
+        return id(channel)
     }
 
     /**
@@ -142,6 +175,11 @@ object Channels {
             setSound(sound, attrs)
         }
 
-    private fun rawUri(context: Context, resId: Int): Uri =
-        Uri.parse("android.resource://${context.packageName}/$resId")
+    /**
+     * By name, never by number: resource ids are renumbered by every build, and
+     * a channel keeps the URI it was made with, so a numeric one goes stale the
+     * moment anything else in the app changes.
+     */
+    private fun rawUri(context: Context, name: String): Uri =
+        Uri.parse("android.resource://${context.packageName}/raw/$name")
 }

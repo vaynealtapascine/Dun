@@ -87,7 +87,9 @@ object PlanExecutor {
         val item = p.getString("itemId")
         val occ = p.getLong("occ")
 
-        val channel = Channels.effective(context, p.optString("channel", Channels.RING_DEFAULT))
+        // Rust names a channel; Kotlin decides which concrete one carries it.
+        val named = p.optString("channel", Channels.RING_DEFAULT)
+        val channel = Channels.effective(context, named)
         val ongoing = p.optBoolean("ongoing", false)
         val builder = NotificationCompat.Builder(context, channel)
             .setSmallIcon(R.drawable.ic_stat_dun)
@@ -97,8 +99,8 @@ object PlanExecutor {
             // what keeps it audible on silent and through Do Not Disturb.
             .setCategory(
                 when {
-                    channel == Channels.TIMERS_RUNNING -> NotificationCompat.CATEGORY_PROGRESS
-                    channel.startsWith("timer_") -> NotificationCompat.CATEGORY_ALARM
+                    named == Channels.TIMERS_RUNNING -> NotificationCompat.CATEGORY_PROGRESS
+                    named.startsWith("timer_") -> NotificationCompat.CATEGORY_ALARM
                     else -> NotificationCompat.CATEGORY_REMINDER
                 }
             )
@@ -207,7 +209,7 @@ object PlanExecutor {
     fun failLoud(context: Context, error: String) {
         Log.e(TAG, "handler failed: $error")
         Channels.ensure(context)
-        val n: Notification = NotificationCompat.Builder(context, Channels.ERRORS)
+        val n: Notification = NotificationCompat.Builder(context, Channels.effective(context, Channels.ERRORS))
             .setSmallIcon(R.drawable.ic_stat_dun)
             .setContentTitle("Dun: check your reminders")
             .setContentText("Dun hit a problem working out what's due. Retrying every minute.")
