@@ -12,6 +12,12 @@
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.VIBRATE" />
+    <!-- Only apps that ask for this appear in Android's "Do not disturb
+         permission" list, and a channel's request to bypass Do Not Disturb is
+         ignored until the user grants it there. Without the declaration the
+         setting can never be granted, so timers stay silent in Sleep mode
+         however they are configured. -->
+    <uses-permission android:name="android.permission.ACCESS_NOTIFICATION_POLICY" />
     <!-- Dun installs its own updates from the paired PC, which means asking
          Android to open a package. The user still approves every install, and
          Android additionally gates this behind "install unknown apps". -->

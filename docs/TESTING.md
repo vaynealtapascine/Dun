@@ -133,6 +133,13 @@ Things that cost an hour once and shouldn't cost another:
   UI comes from the Vite dev server, so it needs `npm run tauri dev` (or a
   separate `npm run dev`). Everything in Rust still runs, which makes this easy
   to miss when testing the backend — and alarming to walk past.
+- **An app is missing from "Do not disturb permission" until it asks.** Only
+  apps declaring `ACCESS_NOTIFICATION_POLICY` are listed there, and a channel's
+  `setBypassDnd(true)` is ignored until the user grants it — so without the
+  declaration the switch can never be found, let alone turned on.
+- **A channel's sound must be addressed by name**, not by resource id: ids are
+  renumbered by every build, and a channel keeps the URI it was created with,
+  so a numeric one silently drifts onto some unrelated resource.
 - **Samsung won't enter deep Doze over USB.** `dumpsys deviceidle force-idle`
   stops at INACTIVE however the battery is faked, so Doze has to be tested with
   the cable out, over Wi-Fi debugging.
