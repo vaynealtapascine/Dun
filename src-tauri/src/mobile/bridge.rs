@@ -9,7 +9,7 @@
 use std::time::Instant;
 
 use dun_core::engine::Engine;
-use dun_core::model::ChimeRef;
+use dun_core::model::{ChimeRef, Schedule, TimerState};
 use dun_core::scheduler::{AlertLevel, Effect, Role};
 use dun_core::sync::protocol::DueItem;
 use dun_core::time::{TimeZone, Timestamp};
@@ -23,9 +23,13 @@ pub const SUMMARY_NOTIF_ID: i32 = 1;
 /// Kotlin's fail-loud notification uses `Int.MAX_VALUE`.
 const RESERVED_HIGH: i32 = i32::MAX;
 
-/// Channel names Kotlin creates; `ring_<chime>` for the bundled chimes.
+/// Channel names Kotlin creates; `ring_<chime>` for the bundled chimes, and
+/// `timer_<chime>` for the same sounds on the alarm stream.
 pub const CHANNEL_SILENT: &str = "ring_silent";
 pub const CHANNEL_DEFAULT: &str = "ring_default";
+pub const CHANNEL_TIMER_DEFAULT: &str = "timer_default";
+/// The quiet, ongoing countdown a running timer shows.
+pub const CHANNEL_TIMER_RUNNING: &str = "timers_running";
 
 /// JNI and in-app entry point. Never panics across the boundary: all failures
 /// become `{"ok":false,...}` so Kotlin can fall back loud.
@@ -180,17 +184,21 @@ fn plan_from(
                 let chime = item
                     .and_then(|i| i.chime.clone())
                     .unwrap_or_else(|| default_chime.clone());
+                let timer =
+                    item.is_some_and(|i| matches!(i.schedule, Some(Schedule::Timer { .. })));
                 plan.post.push(Post {
                     notif_id: notif_id(item_id),
                     item_id: item_id.clone(),
                     occ: occurrence.0,
-                    channel: channel_for(&chime, *level),
+                    channel: channel_for(&chime, *level, timer),
                     silent: *level == AlertLevel::Silent,
                     title: title.clone(),
                     text: label.describe(now, tz),
                     notes: (!notes.is_empty()).then(|| notes.clone()),
                     when: Some(occurrence.0),
                     actions: Button::RING.to_vec(),
+                    ongoing: false,
+                    countdown_to: None,
                 });
             }
             Effect::ClearAlert { item_id } => plan.cancel.push(notif_id(item_id)),
@@ -200,7 +208,7 @@ fn plan_from(
                     notif_id: SUMMARY_NOTIF_ID,
                     item_id: String::new(),
                     occ: 0,
-                    channel: channel_for(&default_chime, *level),
+                    channel: channel_for(&default_chime, *level, false),
                     silent: *level == AlertLevel::Silent,
                     title: format!("{} missed reminders", items.len()),
                     text: titles.join(", "),
@@ -208,6 +216,8 @@ fn plan_from(
                     when: None,
                     // Tapping opens Dun; there's nothing sensible to press per item.
                     actions: Vec::new(),
+                    ongoing: false,
+                    countdown_to: None,
                 });
             }
             Effect::ClearSummary => plan.cancel.push(SUMMARY_NOTIF_ID),
@@ -216,17 +226,64 @@ fn plan_from(
             Effect::PlayChime { .. } | Effect::TrayStatus { .. } => {}
         }
     }
+    countdowns(&mut plan, engine, now);
     plan
+}
+
+/// Gives every running timer a notification that counts itself down, and takes
+/// it away from every timer that isn't running.
+///
+/// The cancels matter as much as the posts: a timer that was paused, reset or
+/// finished would otherwise leave a countdown frozen on screen, and Android
+/// would go on showing it long after the number stopped meaning anything.
+fn countdowns(plan: &mut Plan, engine: &Engine, now: Timestamp) {
+    for item in engine.state().items.values() {
+        if !matches!(item.schedule, Some(Schedule::Timer { .. })) {
+            continue;
+        }
+        let id = countdown_notif_id(&item.id);
+        // A timer past its end is ringing, not running: that notification is
+        // the alert's to own.
+        match item.timer {
+            TimerState::Running { end_at } if !item.deleted && end_at > now => {
+                plan.post.push(Post {
+                    notif_id: id,
+                    item_id: item.id.clone(),
+                    occ: end_at.0,
+                    channel: CHANNEL_TIMER_RUNNING.to_string(),
+                    silent: true,
+                    title: item.title.clone(),
+                    text: String::new(),
+                    notes: None,
+                    when: Some(end_at.0),
+                    // Nothing to press: it hasn't gone off yet.
+                    actions: Vec::new(),
+                    ongoing: true,
+                    countdown_to: Some(end_at.0),
+                })
+            }
+            _ => plan.cancel.push(id),
+        }
+    }
 }
 
 /// Bundled chimes get their own channel (Android ties sounds to channels);
 /// anything else falls back to the default one.
-fn channel_for(chime: &ChimeRef, level: AlertLevel) -> String {
+///
+/// A timer picks the `timer_` twin of the same sound. Those channels play on
+/// the alarm stream, which a phone on silent still lets through — someone who
+/// sets a countdown is asking to be interrupted by it, and a kitchen timer
+/// that stays quiet because the phone is on silent has failed at its one job.
+fn channel_for(chime: &ChimeRef, level: AlertLevel, timer: bool) -> String {
+    // Silent stays silent: that's Dun being muted or the PC covering the ring,
+    // which is a decision about this alert rather than about the phone.
     if level == AlertLevel::Silent {
         return CHANNEL_SILENT.to_string();
     }
+    let prefix = if timer { "timer" } else { "ring" };
     match chime {
-        ChimeRef::Bundled { id } if is_bundled(id) => format!("ring_{id}"),
+        ChimeRef::Bundled { id } if is_bundled(id) => format!("{prefix}_{id}"),
+        _ if timer => CHANNEL_TIMER_DEFAULT.to_string(),
         _ => CHANNEL_DEFAULT.to_string(),
     }
 }
@@ -250,6 +307,12 @@ pub fn notif_id(item_id: &str) -> i32 {
     }
 }
 
+/// The countdown's own id, so it can sit alongside the alert for the same
+/// timer without either replacing the other.
+pub fn countdown_notif_id(item_id: &str) -> i32 {
+    notif_id(&format!("countdown:{item_id}"))
+}
+
 fn panic_message(panic: &Box<dyn std::any::Any + Send>) -> String {
     panic
         .downcast_ref::<&str>()
@@ -271,6 +334,19 @@ mod tests {
     fn dir() -> tempfile::TempDir {
         core::reset();
         tempfile::tempdir().unwrap()
+    }
+
+    fn timer(title: &str, duration_ms: i64) -> ItemDraft {
+        ItemDraft {
+            title: title.into(),
+            notes: String::new(),
+            tag: None,
+            schedule: Schedule::Timer { duration_ms },
+            nag: None,
+            chime: None,
+            quiet_exempt: None,
+            start_timer: true,
+        }
     }
 
     fn reminder(title: &str, due: Timestamp) -> ItemDraft {
@@ -446,5 +522,99 @@ mod tests {
             assert_ne!(n, SUMMARY_NOTIF_ID);
             assert_ne!(n, RESERVED_HIGH);
         }
+    }
+
+    #[test]
+    fn a_timer_rings_on_the_alarm_stream_and_a_reminder_does_not() {
+        let dir = dir();
+        let path = dir.path().display().to_string();
+        let t0 = resolve(date(2026, 9, 16).at(9, 0, 0, 0), &TimeZone::UTC);
+        core::with_engine(&path, |engine| {
+            engine.create_item(t0, timer("Pasta", 3 * MINUTE)).unwrap();
+            engine
+                .create_item(t0, reminder("Meds", t0.plus(3 * MINUTE)))
+                .unwrap();
+        })
+        .unwrap();
+
+        let plan = event(dir.path(), t0.plus(3 * MINUTE), r#"{"type":"alarm"}"#);
+        let channel = |title: &str| {
+            plan.post
+                .iter()
+                .find(|p| p.title == title)
+                .map(|p| p.channel.as_str())
+                .unwrap_or("missing")
+        };
+        // Someone who sets a countdown is asking to be interrupted by it, so it
+        // goes out on the alarm stream; a reminder does not.
+        assert_eq!(channel("Pasta"), "timer_bell");
+        assert_eq!(channel("Meds"), "ring_bell");
+    }
+
+    #[test]
+    fn a_running_timer_counts_itself_down_until_it_stops() {
+        let dir = dir();
+        let path = dir.path().display().to_string();
+        let t0 = resolve(date(2026, 9, 16).at(9, 0, 0, 0), &TimeZone::UTC);
+        let id = core::with_engine(&path, |engine| {
+            engine
+                .create_item(t0, timer("Laundry", 45 * MINUTE))
+                .unwrap()
+        })
+        .unwrap();
+        let countdown = countdown_notif_id(&id);
+
+        let plan = event(dir.path(), t0.plus(SECOND), r#"{"type":"appStarted"}"#);
+        let post = plan
+            .post
+            .iter()
+            .find(|p| p.notif_id == countdown)
+            .expect("a running timer should show its countdown");
+        assert!(post.ongoing, "it stays on screen while it runs");
+        assert_eq!(post.countdown_to, Some(t0.plus(45 * MINUTE).0));
+        assert_eq!(post.channel, "timers_running");
+        assert!(post.silent);
+        assert!(
+            post.actions.is_empty(),
+            "nothing to press until it goes off"
+        );
+        assert_ne!(
+            post.notif_id,
+            notif_id(&id),
+            "the countdown and the alert it becomes must not replace each other"
+        );
+
+        // Paused: the number would be frozen and lying, so it goes.
+        core::with_engine(&path, |engine| {
+            engine.pause_timer(t0.plus(MINUTE), &id).unwrap()
+        })
+        .unwrap();
+        let plan = event(dir.path(), t0.plus(MINUTE), r#"{"type":"appStarted"}"#);
+        assert!(plan.post.iter().all(|p| p.notif_id != countdown));
+        assert!(plan.cancel.contains(&countdown));
+    }
+
+    #[test]
+    fn a_finished_timer_hands_its_notification_over_to_the_alert() {
+        let dir = dir();
+        let path = dir.path().display().to_string();
+        let t0 = resolve(date(2026, 9, 16).at(9, 0, 0, 0), &TimeZone::UTC);
+        let id = core::with_engine(&path, |engine| {
+            engine.create_item(t0, timer("Eggs", 7 * MINUTE)).unwrap()
+        })
+        .unwrap();
+
+        let plan = event(dir.path(), t0.plus(7 * MINUTE), r#"{"type":"alarm"}"#);
+        assert!(
+            plan.cancel.contains(&countdown_notif_id(&id)),
+            "the countdown is over; the ring owns the screen now"
+        );
+        let post = plan
+            .post
+            .iter()
+            .find(|p| p.notif_id == notif_id(&id))
+            .unwrap();
+        assert!(!post.ongoing, "it can be dealt with and dismissed");
+        assert_eq!(post.actions, Button::RING.to_vec());
     }
 }

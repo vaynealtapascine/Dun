@@ -85,6 +85,10 @@
     align-items: center;
     gap: 0.8rem;
     padding: 0.6rem 0.7rem;
+    /* A ringing timer carries three buttons, which on a phone leaves the title
+       squeezed into a one-word-per-line column. Let them drop to their own row
+       instead. */
+    flex-wrap: wrap;
   }
   .timer.ringing {
     background: var(--ringing-bg);
@@ -115,7 +119,7 @@
     stroke: var(--fg-faint);
   }
   .info {
-    flex: 1;
+    flex: 1 1 9rem;
     min-width: 0;
     display: grid;
   }
@@ -134,6 +138,7 @@
     white-space: nowrap;
   }
   .time {
+    white-space: nowrap;
     font-size: 1.35rem;
     font-variant-numeric: tabular-nums;
     letter-spacing: 0.01em;
@@ -144,6 +149,8 @@
     font-weight: 600;
   }
   .actions {
+    flex: none;
+    margin-left: auto;
     display: flex;
     align-items: center;
     gap: 0.25rem;

@@ -34,6 +34,13 @@ pub struct Post {
     pub notes: Option<String>,
     pub when: Option<i64>,
     pub actions: Vec<Button>,
+    /// Stays on screen and can't be swiped away: a timer still counting down.
+    #[serde(default)]
+    pub ongoing: bool,
+    /// Instant to count down to. Android ticks it on its own, so a running
+    /// timer needs no alarm to keep its notification honest.
+    #[serde(default)]
+    pub countdown_to: Option<i64>,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
@@ -140,6 +147,8 @@ mod tests {
                 notes: None,
                 when: Some(5),
                 actions: Button::RING.to_vec(),
+                ongoing: true,
+                countdown_to: Some(9),
             }],
             cancel: vec![2],
             next_wake_at: None,
@@ -148,6 +157,8 @@ mod tests {
         };
         let v = serde_json::to_value(&plan).unwrap();
         assert_eq!(v["post"][0]["notifId"], 1);
+        assert_eq!(v["post"][0]["ongoing"], true);
+        assert_eq!(v["post"][0]["countdownTo"], 9);
         assert_eq!(
             v["post"][0]["actions"],
             serde_json::json!(["done", "snooze5", "snooze15"])

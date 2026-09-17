@@ -3,6 +3,7 @@ package app.dun.android
 import android.Manifest
 import android.app.Activity
 import android.app.AlarmManager
+import android.app.NotificationManager
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
@@ -91,13 +92,17 @@ class DunPlugin(private val activity: Activity) : Plugin(activity) {
         val ctx = activity.applicationContext
         val am = ctx.getSystemService(AlarmManager::class.java)
         val pm = ctx.getSystemService(PowerManager::class.java)
+        val nm = ctx.getSystemService(NotificationManager::class.java)
+        // Keys are the checklist's, not Android's: the UI reads them directly.
         val ret = JSObject()
-        ret.put("notificationsEnabled", NotificationManagerCompat.from(ctx).areNotificationsEnabled())
+        ret.put("notifications", NotificationManagerCompat.from(ctx).areNotificationsEnabled())
         ret.put(
             "exactAlarms",
             Build.VERSION.SDK_INT < Build.VERSION_CODES.S || am.canScheduleExactAlarms()
         )
-        ret.put("ignoringBatteryOptimizations", pm.isIgnoringBatteryOptimizations(ctx.packageName))
+        ret.put("batteryUnrestricted", pm.isIgnoringBatteryOptimizations(ctx.packageName))
+        // Without this, a channel asking to bypass Do Not Disturb is ignored.
+        ret.put("dndAccess", nm.isNotificationPolicyAccessGranted)
         ret.put("scheduledAt", AlarmLog.scheduledAt(ctx))
         ret.put("lastFiredAt", AlarmLog.lastFiredAt(ctx))
         ret.put("lastLateByMs", AlarmLog.lastLateByMs(ctx))
@@ -115,6 +120,7 @@ class DunPlugin(private val activity: Activity) : Plugin(activity) {
             "exactAlarms" -> if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S)
                 Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM, pkg) else null
             "battery" -> Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS, pkg)
+            "dnd" -> Intent(Settings.ACTION_NOTIFICATION_POLICY_ACCESS_SETTINGS)
             "appDetails" -> Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, pkg)
             else -> null
         }

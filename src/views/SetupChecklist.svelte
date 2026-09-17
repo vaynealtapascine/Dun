@@ -7,6 +7,7 @@
     notifications?: boolean;
     exactAlarms?: boolean;
     batteryUnrestricted?: boolean;
+    dndAccess?: boolean;
   };
 
   const CHECKS: { key: keyof Status; setting: string; title: string; why: string }[] = [
@@ -21,6 +22,12 @@
       setting: "exactAlarms",
       title: "Alarms & reminders",
       why: "Lets Dun ring at the minute instead of whenever Android feels like it.",
+    },
+    {
+      key: "dndAccess",
+      setting: "dnd",
+      title: "Ring through Do Not Disturb",
+      why: "Timers go out on the alarm stream, which silent and Do Not Disturb normally allow. Grant this and they get through even if you've turned alarms off there too.",
     },
     {
       key: "batteryUnrestricted",

@@ -87,19 +87,44 @@ object PlanExecutor {
         val item = p.getString("itemId")
         val occ = p.getLong("occ")
 
-        val builder = NotificationCompat.Builder(context, p.optString("channel", Channels.RING_DEFAULT))
+        val channel = Channels.effective(context, p.optString("channel", Channels.RING_DEFAULT))
+        val ongoing = p.optBoolean("ongoing", false)
+        val builder = NotificationCompat.Builder(context, channel)
             .setSmallIcon(R.drawable.ic_stat_dun)
             .setContentTitle(p.getString("title"))
             .setContentText(p.optString("text"))
-            .setCategory(NotificationCompat.CATEGORY_REMINDER)
-            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            // A timer is an alarm as far as the system is concerned: that is
+            // what keeps it audible on silent and through Do Not Disturb.
+            .setCategory(
+                when {
+                    channel == Channels.TIMERS_RUNNING -> NotificationCompat.CATEGORY_PROGRESS
+                    channel.startsWith("timer_") -> NotificationCompat.CATEGORY_ALARM
+                    else -> NotificationCompat.CATEGORY_REMINDER
+                }
+            )
+            .setPriority(if (ongoing) NotificationCompat.PRIORITY_LOW else NotificationCompat.PRIORITY_HIGH)
             .setAutoCancel(false)
-            .setOnlyAlertOnce(false)
+            .setOnlyAlertOnce(ongoing)
+            .setOngoing(ongoing)
             .setSilent(p.optBoolean("silent", false))
             .setContentIntent(launchIntent(context, notifId))
-            .setDeleteIntent(broadcast(context, ACTION_DISMISSED, notifId * 8 + 7, item, occ, null))
 
-        if (!p.isNull("when")) builder.setWhen(p.getLong("when")).setShowWhen(true)
+        // A countdown is not something to dismiss, so it gets no delete intent
+        // that would tell Rust the user swiped an alert away.
+        if (!ongoing) {
+            builder.setDeleteIntent(broadcast(context, ACTION_DISMISSED, notifId * 8 + 7, item, occ, null))
+        }
+
+        // Android ticks a chronometer by itself, so a running timer stays
+        // honest on screen without Dun waking up once a second to redraw it.
+        if (!p.isNull("countdownTo")) {
+            builder.setWhen(p.getLong("countdownTo"))
+                .setUsesChronometer(true)
+                .setChronometerCountDown(true)
+                .setShowWhen(true)
+        } else if (!p.isNull("when")) {
+            builder.setWhen(p.getLong("when")).setShowWhen(true)
+        }
 
         val notes = p.optString("notes")
         if (notes.isNotEmpty() && notes != "null") {
