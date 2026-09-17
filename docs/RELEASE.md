@@ -78,6 +78,31 @@ runtime otherwise:
 - `zipalign -c -P 16` passes: Android 15 and later require 16 KB page
   alignment.
 
+## Sending a build to the phone
+
+Once a phone is paired it can fetch new builds from the PC instead of a cable.
+Drop the APK into the PC's app data folder, named for its version:
+
+```powershell
+mkdir -Force "$env:APPDATA\app.dun\updates"
+copy .\src-tauri\gen\android\app\build\outputs\apk\universal\release\app-universal-release.apk `
+     "$env:APPDATA\app.dun\updates\dun-0.3.0.apk"
+```
+
+The name has to be `dun-<version>.apk`; anything else is ignored, and the
+highest version in the folder is the one offered. Dun reads the file only when
+it changes, so replacing it is enough — no restart.
+
+A paired phone running something older then sees it in **Settings -> Sync with
+your PC**, with the size, and fetches it over the same pinned connection as
+everything else (so Tailscale works too). The hash is checked on arrival, and
+the file is handed to Android's own installer, which asks before replacing
+anything. The first time, Android also wants "install unknown apps" allowed for
+Dun.
+
+Nothing downloads or installs on its own, and a phone already on that version
+is never offered it.
+
 ## Installing
 
 Windows: run the installer; Dun starts at login and lives in the tray.

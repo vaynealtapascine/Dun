@@ -114,6 +114,14 @@ shows a badge while something is ringing, and its tooltip says what's next.
   time. Before that first unlock, Android keeps Dun's data encrypted and nothing
   can run.
 
+## Updating the phone
+
+New builds reach the phone through the PC, over the same connection your
+reminders use. Put the APK in the PC's `updates` folder (see
+[RELEASE.md](RELEASE.md)) and the phone offers it in **Settings**, under
+syncing. Tapping it downloads the file and hands it to Android, which asks
+before it installs anything.
+
 ## History, undo and backups
 
 The **History** tab lists what you've finished. Undo puts an item back as if it

@@ -12,6 +12,10 @@
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.VIBRATE" />
+    <!-- Dun installs its own updates from the paired PC, which means asking
+         Android to open a package. The user still approves every install, and
+         Android additionally gates this behind "install unknown apps". -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
 
     <application>
         <!-- Alarm fires, notification buttons and swipe-away. Only our own

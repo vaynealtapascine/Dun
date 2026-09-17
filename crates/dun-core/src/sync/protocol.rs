@@ -18,6 +18,8 @@ use crate::time::Timestamp;
 pub const PORT: u16 = 47823;
 pub const PAIR_PATH: &str = "/v1/pair";
 pub const SYNC_PATH: &str = "/v1/sync";
+/// Where the PC serves the Android package it is offering.
+pub const APK_PATH: &str = "/v1/apk";
 
 /// Rows per page; the phone loops while `more` is set.
 pub const PAGE_ROWS: usize = 1000;
@@ -119,6 +121,20 @@ pub struct SyncResponse {
     /// Set when the two clocks disagree by more than [`SKEW_WARN_MS`].
     #[serde(default)]
     pub skew_warning: Option<i64>,
+    /// A newer Android build this PC is holding, when the phone is behind.
+    #[serde(default)]
+    pub update: Option<UpdateOffer>,
+}
+
+/// An Android package the PC will serve, offered to a phone running something
+/// older. Nothing is downloaded until the user says so.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct UpdateOffer {
+    pub version: String,
+    pub size: i64,
+    /// Of the file, so a half-finished download can't reach the installer.
+    pub sha256: String,
 }
 
 /// What the server says when it refuses.
@@ -154,6 +170,8 @@ pub mod error {
     pub const CLOCK_DRIFT: &str = "clockDrift";
     /// The request was malformed.
     pub const BAD_REQUEST: &str = "badRequest";
+    /// Asked for something this PC doesn't have, such as an Android package.
+    pub const NOT_FOUND: &str = "notFound";
 }
 
 #[cfg(test)]
@@ -214,5 +232,64 @@ mod tests {
         assert!(response.attended);
         assert_eq!(response.pull, Pull::default());
         assert_eq!(response.skew_warning, None);
+    }
+}
+
+/// Whether `candidate` is a later release than `current`.
+///
+/// Versions are `major.minor.patch` compared number by number, because
+/// "0.10.0" sorts before "0.9.0" as text and an update that appears to go
+/// backwards would be offered forever. Anything unparseable loses: refusing to
+/// offer an update is the harmless way to be wrong.
+pub fn is_newer(candidate: &str, current: &str) -> bool {
+    fn parts(v: &str) -> Option<[u32; 3]> {
+        let mut out = [0u32; 3];
+        // A trailing "-beta.2" or "+build" isn't part of the ordering here.
+        let core = v.trim().split(['-', '+']).next()?;
+        for (i, piece) in core.split('.').enumerate() {
+            if i >= 3 {
+                return None;
+            }
+            out[i] = piece.parse().ok()?;
+        }
+        Some(out)
+    }
+    match (parts(candidate), parts(current)) {
+        (Some(a), Some(b)) => a > b,
+        _ => false,
+    }
+}
+
+#[cfg(test)]
+mod version_tests {
+    use super::is_newer;
+
+    #[test]
+    fn compares_numerically_not_alphabetically() {
+        assert!(is_newer("0.2.0", "0.1.9"));
+        assert!(is_newer("0.10.0", "0.9.0"), "ten comes after nine");
+        assert!(is_newer("1.0.0", "0.99.99"));
+        assert!(is_newer("0.1.1", "0.1.0"));
+    }
+
+    #[test]
+    fn is_not_newer_when_the_same_or_older() {
+        assert!(!is_newer("0.1.0", "0.1.0"));
+        assert!(!is_newer("0.1.0", "0.2.0"));
+        assert!(!is_newer("0.9.0", "0.10.0"));
+    }
+
+    #[test]
+    fn short_and_decorated_versions_still_order() {
+        assert!(is_newer("0.2", "0.1.9"));
+        assert!(is_newer("0.2.0-beta.1", "0.1.0"));
+    }
+
+    #[test]
+    fn nonsense_never_offers_an_update() {
+        assert!(!is_newer("", "0.1.0"));
+        assert!(!is_newer("next", "0.1.0"));
+        assert!(!is_newer("0.1.0", "unknown"));
+        assert!(!is_newer("1.2.3.4", "0.1.0"));
     }
 }

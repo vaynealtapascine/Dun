@@ -10,7 +10,8 @@ use std::collections::BTreeMap;
 use crate::engine::{Engine, EngineError};
 use crate::scheduler::{ringing_soon, Ack};
 use crate::sync::protocol::{
-    error, DueItem, ErrorBody, Pull, Push, SyncRequest, SyncResponse, PAGE_ROWS, SKEW_WARN_MS,
+    error, is_newer, DueItem, ErrorBody, Pull, Push, SyncRequest, SyncResponse, UpdateOffer,
+    PAGE_ROWS, SKEW_WARN_MS,
 };
 use crate::time::{TimeZone, Timestamp, DAY, SECOND};
 
@@ -46,6 +47,8 @@ pub struct ServerView<'a> {
     /// Addresses the phone should try next time, freshest first.
     pub addrs: Vec<String>,
     pub tz: &'a TimeZone,
+    /// An Android build this PC is holding, whatever its version.
+    pub update: Option<UpdateOffer>,
 }
 
 /// Handles a phone's request: merge what it pushed, note what it is about to
@@ -91,6 +94,12 @@ pub fn handle_sync(
             .collect(),
         addrs: view.addrs.clone(),
         skew_warning: (skew.abs() > SKEW_WARN_MS).then_some(skew),
+        // Offered only to a phone running something older, so a device that is
+        // already up to date is never nagged to reinstall what it has.
+        update: view
+            .update
+            .clone()
+            .filter(|u| is_newer(&u.version, &request.app_ver)),
     })
 }
 
@@ -230,6 +239,7 @@ mod tests {
                     attended,
                     addrs: vec!["192.168.1.10".into()],
                     tz: &UTC,
+                    update: None,
                 };
                 let response =
                     handle_sync(&mut self.pc, &request, now, &view, &mut self.acks).unwrap();
@@ -271,6 +281,37 @@ mod tests {
     }
 
     #[test]
+    fn an_update_is_offered_only_to_a_phone_running_something_older() {
+        let t0 = resolve(date(2026, 9, 16).at(9, 0, 0, 0), &UTC);
+        let mut p = Pair::new();
+        let offer = UpdateOffer {
+            version: "0.2.0".into(),
+            size: 12_345,
+            sha256: "ab".repeat(32),
+        };
+        let ask = |app_ver: &str| {
+            let mut request = build_request(&p.phone, "phone", "pc", 0, 0, vec![], t0).unwrap();
+            request.app_ver = app_ver.to_string();
+            request
+        };
+        let view = ServerView {
+            attended: false,
+            addrs: vec![],
+            tz: &UTC,
+            update: Some(offer.clone()),
+        };
+
+        let behind = handle_sync(&mut p.pc, &ask("0.1.0"), t0, &view, &mut p.acks).unwrap();
+        assert_eq!(behind.update, Some(offer.clone()));
+
+        let current = handle_sync(&mut p.pc, &ask("0.2.0"), t0, &view, &mut p.acks).unwrap();
+        assert_eq!(current.update, None, "it already has this one");
+
+        let ahead = handle_sync(&mut p.pc, &ask("0.3.0"), t0, &view, &mut p.acks).unwrap();
+        assert_eq!(ahead.update, None, "never offer a step backwards");
+    }
+
+    #[test]
     fn rows_are_not_echoed_back_to_their_author() {
         let t0 = resolve(date(2026, 9, 16).at(9, 0, 0, 0), &UTC);
         let mut p = Pair::new();
@@ -285,6 +326,7 @@ mod tests {
             attended: false,
             addrs: vec![],
             tz: &UTC,
+            update: None,
         };
         let response =
             handle_sync(&mut p.pc, &request, t0.plus(MINUTE), &view, &mut p.acks).unwrap();
@@ -371,6 +413,7 @@ mod tests {
             attended: false,
             addrs: vec![],
             tz: &UTC,
+            update: None,
         };
         let response = handle_sync(&mut p.pc, &first, t0, &view, &mut p.acks).unwrap();
         assert!(response.pull.more, "expected paging");
@@ -388,6 +431,7 @@ mod tests {
             attended: true,
             addrs: vec![],
             tz: &UTC,
+            update: None,
         };
 
         let mut request = build_request(&p.phone, "phone", "pc", 0, 0, vec![], t0).unwrap();

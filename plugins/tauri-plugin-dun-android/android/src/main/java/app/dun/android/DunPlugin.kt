@@ -76,6 +76,50 @@ class DunPlugin(private val activity: Activity) : Plugin(activity) {
         }
     }
 
+    /**
+     * Hands a downloaded package to Android's installer.
+     *
+     * Dun never installs anything itself: this opens the system's own installer
+     * with the file, and the user approves it there. Android gates even that
+     * behind a per-app "install unknown apps" switch, so if it hasn't been
+     * granted, take the user to it instead of failing quietly.
+     */
+    @Command
+    fun installUpdate(invoke: Invoke) {
+        val path = JSONObject(invoke.getRawArgs()).optString("path")
+        val file = java.io.File(path)
+        if (!file.exists()) {
+            invoke.reject("the download is missing")
+            return
+        }
+        val ctx = activity.applicationContext
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O &&
+            !ctx.packageManager.canRequestPackageInstalls()
+        ) {
+            activity.startActivity(
+                Intent(
+                    Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
+                    Uri.parse("package:${activity.packageName}")
+                )
+            )
+            invoke.reject("Allow Dun to install apps, then tap Install again")
+            return
+        }
+        val uri = androidx.core.content.FileProvider.getUriForFile(
+            ctx, "${ctx.packageName}.fileprovider", file
+        )
+        val intent = Intent(Intent.ACTION_VIEW).apply {
+            setDataAndType(uri, "application/vnd.android.package-archive")
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
+        try {
+            activity.startActivity(intent)
+            invoke.resolve()
+        } catch (e: Exception) {
+            invoke.reject("couldn't open the installer: $e")
+        }
+    }
+
     @Command
     fun deviceInfo(invoke: Invoke) {
         val ret = JSObject()

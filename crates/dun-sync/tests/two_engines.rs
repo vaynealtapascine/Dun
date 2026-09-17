@@ -86,6 +86,7 @@ impl Backend for Pc {
             attended: *self.attended.lock().unwrap(),
             addrs: vec!["127.0.0.1".into()],
             tz: &UTC,
+            update: None,
         };
         session::handle_sync(
             &mut self.engine.lock().unwrap(),

@@ -11,6 +11,7 @@ pub mod sync;
 pub mod toast;
 pub mod toasts;
 pub mod tray;
+pub mod updates;
 pub mod window;
 
 use tauri::{AppHandle, Runtime};

@@ -31,5 +31,6 @@ client = ["dep:reqwest"]
 
 [dev-dependencies]
 tempfile = "3"
+sha2 = "0.10"
 tokio = { version = "1", features = ["rt-multi-thread", "macros", "time"] }
 jiff.workspace = true

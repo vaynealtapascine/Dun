@@ -209,6 +209,7 @@ pub fn run() {
             mobile::commands::set_chime,
             mobile::commands::sync_status,
             mobile::commands::sync_now,
+            mobile::commands::install_update,
             mobile::commands::pair_with_pc,
             mobile::commands::forget_pc,
             mobile::commands::setup_status,

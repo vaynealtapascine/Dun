@@ -15,7 +15,7 @@ use serde::Serialize;
 use tauri::{AppHandle, Emitter, Runtime};
 use tauri_plugin_dun_android::DunAndroidExt;
 
-use super::{bridge, core, sync};
+use super::{bridge, core, sync, update};
 
 pub const STATE_CHANGED: &str = "state-changed";
 
@@ -272,6 +272,8 @@ pub struct PhoneSyncStatus {
     /// How far this phone's clock was from the PC's at the last check-in, when
     /// they disagreed enough to matter.
     pub skew_ms: Option<i64>,
+    /// A newer build waiting on the PC, if it has one.
+    pub update: Option<dun_core::sync::protocol::UpdateOffer>,
 }
 
 #[tauri::command]
@@ -296,6 +298,14 @@ pub fn sync_status<R: Runtime>(app: AppHandle<R>) -> CmdResult<PhoneSyncStatus> 
                 .ok()
                 .flatten()
                 .flatten(),
+            update: engine
+                .store()
+                .local_get::<Option<dun_core::sync::protocol::UpdateOffer>>(sync::UPDATE_KEY)
+                .ok()
+                .flatten()
+                .flatten()
+                // An offer stops being one the moment this phone catches up.
+                .filter(|o| dun_core::sync::protocol::is_newer(&o.version, dun_core::VERSION)),
         }
     })
 }
@@ -315,6 +325,17 @@ pub fn sync_now<R: Runtime>(app: AppHandle<R>) -> CmdResult<PhoneSyncStatus> {
     let _ = app.dun_android().apply_plan(&response["plan"]);
     let _ = snapshot_of(&app).map(|s| app.emit(STATE_CHANGED, s));
     sync_status(app)
+}
+
+/// Downloads the newer build the PC offered and opens Android's installer.
+/// Both halves are the user's doing: nothing downloads or installs on its own.
+#[tauri::command]
+pub fn install_update<R: Runtime>(app: AppHandle<R>) -> CmdResult<()> {
+    let (dir, _) = device(&app)?;
+    let path = update::download(&dir)?;
+    app.dun_android()
+        .install_update(&path.display().to_string())
+        .map_err(|e| e.to_string())
 }
 
 /// Pairs with a PC from a scanned or pasted `dun://pair?…` invite.

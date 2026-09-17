@@ -95,6 +95,16 @@ adb logcat -s DunNative DunReceiver DunPlugin PlanExecutor
   airplane mode → PC loud after two minutes; Done on the phone → the PC stops
   within seconds; Done on the PC → the phone clears by its next nag.
 
+### Updates over the network
+
+Build an APK whose version is *ahead* of the phone's, drop it in the PC's
+`updates` folder as `dun-<version>.apk`, and open Settings on the phone: the
+offer should name that version and its size. Tapping through downloads it,
+hashes it, and opens Android's installer. Afterwards the offer must be gone —
+a phone on the same version is never offered it again, which is the part
+worth checking, since an update that re-offers itself forever is worse than
+none.
+
 ### Testing sync without the LAN
 
 Windows blocks inbound connections on a network it has marked Public, which

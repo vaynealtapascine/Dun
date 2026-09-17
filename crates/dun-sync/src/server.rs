@@ -7,12 +7,14 @@ use std::time::Duration;
 
 use axum::extract::State;
 use axum::http::{HeaderMap, StatusCode};
+use axum::response::IntoResponse;
 use axum::routing::post;
 use axum::{Json, Router};
 use axum_server::tls_rustls::RustlsConfig;
 use axum_server::Handle;
 use dun_core::sync::protocol::{
-    error, ErrorBody, PairRequest, PairResponse, SyncRequest, SyncResponse, PAIR_PATH, SYNC_PATH,
+    error, ErrorBody, PairRequest, PairResponse, SyncRequest, SyncResponse, APK_PATH, PAIR_PATH,
+    SYNC_PATH,
 };
 
 use crate::cert::Identity;
@@ -46,6 +48,14 @@ pub trait Backend: Send + Sync + 'static {
     fn pair(&self, request: PairRequest) -> Result<PairResponse, Refusal>;
     /// `token` is the bearer token as sent; the backend decides if it's known.
     fn sync(&self, token: &str, request: SyncRequest) -> Result<SyncResponse, Refusal>;
+    /// The Android package this PC is offering, for a paired phone to fetch.
+    /// The default is to offer nothing, which is what most backends want.
+    fn apk(&self, _token: &str) -> Result<std::path::PathBuf, Refusal> {
+        Err(Refusal::new(
+            404,
+            ErrorBody::new(error::NOT_FOUND, "This PC has no Android build to hand out"),
+        ))
+    }
 }
 
 /// A running server. Dropping it stops listening.
@@ -81,6 +91,7 @@ impl Server {
         let router = Router::new()
             .route(PAIR_PATH, post(pair))
             .route(SYNC_PATH, post(sync))
+            .route(APK_PATH, axum::routing::get(apk))
             .with_state(backend);
 
         let handle = Handle::new();
@@ -177,6 +188,44 @@ async fn sync(
         Ok(response) => Ok(Json(response)),
         Err(refusal) => refuse(refusal),
     }
+}
+
+/// Hands over the package itself. Read into memory first: an APK is tens of
+/// megabytes and the phone is on the same network.
+async fn apk(
+    State(backend): State<Arc<dyn Backend>>,
+    headers: HeaderMap,
+) -> Result<axum::response::Response, (StatusCode, Json<ErrorBody>)> {
+    let Some(token) = bearer(&headers) else {
+        let refusal = Refusal::unauthorized();
+        return refuse_raw(refusal);
+    };
+    let path = match backend.apk(token) {
+        Ok(path) => path,
+        Err(refusal) => return refuse_raw(refusal),
+    };
+    match tokio::fs::read(&path).await {
+        Ok(bytes) => Ok((
+            [(
+                axum::http::header::CONTENT_TYPE,
+                "application/vnd.android.package-archive",
+            )],
+            bytes,
+        )
+            .into_response()),
+        Err(e) => refuse_raw(Refusal::new(
+            500,
+            ErrorBody::new(
+                error::BAD_REQUEST,
+                format!("couldn't read the package: {e}"),
+            ),
+        )),
+    }
+}
+
+fn refuse_raw(refusal: Refusal) -> Result<axum::response::Response, (StatusCode, Json<ErrorBody>)> {
+    let status = StatusCode::from_u16(refusal.status).unwrap_or(StatusCode::BAD_REQUEST);
+    Err((status, Json(refusal.body)))
 }
 
 fn bearer(headers: &HeaderMap) -> Option<&str> {

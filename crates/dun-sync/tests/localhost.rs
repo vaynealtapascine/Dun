@@ -16,6 +16,8 @@ struct TestPc {
     pairing: Mutex<Option<Pairing>>,
     peers: Mutex<Vec<pairing::PairedPeer>>,
     last_request: Mutex<Option<SyncRequest>>,
+    /// A package to hand out, as the real PC does from its updates folder.
+    apk: Mutex<Option<std::path::PathBuf>>,
 }
 
 impl TestPc {
@@ -24,7 +26,16 @@ impl TestPc {
             pairing: Mutex::new(open_pairing.then(|| Pairing::open(NOW))),
             peers: Mutex::new(Vec::new()),
             last_request: Mutex::new(None),
+            apk: Mutex::new(None),
         })
+    }
+
+    fn knows(&self, token: &str) -> bool {
+        self.peers
+            .lock()
+            .unwrap()
+            .iter()
+            .any(|p| pairing::token_matches(token, &p.token_hash))
     }
 
     fn code(&self) -> String {
@@ -56,14 +67,19 @@ impl Backend for TestPc {
         }
     }
 
-    fn sync(&self, token: &str, request: SyncRequest) -> Result<SyncResponse, Refusal> {
-        let known = self
-            .peers
+    fn apk(&self, token: &str) -> Result<std::path::PathBuf, Refusal> {
+        if !self.knows(token) {
+            return Err(Refusal::unauthorized());
+        }
+        self.apk
             .lock()
             .unwrap()
-            .iter()
-            .any(|p| pairing::token_matches(token, &p.token_hash));
-        if !known {
+            .clone()
+            .ok_or_else(|| Refusal::new(404, PairError::NotPairing.body()))
+    }
+
+    fn sync(&self, token: &str, request: SyncRequest) -> Result<SyncResponse, Refusal> {
+        if !self.knows(token) {
             return Err(Refusal::unauthorized());
         }
         *self.last_request.lock().unwrap() = Some(request.clone());
@@ -75,6 +91,7 @@ impl Backend for TestPc {
             ringing_soon: vec![],
             addrs: vec!["127.0.0.1".into()],
             skew_warning: None,
+            update: None,
         })
     }
 }
@@ -292,4 +309,96 @@ fn starts_and_serves_without_a_runtime_in_the_caller() {
         .unwrap()
         .block_on(pair_ok(&running));
     assert!(!paired.is_empty(), "the server should have answered");
+}
+
+/// The package itself: fetched over the same pinned connection, and refused
+/// unless it arrives exactly as promised.
+mod updates {
+    use super::*;
+
+    fn sha256(bytes: &[u8]) -> String {
+        use sha2::{Digest, Sha256};
+        Sha256::digest(bytes)
+            .iter()
+            .map(|b| format!("{b:02x}"))
+            .collect()
+    }
+
+    #[tokio::test]
+    async fn a_paired_phone_downloads_the_package_it_was_promised() {
+        let running = start(true);
+        let token = pair_ok(&running).await;
+
+        let dir = tempfile::tempdir().unwrap();
+        let served = dir.path().join("dun-0.2.0.apk");
+        let bytes = b"not really an APK, but the bytes are the bytes".repeat(500);
+        std::fs::write(&served, &bytes).unwrap();
+        *running.pc.apk.lock().unwrap() = Some(served);
+
+        let into = dir.path().join("downloaded.apk");
+        let written = client::download_apk(
+            &running.identity.fingerprint(),
+            "127.0.0.1",
+            running.server.port(),
+            &token,
+            &sha256(&bytes),
+            &into,
+        )
+        .await
+        .expect("the download should succeed");
+
+        assert_eq!(written as usize, bytes.len());
+        assert_eq!(std::fs::read(&into).unwrap(), bytes);
+    }
+
+    #[tokio::test]
+    async fn a_package_that_arrives_wrong_is_thrown_away() {
+        let running = start(true);
+        let token = pair_ok(&running).await;
+
+        let dir = tempfile::tempdir().unwrap();
+        let served = dir.path().join("dun-0.2.0.apk");
+        std::fs::write(&served, b"the bytes the PC actually has").unwrap();
+        *running.pc.apk.lock().unwrap() = Some(served);
+
+        let into = dir.path().join("downloaded.apk");
+        let error = client::download_apk(
+            &running.identity.fingerprint(),
+            "127.0.0.1",
+            running.server.port(),
+            &token,
+            &sha256(b"what the PC said it had"),
+            &into,
+        )
+        .await
+        .unwrap_err();
+
+        assert!(error.to_string().contains("whole"), "got {error}");
+        assert!(
+            !into.exists(),
+            "a package that failed its hash must not be left for the installer"
+        );
+        assert!(
+            !into.with_extension("part").exists(),
+            "and neither must the half-written one"
+        );
+    }
+
+    #[tokio::test]
+    async fn an_unknown_token_gets_nothing() {
+        let running = start(true);
+        pair_ok(&running).await;
+
+        let error = client::download_apk(
+            &running.identity.fingerprint(),
+            "127.0.0.1",
+            running.server.port(),
+            "not-the-token",
+            &sha256(b""),
+            &tempfile::tempdir().unwrap().path().join("nope.apk"),
+        )
+        .await
+        .unwrap_err();
+        assert_eq!(error.code(), Some(error::UNAUTHORIZED));
+    }
 }

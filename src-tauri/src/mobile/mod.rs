@@ -7,3 +7,4 @@ pub mod commands;
 pub mod core;
 pub mod plan;
 pub mod sync;
+pub mod update;

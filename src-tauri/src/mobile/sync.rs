@@ -25,6 +25,9 @@ const BUDGET: Duration = Duration::from_millis(4_000);
 /// last check-in, in ms, or null when they agreed.
 pub const SKEW_KEY: &str = "lastSkewMs";
 
+/// Device-local setting: the newer build the PC last said it was holding.
+pub const UPDATE_KEY: &str = "updateOffer";
+
 /// Serializes sessions: two receivers firing at once shouldn't both sync.
 static GATE: Mutex<()> = Mutex::new(());
 
@@ -172,6 +175,9 @@ pub fn check_in(
         let _ = engine
             .store_mut()
             .local_set(SKEW_KEY, &response.skew_warning);
+        // Remembered rather than acted on: installing is the user's call, and
+        // the offer has to survive until they open Settings and see it.
+        let _ = engine.store_mut().local_set(UPDATE_KEY, &response.update);
     });
 
     let _ = tz;

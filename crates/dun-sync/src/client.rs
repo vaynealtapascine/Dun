@@ -9,7 +9,7 @@ use std::sync::Mutex;
 use std::time::Duration;
 
 use dun_core::sync::protocol::{
-    ErrorBody, PairRequest, PairResponse, SyncRequest, SyncResponse, PAIR_PATH, SYNC_PATH,
+    ErrorBody, PairRequest, PairResponse, SyncRequest, SyncResponse, APK_PATH, PAIR_PATH, SYNC_PATH,
 };
 
 use crate::pin::pinned_client_config;
@@ -19,6 +19,10 @@ pub const STAGGER: Duration = Duration::from_millis(300);
 pub const CONNECT_TIMEOUT: Duration = Duration::from_millis(1500);
 /// Everything, including retries, fits in this.
 pub const TOTAL_TIMEOUT: Duration = Duration::from_millis(3500);
+
+/// A package is tens of megabytes over Wi-Fi, so it gets its own budget
+/// instead of the one sized for a check-in.
+pub const DOWNLOAD_TIMEOUT: Duration = Duration::from_secs(300);
 
 #[derive(Debug, thiserror::Error)]
 pub enum ClientError {
@@ -174,6 +178,81 @@ pub async fn pair(
 ) -> Result<PairResponse, ClientError> {
     let http = http_client(fingerprint)?;
     post_json(&http, &url(addr, port, PAIR_PATH), None, request).await
+}
+
+/// Fetches the Android package the PC offered, writing it to `into`.
+///
+/// The hash is checked while it arrives and a bad or short download leaves no
+/// file behind: a half-written APK handed to Android's installer is a puzzle
+/// nobody enjoys.
+pub async fn download_apk(
+    fingerprint: &str,
+    addr: &str,
+    port: u16,
+    token: &str,
+    sha256: &str,
+    into: &std::path::Path,
+) -> Result<u64, ClientError> {
+    use sha2::{Digest, Sha256};
+
+    let http = reqwest::Client::builder()
+        .use_preconfigured_tls(pinned_client_config(fingerprint))
+        .connect_timeout(CONNECT_TIMEOUT)
+        .timeout(DOWNLOAD_TIMEOUT)
+        .build()
+        .map_err(|e| ClientError::Setup(e.to_string()))?;
+
+    let mut response = http
+        .get(url(addr, port, APK_PATH))
+        .bearer_auth(token)
+        .send()
+        .await
+        .map_err(|e| ClientError::Unreachable { tried: chain(&e) })?;
+    if !response.status().is_success() {
+        let status = response.status().as_u16();
+        return match response.json::<ErrorBody>().await {
+            Ok(body) => Err(ClientError::Refused(body)),
+            Err(_) => Err(ClientError::Status { status }),
+        };
+    }
+
+    let temporary = into.with_extension("part");
+    let mut file = std::fs::File::create(&temporary)
+        .map_err(|e| ClientError::Setup(format!("couldn't write the download: {e}")))?;
+    let mut hasher = Sha256::new();
+    let mut written = 0u64;
+    while let Some(chunk) = response
+        .chunk()
+        .await
+        .map_err(|e| ClientError::Unreachable { tried: chain(&e) })?
+    {
+        use std::io::Write;
+        hasher.update(&chunk);
+        file.write_all(&chunk)
+            .map_err(|e| ClientError::Setup(format!("couldn't write the download: {e}")))?;
+        written += chunk.len() as u64;
+    }
+    drop(file);
+
+    let got = hex(&hasher.finalize());
+    if !got.eq_ignore_ascii_case(sha256) {
+        let _ = std::fs::remove_file(&temporary);
+        return Err(ClientError::Setup(
+            "the download didn't arrive whole; try again".into(),
+        ));
+    }
+    std::fs::rename(&temporary, into)
+        .map_err(|e| ClientError::Setup(format!("couldn't finish the download: {e}")))?;
+    Ok(written)
+}
+
+fn hex(bytes: &[u8]) -> String {
+    use std::fmt::Write;
+    let mut out = String::with_capacity(bytes.len() * 2);
+    for byte in bytes {
+        let _ = write!(out, "{byte:02x}");
+    }
+    out
 }
 
 fn http_client(fingerprint: &str) -> Result<reqwest::Client, ClientError> {

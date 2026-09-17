@@ -56,7 +56,8 @@ everything: what the phone changed, where it got to, what it is about to ring.
   "attended": true,              // someone is at the PC
   "ringingSoon": [{"item":"…","occurrence":…}],
   "addrs": ["192.168.1.10","100.64.0.2"],
-  "skewWarning": null            // ms, when the clocks disagree by over 30 s
+  "skewWarning": null,           // ms, when the clocks disagree by over 30 s
+  "update": null                 // {version, size, sha256} when the PC holds a newer build
 }
 ```
 
@@ -77,6 +78,13 @@ ping-pong either way.
 **Drift guard.** A push stamped more than **24 hours** from the PC's clock is
 refused with `clockDrift` rather than merged into the future. Between 30 s and
 24 h the response carries `skewWarning` and the UI says so.
+
+**Updates.** `GET /v1/apk`, same bearer token, serves the Android package
+the PC is holding in its `updates` folder. The offer only appears in a
+response when the requesting phone's `appVer` is older, compared number by
+number so 0.10.0 beats 0.9.0. The phone checks the SHA-256 before handing the
+file to Android's installer, and nothing downloads or installs without the
+user asking.
 
 ## Merge rules
 

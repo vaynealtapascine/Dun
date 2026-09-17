@@ -13,6 +13,8 @@ use dun_core::time::Timestamp;
 use dun_sync::cert::Identity;
 use dun_sync::pairing::{self, PairError, Pairing, PairingInvite};
 use dun_sync::server::{Backend, Refusal, Server};
+
+use super::updates::Updates;
 use serde::Serialize;
 use tauri::{AppHandle, Emitter, Runtime};
 
@@ -33,6 +35,8 @@ pub struct SyncHub<R: Runtime> {
     /// Mirrors how many peers are stored, so the scheduler can ask without
     /// taking the engine lock it already holds.
     paired_count: AtomicUsize,
+    /// The Android build, if any, waiting in the `updates` folder.
+    updates: Updates,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -84,6 +88,7 @@ impl<R: Runtime> SyncHub<R> {
             acks: Arc::new(Mutex::new(BTreeMap::new())),
             attended: AtomicBool::new(true),
             paired_count: AtomicUsize::new(0),
+            updates: Updates::default(),
         });
         hub.refresh_paired_count();
         Ok(hub)
@@ -245,6 +250,11 @@ impl<R: Runtime> SyncHub<R> {
         let _ = self.app.emit("sync-changed", self.status());
     }
 
+    /// The package this PC is holding for phones, if there is one.
+    fn offered(&self) -> Option<super::updates::Available> {
+        self.updates.current(&self.core.data_dir().join("updates"))
+    }
+
     fn after_merge(&self) {
         self.core.wake_scheduler();
         let _ = self
@@ -300,6 +310,7 @@ impl<R: Runtime> Backend for SyncHub<R> {
             attended: self.attended.load(Ordering::Relaxed),
             addrs: local_addrs(),
             tz: &tz,
+            update: self.offered().map(|a| a.offer),
         };
         let mut acks = self.acks.lock().unwrap_or_else(|p| p.into_inner());
         let response = session::handle_sync(&mut engine, &request, now, &view, &mut acks)
@@ -318,6 +329,24 @@ impl<R: Runtime> Backend for SyncHub<R> {
         // A phone's Done should stop this PC nagging within seconds.
         self.after_merge();
         Ok(response)
+    }
+
+    fn apk(&self, token: &str) -> Result<std::path::PathBuf, Refusal> {
+        // Paired phones only: the package is served over the same trust the
+        // rest of sync runs on, not to anything that can reach the port.
+        let peers = self.core.engine().peers();
+        if peers.by_token(token, pairing::token_matches).is_none() {
+            return Err(Refusal::unauthorized());
+        }
+        self.offered().map(|a| a.path).ok_or_else(|| {
+            Refusal::new(
+                404,
+                dun_core::sync::protocol::ErrorBody::new(
+                    dun_core::sync::protocol::error::NOT_FOUND,
+                    "This PC has no Android build to hand out",
+                ),
+            )
+        })
     }
 }
 

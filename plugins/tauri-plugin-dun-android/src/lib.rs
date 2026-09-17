@@ -64,6 +64,12 @@ impl<R: Runtime> DunAndroid<R> {
         self.run("setupStatus", &serde_json::json!({}))
     }
 
+    /// Opens Android's installer on a package Dun downloaded from the PC.
+    pub fn install_update(&self, path: &str) -> Result<()> {
+        self.run::<serde_json::Value>("installUpdate", &serde_json::json!({ "path": path }))
+            .map(|_| ())
+    }
+
     /// Opens the system settings screen for one checklist entry.
     pub fn open_setting(&self, key: &str) -> Result<()> {
         self.run::<serde_json::Value>("openSetting", &serde_json::json!({ "key": key }))

@@ -14,6 +14,8 @@
     chime: ChimeRef;
     /** Set when this phone's clock and the PC's disagree enough to matter. */
     skewMs: number | null;
+    /** A newer build waiting on the PC. */
+    update: { version: string; size: number; sha256: string } | null;
   };
 
   // Android ties a sound to a notification channel, so only the bundled ones.
@@ -57,6 +59,22 @@
       error = String(e);
     } finally {
       busy = false;
+    }
+  }
+
+  let installing = $state(false);
+
+  async function install() {
+    installing = true;
+    error = null;
+    try {
+      // Downloads, then hands it to Android's installer, which asks before
+      // anything is replaced.
+      await invoke("install_update");
+    } catch (e) {
+      error = String(e);
+    } finally {
+      installing = false;
     }
   }
 
@@ -130,6 +148,21 @@
       <button class="btn" disabled={busy} onclick={syncNow}><Icon name="repeat" size={15} /> Sync now</button>
       <button class="btn btn-danger btn-quiet" onclick={forget}>Forget PC</button>
     </div>
+    {#if sync.update}
+      <div class="update">
+        <p class="status">
+          <strong>Dun {sync.update.version}</strong> is waiting on {sync.pcName ?? "your PC"}
+          <span class="muted">· {(sync.update.size / 1e6).toFixed(1)} MB</span>
+        </p>
+        <button class="btn btn-primary" disabled={installing} onclick={install}>
+          {installing ? "Downloading…" : "Download and install"}
+        </button>
+        <p class="hint muted">
+          Android asks before it installs anything, and the first time it will want permission to install apps from
+          Dun.
+        </p>
+      </div>
+    {/if}
   {:else}
     <p class="hint muted">
       On the PC open <strong>Settings → Sync → Pair a phone</strong>, then paste the link shown under “Can't scan?”.
@@ -156,6 +189,18 @@
   h3 {
     margin: 0 0 0.1rem;
     font-size: 0.95rem;
+  }
+  .update {
+    display: grid;
+    gap: 0.4rem;
+    justify-items: start;
+    padding: 0.6rem 0.7rem;
+    border-radius: var(--radius);
+    background: var(--bg-raised);
+    border: 1px solid var(--border);
+  }
+  .update .status {
+    margin: 0;
   }
   .chimes {
     display: flex;
