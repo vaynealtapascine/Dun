@@ -5,6 +5,7 @@
   import { groupTimers } from "../lib/grouping";
   import { app } from "../lib/stores/app.svelte";
   import Icon from "../lib/components/Icon.svelte";
+  import SwipeToDelete from "../lib/components/SwipeToDelete.svelte";
   import TimerCard from "../lib/components/TimerCard.svelte";
   import PresetForm from "./PresetForm.svelte";
 
@@ -52,7 +53,9 @@
     <h3>Running</h3>
     <div class="list">
       {#each active as item (item.id)}
-        <TimerCard {item} {onedit} />
+        <SwipeToDelete label={item.title} ondelete={() => app.run(() => api.deleteItem(item.id))}>
+          <TimerCard {item} {onedit} />
+        </SwipeToDelete>
       {/each}
     </div>
   </section>
@@ -63,7 +66,9 @@
     <h3>Stopped</h3>
     <div class="list">
       {#each buckets.idle as item (item.id)}
-        <TimerCard {item} {onedit} />
+        <SwipeToDelete label={item.title} ondelete={() => app.run(() => api.deleteItem(item.id))}>
+          <TimerCard {item} {onedit} />
+        </SwipeToDelete>
       {/each}
     </div>
   </section>

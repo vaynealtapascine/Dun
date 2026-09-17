@@ -1,8 +1,10 @@
 <script lang="ts">
   import type { ItemView } from "../lib/api/types";
+  import { api } from "../lib/api/commands";
   import { GROUP_TITLES, groupReminders } from "../lib/grouping";
   import { app } from "../lib/stores/app.svelte";
   import ItemRow from "../lib/components/ItemRow.svelte";
+  import SwipeToDelete from "../lib/components/SwipeToDelete.svelte";
 
   let { items, onedit }: { items: ItemView[]; onedit: (item: ItemView) => void } = $props();
 
@@ -22,7 +24,9 @@
       </h3>
       <div class="list" role="list">
         {#each group.items as item (item.id)}
-          <ItemRow {item} {onedit} />
+          <SwipeToDelete role="listitem" label={item.title} ondelete={() => app.run(() => api.deleteItem(item.id))}>
+            <ItemRow {item} {onedit} />
+          </SwipeToDelete>
         {/each}
       </div>
     </section>

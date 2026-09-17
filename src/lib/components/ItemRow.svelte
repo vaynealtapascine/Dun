@@ -37,8 +37,7 @@
   const occurrence = $derived(item.status.kind === "due" ? item.status.occurrence : null);
 </script>
 
-<!-- svelte-ignore a11y_click_events_have_key_events -->
-<div class="row" class:ringing class:overdue={item.status.kind === "due" && !ringing} role="listitem">
+<div class="row" class:ringing class:overdue={item.status.kind === "due" && !ringing}>
   <button
     class="done"
     onclick={() => app.run(() => api.done(item.id, occurrence))}
