@@ -1,8 +1,10 @@
-![AI Disclosure: Repo code is fully AI-generated. Makes use of anthropic/claude-opus-5](assets/ai-transparency.png)
+![AI Disclosure: Repo code is fully AI-generated. Makes use of anthropic/claude-opus-5](assets/ai-transparency-disclosure.png)
 
 # Dun
 
-Reminders and countdown timers that keep nagging, every minute by default, until you mark them done. Inspired by Due for iOS.
+Reminders and countdown timers that keep nagging until you mark them done. Windows tray app plus an Android build, synced directly over your own network.
+
+Inspired by Due for iOS.
 
 - Runs in the Windows tray and starts at login. Timers and reminders survive reboots.
 - Snooze from the notification (Done · +1m · +5m · +15m on Windows).
@@ -71,3 +73,7 @@ pwsh scripts/verify.ps1           # plus the NSIS installer
 | `plugins/tauri-plugin-dun-android/` | The Kotlin side: alarms, notification channels, receivers |
 | `src-tauri/gen/android/` | Generated Android project, committed. Custom Kotlin lives in the local plugin, not here |
 | `scripts/` | `dev-env.ps1`, `verify.ps1` |
+
+## License
+
+MIT. See [LICENSE](LICENSE).
