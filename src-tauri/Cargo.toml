@@ -12,6 +12,10 @@ publish.workspace = true
 name = "dun_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
+[features]
+# Tauri's build command enables this to embed the UI instead of loading devUrl.
+custom-protocol = ["tauri/custom-protocol"]
+
 [dev-dependencies]
 tempfile = "3"
 

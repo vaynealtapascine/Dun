@@ -17,6 +17,12 @@ About line and the Android `versionName` all read it.
 npx tauri build --bundles nsis
 ```
 
+Use the Tauri build command for standalone desktop builds. It enables the
+`custom-protocol` feature and embeds the frontend; `cargo build --release`
+alone still loads the development server, even though the executable is in
+the `release` folder. For a standalone executable without an installer, use
+`npx tauri build --no-bundle`.
+
 The installer lands in `F:\DunBuild\target\release\bundle\nsis\` (or wherever
 `.cargo/config.toml` points `target-dir`). It installs per-user, so no
 administrator prompt.
