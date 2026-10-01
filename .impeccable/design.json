@@ -1,0 +1,782 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-01T14:24:37Z",
+  "title": "Design System: Dun",
+  "extensions": {
+    "colorMeta": {
+      "bg": {
+        "role": "neutral",
+        "displayName": "Cool ground",
+        "canonical": "#e9eef1",
+        "tonalRamp": [
+          "oklch(15% 0.0067 233.64)",
+          "oklch(25% 0.0067 233.64)",
+          "oklch(35% 0.0067 233.64)",
+          "oklch(45% 0.0067 233.64)",
+          "oklch(55% 0.0067 233.64)",
+          "oklch(68% 0.0067 233.64)",
+          "oklch(82% 0.0067 233.64)",
+          "oklch(95% 0.0067 233.64)"
+        ]
+      },
+      "bg-raised": {
+        "role": "neutral",
+        "displayName": "Raised paper",
+        "canonical": "#f7f9fa",
+        "tonalRamp": [
+          "oklch(15% 0.0025 228.78)",
+          "oklch(25% 0.0025 228.78)",
+          "oklch(35% 0.0025 228.78)",
+          "oklch(45% 0.0025 228.78)",
+          "oklch(55% 0.0025 228.78)",
+          "oklch(68% 0.0025 228.78)",
+          "oklch(82% 0.0025 228.78)",
+          "oklch(95% 0.0025 228.78)"
+        ]
+      },
+      "bg-sunken": {
+        "role": "neutral",
+        "displayName": "Sunken gray",
+        "canonical": "#dfe7ec",
+        "tonalRamp": [
+          "oklch(15% 0.0110 234.83)",
+          "oklch(25% 0.0110 234.83)",
+          "oklch(35% 0.0110 234.83)",
+          "oklch(45% 0.0110 234.83)",
+          "oklch(55% 0.0110 234.83)",
+          "oklch(68% 0.0110 234.83)",
+          "oklch(82% 0.0110 234.83)",
+          "oklch(95% 0.0110 234.83)"
+        ]
+      },
+      "fg": {
+        "role": "neutral",
+        "displayName": "Ink",
+        "canonical": "#162b37",
+        "tonalRamp": [
+          "oklch(15% 0.0350 235.03)",
+          "oklch(25% 0.0350 235.03)",
+          "oklch(35% 0.0350 235.03)",
+          "oklch(45% 0.0350 235.03)",
+          "oklch(55% 0.0350 235.03)",
+          "oklch(68% 0.0350 235.03)",
+          "oklch(82% 0.0350 235.03)",
+          "oklch(95% 0.0350 235.03)"
+        ]
+      },
+      "fg-muted": {
+        "role": "neutral",
+        "displayName": "Muted ink",
+        "canonical": "#546873",
+        "tonalRamp": [
+          "oklch(15% 0.0297 232.18)",
+          "oklch(25% 0.0297 232.18)",
+          "oklch(35% 0.0297 232.18)",
+          "oklch(45% 0.0297 232.18)",
+          "oklch(55% 0.0297 232.18)",
+          "oklch(68% 0.0297 232.18)",
+          "oklch(82% 0.0297 232.18)",
+          "oklch(95% 0.0297 232.18)"
+        ]
+      },
+      "fg-faint": {
+        "role": "neutral",
+        "displayName": "Faint ink",
+        "canonical": "#788b96",
+        "tonalRamp": [
+          "oklch(15% 0.0275 233.27)",
+          "oklch(25% 0.0275 233.27)",
+          "oklch(35% 0.0275 233.27)",
+          "oklch(45% 0.0275 233.27)",
+          "oklch(55% 0.0275 233.27)",
+          "oklch(68% 0.0275 233.27)",
+          "oklch(82% 0.0275 233.27)",
+          "oklch(95% 0.0275 233.27)"
+        ]
+      },
+      "border": {
+        "role": "neutral",
+        "displayName": "Structural stroke",
+        "canonical": "#cbd7df",
+        "tonalRamp": [
+          "oklch(15% 0.0171 236.72)",
+          "oklch(25% 0.0171 236.72)",
+          "oklch(35% 0.0171 236.72)",
+          "oklch(45% 0.0171 236.72)",
+          "oklch(55% 0.0171 236.72)",
+          "oklch(68% 0.0171 236.72)",
+          "oklch(82% 0.0171 236.72)",
+          "oklch(95% 0.0171 236.72)"
+        ]
+      },
+      "accent": {
+        "role": "primary",
+        "displayName": "Instrument teal",
+        "canonical": "#287d87",
+        "tonalRamp": [
+          "oklch(15% 0.0801 206.33)",
+          "oklch(25% 0.0801 206.33)",
+          "oklch(35% 0.0801 206.33)",
+          "oklch(45% 0.0801 206.33)",
+          "oklch(55% 0.0801 206.33)",
+          "oklch(68% 0.0801 206.33)",
+          "oklch(82% 0.0801 206.33)",
+          "oklch(95% 0.0801 206.33)"
+        ]
+      },
+      "accent-fg": {
+        "role": "primary",
+        "displayName": "Activity foreground",
+        "canonical": "#ffffff",
+        "tonalRamp": [
+          "oklch(15% 0.0000 0.00)",
+          "oklch(25% 0.0000 0.00)",
+          "oklch(35% 0.0000 0.00)",
+          "oklch(45% 0.0000 0.00)",
+          "oklch(55% 0.0000 0.00)",
+          "oklch(68% 0.0000 0.00)",
+          "oklch(82% 0.0000 0.00)",
+          "oklch(95% 0.0000 0.00)"
+        ]
+      },
+      "ringing": {
+        "role": "primary",
+        "displayName": "Quiet expiry ink",
+        "canonical": "#b83424",
+        "tonalRamp": [
+          "oklch(15% 0.1713 30.48)",
+          "oklch(25% 0.1713 30.48)",
+          "oklch(35% 0.1713 30.48)",
+          "oklch(45% 0.1713 30.48)",
+          "oklch(55% 0.1713 30.48)",
+          "oklch(68% 0.1713 30.48)",
+          "oklch(82% 0.1713 30.48)",
+          "oklch(95% 0.1713 30.48)"
+        ]
+      },
+      "ringing-bg": {
+        "role": "primary",
+        "displayName": "Quiet expiry surface",
+        "canonical": "#fae5df",
+        "tonalRamp": [
+          "oklch(15% 0.0245 36.51)",
+          "oklch(25% 0.0245 36.51)",
+          "oklch(35% 0.0245 36.51)",
+          "oklch(45% 0.0245 36.51)",
+          "oklch(55% 0.0245 36.51)",
+          "oklch(68% 0.0245 36.51)",
+          "oklch(82% 0.0245 36.51)",
+          "oklch(95% 0.0245 36.51)"
+        ]
+      },
+      "alarm": {
+        "role": "primary",
+        "displayName": "Local expiry red",
+        "canonical": "#d4432a",
+        "tonalRamp": [
+          "oklch(15% 0.1858 32.24)",
+          "oklch(25% 0.1858 32.24)",
+          "oklch(35% 0.1858 32.24)",
+          "oklch(45% 0.1858 32.24)",
+          "oklch(55% 0.1858 32.24)",
+          "oklch(68% 0.1858 32.24)",
+          "oklch(82% 0.1858 32.24)",
+          "oklch(95% 0.1858 32.24)"
+        ]
+      },
+      "alarm-fg": {
+        "role": "primary",
+        "displayName": "Alarm foreground",
+        "canonical": "#ffffff",
+        "tonalRamp": [
+          "oklch(15% 0.0000 0.00)",
+          "oklch(25% 0.0000 0.00)",
+          "oklch(35% 0.0000 0.00)",
+          "oklch(45% 0.0000 0.00)",
+          "oklch(55% 0.0000 0.00)",
+          "oklch(68% 0.0000 0.00)",
+          "oklch(82% 0.0000 0.00)",
+          "oklch(95% 0.0000 0.00)"
+        ]
+      },
+      "overdue": {
+        "role": "secondary",
+        "displayName": "Amber caution",
+        "canonical": "#855512",
+        "tonalRamp": [
+          "oklch(15% 0.0996 69.00)",
+          "oklch(25% 0.0996 69.00)",
+          "oklch(35% 0.0996 69.00)",
+          "oklch(45% 0.0996 69.00)",
+          "oklch(55% 0.0996 69.00)",
+          "oklch(68% 0.0996 69.00)",
+          "oklch(82% 0.0996 69.00)",
+          "oklch(95% 0.0996 69.00)"
+        ]
+      },
+      "overdue-bg": {
+        "role": "secondary",
+        "displayName": "Caution surface",
+        "canonical": "#f6e8cc",
+        "tonalRamp": [
+          "oklch(15% 0.0399 84.58)",
+          "oklch(25% 0.0399 84.58)",
+          "oklch(35% 0.0399 84.58)",
+          "oklch(45% 0.0399 84.58)",
+          "oklch(55% 0.0399 84.58)",
+          "oklch(68% 0.0399 84.58)",
+          "oklch(82% 0.0399 84.58)",
+          "oklch(95% 0.0399 84.58)"
+        ]
+      },
+      "ok": {
+        "role": "secondary",
+        "displayName": "Confirmation green",
+        "canonical": "#276b4b",
+        "tonalRamp": [
+          "oklch(15% 0.0865 159.83)",
+          "oklch(25% 0.0865 159.83)",
+          "oklch(35% 0.0865 159.83)",
+          "oklch(45% 0.0865 159.83)",
+          "oklch(55% 0.0865 159.83)",
+          "oklch(68% 0.0865 159.83)",
+          "oklch(82% 0.0865 159.83)",
+          "oklch(95% 0.0865 159.83)"
+        ]
+      },
+      "focus": {
+        "role": "primary",
+        "displayName": "Focus teal",
+        "canonical": "#287d87",
+        "tonalRamp": [
+          "oklch(15% 0.0801 206.33)",
+          "oklch(25% 0.0801 206.33)",
+          "oklch(35% 0.0801 206.33)",
+          "oklch(45% 0.0801 206.33)",
+          "oklch(55% 0.0801 206.33)",
+          "oklch(68% 0.0801 206.33)",
+          "oklch(82% 0.0801 206.33)",
+          "oklch(95% 0.0801 206.33)"
+        ]
+      },
+      "timer-track": {
+        "role": "neutral",
+        "displayName": "Timer track",
+        "canonical": "#d7e0e6",
+        "tonalRamp": [
+          "oklch(15% 0.0127 236.64)",
+          "oklch(25% 0.0127 236.64)",
+          "oklch(35% 0.0127 236.64)",
+          "oklch(45% 0.0127 236.64)",
+          "oklch(55% 0.0127 236.64)",
+          "oklch(68% 0.0127 236.64)",
+          "oklch(82% 0.0127 236.64)",
+          "oklch(95% 0.0127 236.64)"
+        ]
+      },
+      "bg-dark": {
+        "role": "neutral",
+        "displayName": "Cool ground · Dark",
+        "canonical": "#101e26",
+        "tonalRamp": [
+          "oklch(15% 0.0249 234.48)",
+          "oklch(25% 0.0249 234.48)",
+          "oklch(35% 0.0249 234.48)",
+          "oklch(45% 0.0249 234.48)",
+          "oklch(55% 0.0249 234.48)",
+          "oklch(68% 0.0249 234.48)",
+          "oklch(82% 0.0249 234.48)",
+          "oklch(95% 0.0249 234.48)"
+        ]
+      },
+      "bg-raised-dark": {
+        "role": "neutral",
+        "displayName": "Raised paper · Dark",
+        "canonical": "#182c37",
+        "tonalRamp": [
+          "oklch(15% 0.0329 233.72)",
+          "oklch(25% 0.0329 233.72)",
+          "oklch(35% 0.0329 233.72)",
+          "oklch(45% 0.0329 233.72)",
+          "oklch(55% 0.0329 233.72)",
+          "oklch(68% 0.0329 233.72)",
+          "oklch(82% 0.0329 233.72)",
+          "oklch(95% 0.0329 233.72)"
+        ]
+      },
+      "bg-sunken-dark": {
+        "role": "neutral",
+        "displayName": "Sunken gray · Dark",
+        "canonical": "#243c49",
+        "tonalRamp": [
+          "oklch(15% 0.0376 233.09)",
+          "oklch(25% 0.0376 233.09)",
+          "oklch(35% 0.0376 233.09)",
+          "oklch(45% 0.0376 233.09)",
+          "oklch(55% 0.0376 233.09)",
+          "oklch(68% 0.0376 233.09)",
+          "oklch(82% 0.0376 233.09)",
+          "oklch(95% 0.0376 233.09)"
+        ]
+      },
+      "fg-dark": {
+        "role": "neutral",
+        "displayName": "Ink · Dark",
+        "canonical": "#eef4f5",
+        "tonalRamp": [
+          "oklch(15% 0.0065 208.78)",
+          "oklch(25% 0.0065 208.78)",
+          "oklch(35% 0.0065 208.78)",
+          "oklch(45% 0.0065 208.78)",
+          "oklch(55% 0.0065 208.78)",
+          "oklch(68% 0.0065 208.78)",
+          "oklch(82% 0.0065 208.78)",
+          "oklch(95% 0.0065 208.78)"
+        ]
+      },
+      "fg-muted-dark": {
+        "role": "neutral",
+        "displayName": "Muted ink · Dark",
+        "canonical": "#b0c1ca",
+        "tonalRamp": [
+          "oklch(15% 0.0226 230.63)",
+          "oklch(25% 0.0226 230.63)",
+          "oklch(35% 0.0226 230.63)",
+          "oklch(45% 0.0226 230.63)",
+          "oklch(55% 0.0226 230.63)",
+          "oklch(68% 0.0226 230.63)",
+          "oklch(82% 0.0226 230.63)",
+          "oklch(95% 0.0226 230.63)"
+        ]
+      },
+      "fg-faint-dark": {
+        "role": "neutral",
+        "displayName": "Faint ink · Dark",
+        "canonical": "#7f949f",
+        "tonalRamp": [
+          "oklch(15% 0.0290 230.62)",
+          "oklch(25% 0.0290 230.62)",
+          "oklch(35% 0.0290 230.62)",
+          "oklch(45% 0.0290 230.62)",
+          "oklch(55% 0.0290 230.62)",
+          "oklch(68% 0.0290 230.62)",
+          "oklch(82% 0.0290 230.62)",
+          "oklch(95% 0.0290 230.62)"
+        ]
+      },
+      "border-dark": {
+        "role": "neutral",
+        "displayName": "Structural stroke · Dark",
+        "canonical": "#37505d",
+        "tonalRamp": [
+          "oklch(15% 0.0374 231.44)",
+          "oklch(25% 0.0374 231.44)",
+          "oklch(35% 0.0374 231.44)",
+          "oklch(45% 0.0374 231.44)",
+          "oklch(55% 0.0374 231.44)",
+          "oklch(68% 0.0374 231.44)",
+          "oklch(82% 0.0374 231.44)",
+          "oklch(95% 0.0374 231.44)"
+        ]
+      },
+      "accent-dark": {
+        "role": "primary",
+        "displayName": "Instrument teal · Dark",
+        "canonical": "#7fc5cc",
+        "tonalRamp": [
+          "oklch(15% 0.0710 203.85)",
+          "oklch(25% 0.0710 203.85)",
+          "oklch(35% 0.0710 203.85)",
+          "oklch(45% 0.0710 203.85)",
+          "oklch(55% 0.0710 203.85)",
+          "oklch(68% 0.0710 203.85)",
+          "oklch(82% 0.0710 203.85)",
+          "oklch(95% 0.0710 203.85)"
+        ]
+      },
+      "accent-fg-dark": {
+        "role": "primary",
+        "displayName": "Activity foreground · Dark",
+        "canonical": "#112831",
+        "tonalRamp": [
+          "oklch(15% 0.0335 225.78)",
+          "oklch(25% 0.0335 225.78)",
+          "oklch(35% 0.0335 225.78)",
+          "oklch(45% 0.0335 225.78)",
+          "oklch(55% 0.0335 225.78)",
+          "oklch(68% 0.0335 225.78)",
+          "oklch(82% 0.0335 225.78)",
+          "oklch(95% 0.0335 225.78)"
+        ]
+      },
+      "ringing-dark": {
+        "role": "primary",
+        "displayName": "Quiet expiry ink · Dark",
+        "canonical": "#ff9a86",
+        "tonalRamp": [
+          "oklch(15% 0.1253 32.02)",
+          "oklch(25% 0.1253 32.02)",
+          "oklch(35% 0.1253 32.02)",
+          "oklch(45% 0.1253 32.02)",
+          "oklch(55% 0.1253 32.02)",
+          "oklch(68% 0.1253 32.02)",
+          "oklch(82% 0.1253 32.02)",
+          "oklch(95% 0.1253 32.02)"
+        ]
+      },
+      "ringing-bg-dark": {
+        "role": "primary",
+        "displayName": "Quiet expiry surface · Dark",
+        "canonical": "#412b29",
+        "tonalRamp": [
+          "oklch(15% 0.0332 24.92)",
+          "oklch(25% 0.0332 24.92)",
+          "oklch(35% 0.0332 24.92)",
+          "oklch(45% 0.0332 24.92)",
+          "oklch(55% 0.0332 24.92)",
+          "oklch(68% 0.0332 24.92)",
+          "oklch(82% 0.0332 24.92)",
+          "oklch(95% 0.0332 24.92)"
+        ]
+      },
+      "overdue-dark": {
+        "role": "secondary",
+        "displayName": "Amber caution · Dark",
+        "canonical": "#edc87f",
+        "tonalRamp": [
+          "oklch(15% 0.1007 83.52)",
+          "oklch(25% 0.1007 83.52)",
+          "oklch(35% 0.1007 83.52)",
+          "oklch(45% 0.1007 83.52)",
+          "oklch(55% 0.1007 83.52)",
+          "oklch(68% 0.1007 83.52)",
+          "oklch(82% 0.1007 83.52)",
+          "oklch(95% 0.1007 83.52)"
+        ]
+      },
+      "overdue-bg-dark": {
+        "role": "secondary",
+        "displayName": "Caution surface · Dark",
+        "canonical": "#3c3424",
+        "tonalRamp": [
+          "oklch(15% 0.0288 84.32)",
+          "oklch(25% 0.0288 84.32)",
+          "oklch(35% 0.0288 84.32)",
+          "oklch(45% 0.0288 84.32)",
+          "oklch(55% 0.0288 84.32)",
+          "oklch(68% 0.0288 84.32)",
+          "oklch(82% 0.0288 84.32)",
+          "oklch(95% 0.0288 84.32)"
+        ]
+      },
+      "ok-dark": {
+        "role": "secondary",
+        "displayName": "Confirmation green · Dark",
+        "canonical": "#8cdbb1",
+        "tonalRamp": [
+          "oklch(15% 0.0985 160.02)",
+          "oklch(25% 0.0985 160.02)",
+          "oklch(35% 0.0985 160.02)",
+          "oklch(45% 0.0985 160.02)",
+          "oklch(55% 0.0985 160.02)",
+          "oklch(68% 0.0985 160.02)",
+          "oklch(82% 0.0985 160.02)",
+          "oklch(95% 0.0985 160.02)"
+        ]
+      },
+      "focus-dark": {
+        "role": "primary",
+        "displayName": "Focus teal · Dark",
+        "canonical": "#7fc5cc",
+        "tonalRamp": [
+          "oklch(15% 0.0710 203.85)",
+          "oklch(25% 0.0710 203.85)",
+          "oklch(35% 0.0710 203.85)",
+          "oklch(45% 0.0710 203.85)",
+          "oklch(55% 0.0710 203.85)",
+          "oklch(68% 0.0710 203.85)",
+          "oklch(82% 0.0710 203.85)",
+          "oklch(95% 0.0710 203.85)"
+        ]
+      },
+      "timer-track-dark": {
+        "role": "neutral",
+        "displayName": "Timer track · Dark",
+        "canonical": "#354e5b",
+        "tonalRamp": [
+          "oklch(15% 0.0375 231.49)",
+          "oklch(25% 0.0375 231.49)",
+          "oklch(35% 0.0375 231.49)",
+          "oklch(45% 0.0375 231.49)",
+          "oklch(55% 0.0375 231.49)",
+          "oklch(68% 0.0375 231.49)",
+          "oklch(82% 0.0375 231.49)",
+          "oklch(95% 0.0375 231.49)"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Display",
+        "purpose": "The short countdown on an expired or snoozed timer face."
+      },
+      "display-long": {
+        "displayName": "Display Long",
+        "purpose": "A timer face clock with more than five characters."
+      },
+      "countdown": {
+        "displayName": "Countdown",
+        "purpose": "The short remaining-time measurement inside a dial."
+      },
+      "countdown-long": {
+        "displayName": "Countdown Long",
+        "purpose": "A longer remaining-time measurement inside a dial."
+      },
+      "setter": {
+        "displayName": "Setter",
+        "purpose": "Hours, minutes, and seconds duration-entry numerals."
+      },
+      "reminder-countdown": {
+        "displayName": "Reminder Countdown",
+        "purpose": "One right-aligned YYy MMm DDd HH:MM:SS line, 1.5rem semibold, with leading empty units and positive-unit padding zeros de-emphasized."
+      },
+      "reminder-countdown-compact": {
+        "displayName": "Reminder Countdown Compact",
+        "purpose": "The 1.25rem reminder countdown used below 600px or in scaled portrait layouts at least 760px wide with aspect ratio no greater than 3:4."
+      },
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "Compact shell and product heading."
+      },
+      "title": {
+        "displayName": "Title",
+        "purpose": "Editable timer name beside its dial."
+      },
+      "section-title": {
+        "displayName": "Section Title",
+        "purpose": "The inline New timer heading."
+      },
+      "alarm-state": {
+        "displayName": "Alarm State",
+        "purpose": "The centered Time’s up or Snoozed state on a due face."
+      },
+      "state": {
+        "displayName": "State",
+        "purpose": "Running, Paused, Ready, and Set a duration beside a dial."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Ordinary interface reading and form content."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Navigation and ordinary button text."
+      },
+      "label-strong": {
+        "displayName": "Label Strong",
+        "purpose": "Primary button text and selected navigation or tag-filter labels."
+      },
+      "timer-action": {
+        "displayName": "Timer Action",
+        "purpose": "Labeled timer actions within rows and alarm faces."
+      },
+      "unit-label": {
+        "displayName": "Unit Label",
+        "purpose": "Compact Hours, Minutes, and Seconds field labels."
+      },
+      "preset": {
+        "displayName": "Preset",
+        "purpose": "A preset name and its duration in the launch strip."
+      }
+    },
+    "shadows": [
+      {
+        "name": "floating-light",
+        "value": "0 4px 16px rgba(16, 38, 49, 0.15)",
+        "purpose": "The shared --shadow value for floating menus, notices, errors, and the reminder add action in light mode."
+      },
+      {
+        "name": "floating-dark",
+        "value": "0 4px 16px rgba(0, 0, 0, 0.3)",
+        "purpose": "The --shadow override in explicit or system dark mode."
+      }
+    ],
+    "motion": [
+      {
+        "name": "control-transition",
+        "value": "150ms ease-out",
+        "purpose": "Background and border state changes in shared buttons and switches."
+      },
+      {
+        "name": "remaining-arc-transition",
+        "value": "0.9s linear",
+        "purpose": "Remaining-time stroke-dashoffset transitions; removed on the timer arc for reduced motion."
+      },
+      {
+        "name": "reduced-motion-duration",
+        "value": "0.01ms",
+        "purpose": "The global animation and transition duration override under prefers-reduced-motion: reduce."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "narrow-header-tools",
+        "value": "380px"
+      },
+      {
+        "name": "narrow-duration-setter",
+        "value": "399px"
+      },
+      {
+        "name": "narrow-timer-row",
+        "value": "420px"
+      },
+      {
+        "name": "inline-navigation-badge",
+        "value": "600px"
+      },
+      {
+        "name": "compact-reminder-row",
+        "value": "(max-width: 600px), (min-width: 760px) and (max-aspect-ratio: 3/4)"
+      },
+      {
+        "name": "scaled-portrait",
+        "value": "760px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Teal action with a firm text label.",
+      "html": "<button class=\"ds-primary\" type=\"button\">Start</button>",
+      "css": ".ds-primary { display:inline-flex; align-items:center; justify-content:center; gap:0.4rem; min-height:2.75rem; padding:0.5rem 0.9rem; border:1px solid var(--border, #cbd7df); border-radius:var(--radius-sm, 6px); font-family:\"Source Sans 3\", \"Segoe UI\", sans-serif; font-size:1rem; font-weight:600; line-height:1.4; cursor:pointer; white-space:nowrap; transition:background-color 150ms ease-out, border-color 150ms ease-out; } .ds-primary:disabled { opacity:0.5; cursor:default; } .ds-primary:focus-visible { outline:2px solid var(--focus, #287d87); outline-offset:3px; }.ds-primary { background:var(--accent, #287d87); border-color:var(--accent, #287d87); color:var(--accent-fg, #ffffff); font-weight:700; } .ds-primary:hover { background:color-mix(in srgb, var(--accent, #287d87) 88%, var(--fg, #162b37)); border-color:var(--accent, #287d87); } .ds-primary:active { background:color-mix(in srgb, var(--bg-sunken, #dfe7ec) 76%, var(--fg, #162b37)); } @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration:0.01ms !important; transition-duration:0.01ms !important; } }"
+    },
+    {
+      "name": "Secondary button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Quiet sunken-surface support action.",
+      "html": "<button class=\"ds-secondary\" type=\"button\">Reset</button>",
+      "css": ".ds-secondary { display:inline-flex; align-items:center; justify-content:center; gap:0.4rem; min-height:2.75rem; padding:0.5rem 0.9rem; border:1px solid var(--border, #cbd7df); border-radius:var(--radius-sm, 6px); font-family:\"Source Sans 3\", \"Segoe UI\", sans-serif; font-size:1rem; font-weight:600; line-height:1.4; cursor:pointer; white-space:nowrap; transition:background-color 150ms ease-out, border-color 150ms ease-out; } .ds-secondary:disabled { opacity:0.5; cursor:default; } .ds-secondary:focus-visible { outline:2px solid var(--focus, #287d87); outline-offset:3px; }.ds-secondary { background:var(--bg-sunken, #dfe7ec); color:var(--fg, #162b37); } .ds-secondary:hover { background:color-mix(in srgb, var(--bg-sunken, #dfe7ec) 86%, var(--fg, #162b37)); border-color:var(--fg-faint, #788b96); } .ds-secondary:active { background:color-mix(in srgb, var(--bg-sunken, #dfe7ec) 76%, var(--fg, #162b37)); } @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration:0.01ms !important; transition-duration:0.01ms !important; } }"
+    },
+    {
+      "name": "Icon button",
+      "kind": "button",
+      "refersTo": "button-icon",
+      "description": "Accessible 44px context action using Dun’s inline SVG path.",
+      "html": "<button class=\"ds-icon\" type=\"button\" aria-label=\"Timer actions\"><svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M5 12h.01M12 12h.01M19 12h.01\"/></svg></button>",
+      "css": ".ds-icon { display:inline-grid; place-items:center; width:2.75rem; height:2.75rem; border:none; border-radius:var(--radius-sm, 6px); background:transparent; color:var(--fg-muted, #546873); cursor:pointer; } .ds-icon:hover { background:var(--bg-sunken, #dfe7ec); color:var(--fg, #162b37); } .ds-icon:focus-visible { outline:2px solid var(--focus, #287d87); outline-offset:3px; }"
+    },
+    {
+      "name": "Text field",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Raised, bordered field with an activity caret and visible focus.",
+      "html": "<label class=\"ds-field\"><span>Timer name</span><input class=\"ds-input\" type=\"text\" value=\"Tea\" /></label>",
+      "css": ".ds-field { display:grid; gap:0.35rem; font-family:\"Source Sans 3\", \"Segoe UI\", sans-serif; font-size:1rem; line-height:1.4; color:var(--fg, #162b37); } .ds-field > span { font-size:0.9rem; color:var(--fg-muted, #546873); } .ds-input { width:100%; min-height:44px; padding:0.5rem 0.7rem; border:1px solid var(--border, #cbd7df); border-radius:var(--radius-sm, 6px); background:var(--bg-raised, #f7f9fa); color:var(--fg, #162b37); font:inherit; caret-color:var(--accent, #287d87); } .ds-input::placeholder { color:var(--fg-muted, #546873); opacity:1; } .ds-input:disabled { opacity:0.5; } .ds-input:focus-visible { outline:2px solid var(--focus, #287d87); outline-offset:3px; }"
+    },
+    {
+      "name": "Tag filter",
+      "kind": "chip",
+      "refersTo": "chip",
+      "description": "Rectangular tag filtering, with activity color for the selected state.",
+      "html": "<div class=\"ds-tags\" role=\"group\" aria-label=\"Filter by tag\"><button class=\"ds-chip\" type=\"button\" aria-pressed=\"true\">All</button><button class=\"ds-chip\" type=\"button\" aria-pressed=\"false\">Work</button></div>",
+      "css": ".ds-tags { display:flex; gap:0.4rem; overflow-x:auto; padding:0.15rem 0 0.3rem; } .ds-chip { display:inline-flex; align-items:center; gap:0.35rem; min-height:36px; padding:0.3rem 0.7rem; border:1px solid var(--border, #cbd7df); border-radius:var(--radius-sm, 6px); background:var(--bg-raised, #f7f9fa); color:var(--fg, #162b37); font-family:\"Source Sans 3\", \"Segoe UI\", sans-serif; font-size:1rem; line-height:1.4; white-space:nowrap; cursor:pointer; } .ds-chip[aria-pressed=\"true\"] { background:var(--accent, #287d87); border-color:var(--accent, #287d87); color:var(--accent-fg, #ffffff); font-weight:700; } .ds-chip:focus-visible { outline:2px solid var(--focus, #287d87); outline-offset:3px; }"
+    },
+    {
+      "name": "Underlined navigation",
+      "kind": "nav",
+      "refersTo": "navigation-tab",
+      "description": "Equal tabs with a teal selection line and an adjacent narrow-width ringing badge.",
+      "html": "<div class=\"ds-tabs\" role=\"tablist\" aria-label=\"Items\"><button class=\"ds-tab\" role=\"tab\" aria-selected=\"true\" tabindex=\"0\">Timers</button><button class=\"ds-tab\" role=\"tab\" aria-selected=\"false\" tabindex=\"-1\">Reminders <span class=\"ds-badge\">2</span></button><button class=\"ds-tab\" role=\"tab\" aria-selected=\"false\" tabindex=\"-1\">History</button></div>",
+      "css": ".ds-tabs { display:flex; padding:0 0.75rem; border-top:1px solid var(--border, #cbd7df); border-bottom:1px solid var(--border, #cbd7df); } .ds-tab { flex:1; position:relative; min-height:44px; padding:0.45rem 0.25rem; border:none; background:transparent; color:var(--fg-muted, #546873); cursor:pointer; font-family:\"Source Sans 3\", \"Segoe UI\", sans-serif; font-size:1rem; font-weight:600; line-height:1.4; } .ds-tab[aria-selected=\"true\"] { color:var(--accent, #287d87); font-weight:700; } .ds-tab[aria-selected=\"true\"]::after { content:\"\"; position:absolute; left:0.25rem; right:0.25rem; bottom:0; height:0.25rem; border-radius:4px 4px 0 0; background:var(--accent, #287d87); } .ds-tab:hover { background:var(--bg-sunken, #dfe7ec); } .ds-tab:focus-visible { outline:2px solid var(--focus, #287d87); outline-offset:3px; } .ds-badge { position:absolute; right:0.7rem; top:50%; transform:translateY(-50%); display:inline-grid; place-items:center; min-width:1.15rem; height:1.15rem; padding:0 0.25rem; border-radius:4px; background:var(--alarm, #d4432a); color:var(--alarm-fg, #ffffff); font-size:0.75rem; font-weight:700; } @media (max-width:600px) { .ds-tab { font-size:0.9rem; } .ds-badge { position:static; transform:none; min-width:0.9rem; height:0.9rem; font-size:0.65rem; padding-inline:0.15rem; margin-left:0.25rem; vertical-align:middle; } }"
+    },
+    {
+      "name": "Timer rows",
+      "kind": "card",
+      "refersTo": "timer-row",
+      "description": "Running and paused remaining-time instruments share immutable newest-created-first order with ID tie-breaking; expired timers are promoted ahead and pause/resume keeps active positions.",
+      "html": "<div class=\"ds-row-examples\"><article class=\"ds-row ds-running\"><div class=\"ds-dial\"><svg viewBox=\"0 0 100 100\" aria-hidden=\"true\"><circle class=\"ds-track\" cx=\"50\" cy=\"50\" r=\"44\"/><circle class=\"ds-progress\" cx=\"50\" cy=\"50\" r=\"44\" stroke-dasharray=\"276.46015351590177\" stroke-dashoffset=\"76\" transform=\"rotate(-90 50 50)\"/></svg><span class=\"ds-value\" role=\"timer\" aria-live=\"off\">17:23</span></div><div class=\"ds-info\"><button class=\"ds-title\" type=\"button\">Pomodoro</button><div class=\"ds-state\">Running</div><div class=\"ds-row-actions\"><button class=\"ds-row-btn ds-row-primary\" type=\"button\">Pause</button><button class=\"ds-row-btn\" type=\"button\">Reset</button></div></div></article><article class=\"ds-row ds-paused\"><div class=\"ds-dial\"><svg viewBox=\"0 0 100 100\" aria-hidden=\"true\"><circle class=\"ds-track\" cx=\"50\" cy=\"50\" r=\"44\"/><circle class=\"ds-progress\" cx=\"50\" cy=\"50\" r=\"44\" stroke-dasharray=\"276.46015351590177\" stroke-dashoffset=\"90\" transform=\"rotate(-90 50 50)\"/></svg><span class=\"ds-value\" role=\"timer\" aria-live=\"off\">38:00</span></div><div class=\"ds-info\"><button class=\"ds-title\" type=\"button\">Bread proof</button><div class=\"ds-state\">Paused</div><div class=\"ds-row-actions\"><button class=\"ds-row-btn ds-row-primary\" type=\"button\">Resume</button><button class=\"ds-row-btn\" type=\"button\">Reset</button></div></div></article></div>",
+      "css": ".ds-row-examples { display:grid; gap:0.5625rem; } .ds-row { --ds-dial-size:8.625rem; display:grid; grid-template-columns:var(--ds-dial-size) minmax(0, 1fr); align-items:center; gap:1.5rem; min-width:0; padding:0.55rem 1rem; border:1px solid var(--border, #cbd7df); border-radius:var(--radius, 8px); background:var(--bg-raised, #f7f9fa); color:var(--fg, #162b37); font-family:\"Source Sans 3\", \"Segoe UI\", sans-serif; } .ds-dial { position:relative; display:grid; place-items:center; width:var(--ds-dial-size); height:var(--ds-dial-size); } .ds-dial svg { position:absolute; inset:0; width:100%; height:100%; } .ds-track, .ds-progress { fill:none; stroke-width:7; } .ds-track { stroke:var(--timer-track, #d7e0e6); } .ds-progress { stroke:var(--accent, #287d87); stroke-linecap:round; transition:stroke-dashoffset 0.9s linear; } .ds-paused .ds-progress { stroke:var(--fg-muted, #546873); } .ds-value { font-family:\"Source Sans 3\", \"Segoe UI\", sans-serif; font-weight:700; font-size:2.5rem; font-variant-numeric:lining-nums tabular-nums; letter-spacing:-0.025em; line-height:1; } .ds-info { min-width:0; } .ds-title { display:flex; min-width:0; min-height:44px; padding:0; border:none; border-radius:var(--radius-sm, 6px); background:transparent; color:inherit; font-family:\"Source Sans 3\", \"Segoe UI\", sans-serif; font-size:1.5rem; font-weight:700; line-height:1.15; text-align:left; overflow-wrap:anywhere; cursor:pointer; } .ds-title:hover { text-decoration:underline; text-underline-offset:0.16em; } .ds-title:focus-visible { outline:2px solid var(--focus, #287d87); outline-offset:3px; } .ds-state { margin-top:0.2rem; color:var(--fg-muted, #546873); font-size:1.15rem; font-weight:700; line-height:1.25; } .ds-running .ds-state { color:var(--accent, #287d87); } .ds-row-actions { display:flex; gap:0.6rem; margin-top:0.9rem; } .ds-row-btn { flex:1 1 0; min-width:0; min-height:2.75rem; padding:0.45rem 0.6rem; border:1px solid var(--border, #cbd7df); border-radius:var(--radius-sm, 6px); background:var(--bg-sunken, #dfe7ec); color:inherit; font-family:\"Source Sans 3\", \"Segoe UI\", sans-serif; font-size:1.2rem; font-weight:700; line-height:1.2; cursor:pointer; transition:background-color 150ms ease-out, border-color 150ms ease-out; } .ds-row-primary { flex-grow:1.1; background:var(--accent, #287d87); border-color:var(--accent, #287d87); color:var(--accent-fg, #ffffff); } .ds-row-btn:hover { background:color-mix(in srgb, var(--bg-sunken, #dfe7ec) 86%, var(--fg, #162b37)); border-color:var(--fg-faint, #788b96); } .ds-row-primary:hover { background:color-mix(in srgb, var(--accent, #287d87) 88%, var(--fg, #162b37)); border-color:var(--accent, #287d87); } .ds-row-btn:focus-visible { outline:2px solid var(--focus, #287d87); outline-offset:3px; } @media (max-width:420px) { .ds-row { --ds-dial-size:7.75rem; gap:1rem; padding:0.75rem; } .ds-value { font-size:2rem; } .ds-row-actions { gap:0.45rem; } .ds-row-btn { font-size:1.1rem; } } @media (prefers-reduced-motion:reduce) { .ds-progress { transition:none; } .ds-row-btn { transition-duration:0.01ms; } }"
+    },
+    {
+      "name": "Locally ringing timer",
+      "kind": "custom",
+      "refersTo": "timer-ringing",
+      "description": "The solid red expiry face is reserved for a due, unsnoozed, unheld timer.",
+      "html": "<article class=\"ds-face\"><div class=\"ds-face-heading\"><button class=\"ds-face-title\" type=\"button\">Eggs</button><button class=\"ds-face-more\" type=\"button\" aria-label=\"Timer actions\"><svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M5 12h.01M12 12h.01M19 12h.01\"/></svg></button></div><div class=\"ds-face-display\"><div class=\"ds-face-time\" role=\"timer\" aria-live=\"off\" aria-label=\"Timer finished\"><span>0:00</span></div><div class=\"ds-face-state\">Time’s up</div></div><div class=\"ds-face-actions\"><button class=\"ds-face-btn ds-face-done\" type=\"button\">Done</button><button class=\"ds-face-btn\" type=\"button\">Snooze</button><button class=\"ds-face-btn\" type=\"button\">Restart</button></div></article>",
+      "css": ".ds-face { display:flex; flex-direction:column; padding:0.4rem 0.85rem 0.53rem; border:1px solid transparent; border-radius:var(--radius, 8px); background:var(--alarm, #d4432a); color:var(--alarm-fg, #ffffff); font-family:\"Source Sans 3\", \"Segoe UI\", sans-serif; } .ds-face-heading { display:flex; align-items:flex-start; justify-content:space-between; gap:0.35rem; } .ds-face-title { min-width:0; min-height:44px; padding:0; border:none; border-radius:var(--radius-sm, 6px); background:transparent; color:inherit; font-family:\"Source Sans 3\", \"Segoe UI\", sans-serif; font-size:1.65rem; font-weight:700; line-height:1.15; text-align:left; cursor:pointer; } .ds-face-title:hover { text-decoration:underline; text-underline-offset:0.16em; } .ds-face-more { display:inline-grid; place-items:center; flex:none; width:44px; height:44px; margin-top:-0.3rem; margin-right:-0.35rem; border:0; border-radius:var(--radius-sm, 6px); background:transparent; color:inherit; cursor:pointer; } .ds-face-more:hover { background:color-mix(in srgb, var(--alarm-fg, #ffffff) 12%, transparent); } .ds-face-display { display:grid; justify-items:center; padding:0.15rem 0 0.8rem; } .ds-face-time { font-family:\"Source Sans 3\", \"Segoe UI\", sans-serif; font-size:clamp(5.5rem, 25vw, 7.375rem); font-weight:700; font-variant-numeric:lining-nums tabular-nums; letter-spacing:-0.025em; line-height:0.9; } .ds-face-time > span { display:inline-block; } .ds-face-state { font-size:2rem; font-weight:700; line-height:1; text-align:center; } .ds-face-detail { margin-top:0.3rem; font-size:0.85rem; text-align:center; } .ds-face-actions { display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:0.6rem; } .ds-face-btn { width:100%; min-height:2.75rem; padding:0.45rem 0.6rem; border:1px solid transparent; border-radius:var(--radius-sm, 6px); background:color-mix(in srgb, var(--alarm, #d4432a) 82%, var(--alarm-fg, #ffffff)); color:inherit; font-family:\"Source Sans 3\", \"Segoe UI\", sans-serif; font-size:1.2rem; font-weight:700; line-height:1.2; cursor:pointer; transition:background-color 150ms ease-out, border-color 150ms ease-out; } .ds-face-done { background:var(--alarm-fg, #ffffff); color:#162b37; } .ds-face-btn:hover { filter:brightness(0.94); } .ds-face-title:focus-visible, .ds-face-more:focus-visible, .ds-face-btn:focus-visible { outline:2px solid var(--alarm-fg, #ffffff); outline-offset:3px; } @media (max-width:420px) { .ds-face-actions { gap:0.45rem; } } @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration:0.01ms !important; transition-duration:0.01ms !important; } }"
+    },
+    {
+      "name": "Snoozed timer",
+      "kind": "custom",
+      "refersTo": "timer-held",
+      "description": "The quieter expiry surface retains due semantics while counting down to alert resumption.",
+      "html": "<article class=\"ds-face ds-face-quiet\"><div class=\"ds-face-heading\"><button class=\"ds-face-title\" type=\"button\">Eggs</button><button class=\"ds-face-more\" type=\"button\" aria-label=\"Timer actions\"><svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M5 12h.01M12 12h.01M19 12h.01\"/></svg></button></div><div class=\"ds-face-display\"><div class=\"ds-face-time\" role=\"timer\" aria-live=\"off\" aria-label=\"1 minute until alert resumes\"><span>1:00</span></div><div class=\"ds-face-state\">Snoozed</div><div class=\"ds-face-detail\">Alert resumes after the countdown</div></div><div class=\"ds-face-actions\"><button class=\"ds-face-btn ds-face-done\" type=\"button\">Done</button><button class=\"ds-face-btn\" type=\"button\">Snooze</button><button class=\"ds-face-btn\" type=\"button\">Restart</button></div></article>",
+      "css": ".ds-face { display:flex; flex-direction:column; padding:0.4rem 0.85rem 0.53rem; border:1px solid transparent; border-radius:var(--radius, 8px); background:var(--alarm, #d4432a); color:var(--alarm-fg, #ffffff); font-family:\"Source Sans 3\", \"Segoe UI\", sans-serif; } .ds-face-heading { display:flex; align-items:flex-start; justify-content:space-between; gap:0.35rem; } .ds-face-title { min-width:0; min-height:44px; padding:0; border:none; border-radius:var(--radius-sm, 6px); background:transparent; color:inherit; font-family:\"Source Sans 3\", \"Segoe UI\", sans-serif; font-size:1.65rem; font-weight:700; line-height:1.15; text-align:left; cursor:pointer; } .ds-face-title:hover { text-decoration:underline; text-underline-offset:0.16em; } .ds-face-more { display:inline-grid; place-items:center; flex:none; width:44px; height:44px; margin-top:-0.3rem; margin-right:-0.35rem; border:0; border-radius:var(--radius-sm, 6px); background:transparent; color:inherit; cursor:pointer; } .ds-face-more:hover { background:color-mix(in srgb, var(--alarm-fg, #ffffff) 12%, transparent); } .ds-face-display { display:grid; justify-items:center; padding:0.15rem 0 0.8rem; } .ds-face-time { font-family:\"Source Sans 3\", \"Segoe UI\", sans-serif; font-size:clamp(5.5rem, 25vw, 7.375rem); font-weight:700; font-variant-numeric:lining-nums tabular-nums; letter-spacing:-0.025em; line-height:0.9; } .ds-face-time > span { display:inline-block; } .ds-face-state { font-size:2rem; font-weight:700; line-height:1; text-align:center; } .ds-face-detail { margin-top:0.3rem; font-size:0.85rem; text-align:center; } .ds-face-actions { display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:0.6rem; } .ds-face-btn { width:100%; min-height:2.75rem; padding:0.45rem 0.6rem; border:1px solid transparent; border-radius:var(--radius-sm, 6px); background:color-mix(in srgb, var(--alarm, #d4432a) 82%, var(--alarm-fg, #ffffff)); color:inherit; font-family:\"Source Sans 3\", \"Segoe UI\", sans-serif; font-size:1.2rem; font-weight:700; line-height:1.2; cursor:pointer; transition:background-color 150ms ease-out, border-color 150ms ease-out; } .ds-face-done { background:var(--alarm-fg, #ffffff); color:#162b37; } .ds-face-btn:hover { filter:brightness(0.94); } .ds-face-title:focus-visible, .ds-face-more:focus-visible, .ds-face-btn:focus-visible { outline:2px solid var(--alarm-fg, #ffffff); outline-offset:3px; } @media (max-width:420px) { .ds-face-actions { gap:0.45rem; } } .ds-face-quiet { background:var(--ringing-bg, #fae5df); color:var(--ringing, #b83424); } .ds-face-quiet .ds-face-btn { border-color:color-mix(in srgb, var(--ringing, #b83424) 24%, transparent); background:transparent; } .ds-face-quiet .ds-face-done { border-color:transparent; background:var(--ringing, #b83424); color:var(--bg-raised, #f7f9fa); } .ds-face-quiet .ds-face-btn:hover { background:color-mix(in srgb, var(--bg-sunken, #dfe7ec) 86%, var(--fg, #162b37)); border-color:var(--fg-faint, #788b96); filter:none; } .ds-face-quiet .ds-face-title:focus-visible, .ds-face-quiet .ds-face-more:focus-visible, .ds-face-quiet .ds-face-btn:focus-visible { outline-color:var(--focus, #287d87); } @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration:0.01ms !important; transition-duration:0.01ms !important; } }"
+    },
+    {
+      "name": "Reminder countdown",
+      "kind": "custom",
+      "description": "One right-aligned YYy MMm DDd HH:MM:SS line for upcoming occurrence, snooze resumption, or elapsed overdue time. All six fields remain visible; leading empty units and the padding zero of each positive unit below 10 use 0.42 opacity applied once. Meaningful later zeros remain at full emphasis; all-zero readouts keep seconds legible. Idle and unreadable schedules omit the readout. At 600px and narrower, or in scaled portrait layouts at least 760px wide with aspect ratio no greater than 3:4, details sit above with actions below left and countdown below right in two rows.",
+      "html": "<div class=\"ds-reminder-countdown\" role=\"timer\" aria-live=\"off\" aria-label=\"Renew passport: Due in 1 year, 2 months, 3 days, 4 hours, 5 minutes, 6 seconds\"><span aria-hidden=\"true\"><span class=\"ds-muted-zero\">0</span>1y <span class=\"ds-muted-zero\">0</span>2m <span class=\"ds-muted-zero\">0</span>3d <span class=\"ds-muted-zero\">0</span>4:<span class=\"ds-muted-zero\">0</span>5:<span class=\"ds-muted-zero\">0</span>6</span></div>",
+      "css": ".ds-reminder-countdown { width:max-content; margin-left:auto; color:var(--fg, #162b37); font-family:var(--font-timer, \"Source Sans 3\", \"Segoe UI\", sans-serif); font-variant-numeric:lining-nums tabular-nums; font-size:1.5rem; font-weight:600; line-height:1.2; white-space:nowrap; text-align:right; } .ds-reminder-countdown.ds-reminder-past { color:var(--ringing, #b83424); } .ds-reminder-countdown .ds-muted-zero { opacity:0.42; } @media (max-width:600px), (min-width:760px) and (max-aspect-ratio:3/4) { .ds-reminder-countdown { font-size:1.25rem; } }"
+    },
+    {
+      "name": "Duration setter and presets",
+      "kind": "custom",
+      "refersTo": "timer-start",
+      "description": "Inline Hours / Minutes / Seconds entry beside Start timer, followed by direct preset launch.",
+      "html": "<section class=\"ds-start\" aria-labelledby=\"ds-new-timer\"><div class=\"ds-start-heading\"><h2 id=\"ds-new-timer\">New timer</h2><button class=\"ds-start-more\" type=\"button\" aria-label=\"Manage presets\"><svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M5 12h.01M12 12h.01M19 12h.01\"/></svg></button></div><div class=\"ds-start-form\"><div class=\"ds-setter\"><label class=\"ds-duration-field\"><input class=\"ds-duration-input\" type=\"text\" inputmode=\"numeric\" value=\"00\" maxlength=\"3\"/><span>Hours</span></label><span class=\"ds-separator\" aria-hidden=\"true\">:</span><label class=\"ds-duration-field\"><input class=\"ds-duration-input\" type=\"text\" inputmode=\"numeric\" value=\"05\" maxlength=\"2\"/><span>Minutes</span></label><span class=\"ds-separator\" aria-hidden=\"true\">:</span><label class=\"ds-duration-field\"><input class=\"ds-duration-input\" type=\"text\" inputmode=\"numeric\" value=\"00\" maxlength=\"2\"/><span>Seconds</span></label></div><button class=\"ds-start-btn\" type=\"button\">Start timer</button></div><div class=\"ds-presets\" role=\"group\" aria-label=\"Timer presets\"><button class=\"ds-preset\" type=\"button\"><span>Tea</span><span class=\"ds-preset-duration\">4m</span></button><button class=\"ds-preset\" type=\"button\"><span>Pomodoro</span><span class=\"ds-preset-duration\">25m</span></button><button class=\"ds-preset\" type=\"button\"><span>Laundry</span><span class=\"ds-preset-duration\">45m</span></button></div></section>",
+      "css": ".ds-start { padding:0.4rem 0.85rem; border:1px solid var(--border, #cbd7df); border-radius:var(--radius, 8px); background:var(--bg-raised, #f7f9fa); color:var(--fg, #162b37); font-family:\"Source Sans 3\", \"Segoe UI\", sans-serif; } .ds-start-heading { display:flex; align-items:center; justify-content:space-between; margin-bottom:0.35rem; } .ds-start-heading h2 { margin:0; font-family:\"Source Sans 3\", sans-serif; font-size:1.3rem; font-weight:700; line-height:1.1; } .ds-start-more { display:inline-grid; place-items:center; width:44px; height:44px; border:0; border-radius:var(--radius-sm, 6px); background:transparent; color:var(--fg-muted, #546873); cursor:pointer; } .ds-start-more:hover { background:var(--bg-sunken, #dfe7ec); color:var(--fg, #162b37); } .ds-start-form { display:grid; grid-template-columns:minmax(0, 1.83fr) minmax(7rem, 1fr); column-gap:0.8rem; align-items:start; } .ds-setter { display:grid; grid-template-columns:minmax(0, 1fr) 0.4rem minmax(0, 1fr) 0.4rem minmax(0, 1fr); gap:0.3rem; min-width:0; } .ds-duration-field { display:grid; gap:0.1rem; min-width:0; text-align:center; } .ds-duration-input { width:100%; min-width:0; height:2.85rem; padding:0.1rem; border:1px solid var(--border, #cbd7df); border-radius:var(--radius-sm, 6px); background:var(--bg-raised, #f7f9fa); color:var(--fg, #162b37); text-align:center; font-family:\"Source Sans 3\", sans-serif; font-weight:700; font-size:2.1rem; font-variant-numeric:lining-nums tabular-nums; line-height:1; caret-color:var(--accent, #287d87); } .ds-duration-input:disabled { opacity:0.65; } .ds-duration-field > span { color:var(--fg-muted, #546873); font-size:0.7rem; letter-spacing:-0.03em; } .ds-separator { padding-top:0.3rem; color:var(--fg-muted, #546873); font-family:\"Source Sans 3\", sans-serif; font-weight:700; font-size:1.9rem; line-height:2.7rem; text-align:center; } .ds-start-btn { width:100%; min-height:3.28rem; padding:0.5rem 0.45rem; border:1px solid var(--accent, #287d87); border-radius:var(--radius-sm, 6px); background:var(--accent, #287d87); color:var(--accent-fg, #ffffff); font-family:\"Source Sans 3\", \"Segoe UI\", sans-serif; font-size:1.2rem; font-weight:700; line-height:1.4; cursor:pointer; transition:background-color 150ms ease-out, border-color 150ms ease-out; } .ds-start-btn:hover { background:color-mix(in srgb, var(--accent, #287d87) 88%, var(--fg, #162b37)); } .ds-start-btn:disabled { opacity:0.5; } .ds-presets { display:flex; flex-wrap:nowrap; overflow-x:auto; gap:0.45rem; min-width:0; margin-top:0.5rem; padding-bottom:0.1rem; } .ds-preset { display:flex; align-items:center; justify-content:center; gap:0.35rem; flex:1 0 calc((100% - 0.9rem) / 3); min-width:0; min-height:max(44px, 2.1rem); padding:0.45rem 0.55rem; border:1px solid var(--border, #cbd7df); border-radius:var(--radius-sm, 6px); background:var(--bg-sunken, #dfe7ec); color:var(--fg, #162b37); font-family:\"Source Sans 3\", \"Segoe UI\", sans-serif; font-weight:700; font-size:0.75rem; line-height:1.4; cursor:pointer; } .ds-preset > span:first-child { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; } .ds-preset-duration { flex:none; font-variant-numeric:lining-nums tabular-nums; } .ds-preset:hover { background:color-mix(in srgb, var(--fg, #162b37) 7%, var(--bg-sunken, #dfe7ec)); } .ds-preset:disabled { opacity:0.55; cursor:wait; } .ds-duration-input:focus-visible { outline:2px solid var(--focus, #287d87); outline-offset:3px; } .ds-start-btn:focus-visible { outline:2px solid var(--focus, #287d87); outline-offset:3px; } .ds-preset:focus-visible { outline:2px solid var(--focus, #287d87); outline-offset:3px; } .ds-start-more:focus-visible { outline:2px solid var(--focus, #287d87); outline-offset:3px; } @media (max-width:399px) { .ds-start { padding-inline:0.65rem; } .ds-start-form { column-gap:0.55rem; grid-template-columns:minmax(0, 1.7fr) minmax(6.4rem, 1fr); } .ds-setter { grid-template-columns:minmax(0, 1fr) 0.25rem minmax(0, 1fr) 0.25rem minmax(0, 1fr); gap:0.1rem; } .ds-duration-input { font-size:1.7rem; } .ds-start-btn { font-size:0.9rem; } } @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration:0.01ms !important; transition-duration:0.01ms !important; } }"
+    }
+  ],
+  "narrative": {
+    "northStar": "Interval instrument",
+    "overview": "The Interval instrument makes time easy to read and the next action easy to name. Cool gray surfaces and ink text provide a quiet ground; teal identifies activity, while a locally ringing timer occupies a solid red face. Broad numerals carry the measurement. Rectangular controls carry the decision.\n\nDun uses the same Svelte interface in Windows and Android shells. The visual system must preserve the product’s durable alert semantics: ringing, snoozed, held, running, paused, and ready are different states. A quieter appearance records an explicit delivery state; it never implies completion. Layout, color, and type provide hierarchy without ornamental imagery or a decorative pulse.",
+    "keyCharacteristics": [
+      "Humanist Source Sans 3 throughout, with bold tabular countdown numerals.",
+      "Flat cool surfaces, restrained borders, and compact rectangular controls.",
+      "Dominant red only for a locally ringing alert or an error requiring attention.",
+      "Data-driven remaining-time arcs, teal for running and muted ink for paused.",
+      "One readable column with visible quick entry, stable active timer order, and direct labeled actions across phone and desktop."
+    ],
+    "rules": [
+      {
+        "name": "The Local Ring Rule",
+        "body": "Use the solid alarm face only when the item is due, is not snoozed, and has no held delivery reason. Snoozed and held timers use the quieter ringing surface and state text.",
+        "section": "colors"
+      },
+      {
+        "name": "The Humanist Type Rule",
+        "body": "Use self-hosted Source Sans 3 throughout. Timer countdowns and duration entry use weight 700; compact reminder countdowns use weight 600. Both use lining tabular numerals. Names, states, navigation, and actions use the same family at their established weights.",
+        "section": "typography"
+      },
+      {
+        "name": "The Flat Instrument Rule",
+        "body": "Timer rows and the duration setter remain flat. Reserve the shared diffuse shadow for floating menus, notices, errors, and the reminder add action.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Do use the semantic CSS variables so light, dark, and system themes retain the same state hierarchy.",
+      "Do keep the alarm red constant across themes, with white text and a high-contrast Done action.",
+      "Do preserve large firm numerals, readable state text, and labeled Pause, Resume, Reset, Done, Snooze, and Restart actions.",
+      "Do retain two-column dial rows at the approved phone floor, reducing the dial and gaps through the existing narrow-width rules.",
+      "Do make duration entry inline with Hours, Minutes, and Seconds labels and keep preset launch separate from preset editing.",
+      "Do use accessible names, visible focus, semantic controls, and reduced-motion behavior with data-driven SVG arcs.",
+      "Do preserve visible quick entry, stable active timer positions, context menus, source links, filters, swipe archive, and Undo when extending this visual world."
+    ],
+    "donts": [
+      "Don’t give snoozed or held expiry the locally ringing solid red face, or describe either state as Done.",
+      "Don’t reintroduce decorative display lettering or distort the humanist family’s natural proportions.",
+      "Don’t add a decorative pulse, simulated progress, gradient material, or raster artwork to the interval instrument.",
+      "Don’t convert the approved single-column timer rows into a desktop tile dashboard.",
+      "Don’t let a navigation count badge cover or displace the tab label at narrow widths.",
+      "Don’t claim native audio, background delivery, or PC–phone sync has been verified by a browser preview."
+    ]
+  }
+}

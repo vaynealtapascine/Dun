@@ -1,0 +1,24 @@
+---
+version: 1
+slug: "src-app-svelte"
+primary_target: "src/App.svelte"
+related_targets: ["src/app.css","src/views/Timers.svelte","src/lib/components/TimerCard.svelte","src/lib/components/ItemRow.svelte","src/lib/components/ReminderCountdown.svelte"]
+---
+
+Scope: Dun shared Svelte app, Operate mode. Personal and distributed Windows/Android use. Open Timers by default; keep durable alerts and existing timer actions, filters, presets, context menus, swipe archive and Undo.
+
+THESIS: A stopwatch becomes the main instrument; time needing attention owns the opening screen.
+OWN-WORLD: Interval instrument: cool gray ground, ink text, teal activity, red expiry, broad tabular numerals and flat rectangular labeled controls.
+STORY: Capture a timer or reminder through visible quick entry; resolve an expired timer with Done or Snooze; glance at running and paused countdowns in stable order; set hours/minutes/seconds or start a preset.
+FIRST VIEWPORT: Compact Dun header/settings; Timers-first underlined navigation; visible QuickAdd above Timers and Reminders; full red expired face with enormous 0:00 and Done/Snooze/Restart; wide running and paused rows with large left dials and right controls; New timer setter after active timers. Approved comp: .impeccable/mocks/interval-01.webp. Real data replaces illustrative Eggs/Pomodoro/Bread proof; held and snoozed expiry stays quieter.
+FORM: Interval instrument, grounded rank 1, model-pick; seed ac4be546. Composition wide-rows explicitly approved through decision page.
+SIGNATURE: Remaining-time arc decreases on the existing core-aligned clock; expiry replaces the dial with a red face. Arc transitions 0.9s linear; reduced motion snaps. No decorative pulse.
+FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, DESIGN.md, and every shipping raster carrying its provenance
+
+Implementation constraints: semantic text/controls and data-driven SVG arcs; light/dark/system themes; 360px minimum, phone390px, native480px and wider desktop. The user’s humanist-font correction supersedes the original comp letterforms: use self-hosted Source Sans 3 throughout at 400/600/700, with bold lining tabular countdowns at natural width and alarm line-height 0.9. The helper has no session build-path override; composition approval was completed manually before supported start --comp, preserving the standing code preference.
+
+Responsive approval: the user approved the compact centered desktop adaptation shown in .impeccable/review/desktop.png on 2026-10-01. Explicit answer: Approve compact desktop adaptation. The question explicitly allowed desktop to differ from the portrait exact pixel positions while retaining the selected portrait design on phones. The desktop screenshot is the approved landscape reference; the portrait comp remains the phone layout reference, subject to the user’s later explicit refinement of typography and visible quick entry.
+
+User refinement: restore always-visible QuickAdd above Timers and Reminders. Expired timers are promoted first; running and paused share immutable newest-created-first order with ID tie-breaking. Countdown, title, pause/resume, snooze, and snapshot ordering must not reshuffle positions within a group. Starting a ready timer promotes it into the active group. Source Sans 3 replaces the former display/UI pairing; preserve existing colors, dials, actions, themes, and responsive layout.
+
+Reminder extension: retain scheduled dates and row actions; add a shared-clock `YYy MMm DDd HH:MM:SS` line on the right, with every field visible even when zero and no additional labels. Desktop grid places Done, flexible title/details, the fixed numeric line, then grouped Snooze/context actions. At widths up to 600px, and at widths of at least 760px with aspect ratio no greater than 3:4, title/details sit beside Done on the top row; actions sit below left and the countdown remains one right-aligned line below right, without adding a third row. Upcoming targets the next occurrence, snoozed targets alert resumption, and overdue counts elapsed time since the first missed/current occurrence. Pending deadlines clamp to zero until the core changes status. Calendar units use local calendar arithmetic with end-of-month clamping; remaining clock accounts for daylight-saving changes. Source Sans 3 lining tabular figures remain natural-width at 1.5rem, or 1.25rem under the compact-row conditions, weight 600, line-height 1.2. Leading empty units with separators and suffixes, and the padding zero of every positive unit below 10, use semantic currentColor at 0.42 opacity applied once. Meaningful zeros after the first nonzero unit stay readable, and all-zero readouts preserve normally emphasized seconds. Idle and unreadable schedules omit the readout; full spoken labels remain in aria-label and ticking text stays outside live announcements.

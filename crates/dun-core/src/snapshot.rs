@@ -57,6 +57,7 @@ pub struct Snapshot<'a> {
     pub tz: String,
     pub device_id: &'a str,
     pub items: Vec<ItemView<'a>>,
+    pub archived: Vec<ItemView<'a>>,
     pub tags: Vec<&'a Tag>,
     pub presets: Vec<&'a Preset>,
     pub settings: &'a Settings,
@@ -70,8 +71,9 @@ pub fn build<'a>(
     now: Timestamp,
     tz: &TimeZone,
 ) -> Snapshot<'a> {
-    let items = state
-        .live_items()
+    let (archived, items) = state
+        .items
+        .values()
         .map(|item| {
             let status = match item.inputs() {
                 None => StatusView::Unscheduled,
@@ -104,13 +106,14 @@ pub fn build<'a>(
                 ring,
             }
         })
-        .collect();
+        .partition(|view| view.item.deleted);
 
     Snapshot {
         now,
         tz: tz.iana_name().unwrap_or("UTC").to_string(),
         device_id,
         items,
+        archived,
         tags: state.tags.values().filter(|t| !t.deleted).collect(),
         presets: state.presets.values().filter(|p| !p.deleted).collect(),
         settings: &state.settings,
@@ -173,5 +176,14 @@ mod tests {
         assert!(later["ring"].is_null());
         assert_eq!(json["deviceId"], "pc");
         assert_eq!(json["tz"], "UTC");
+
+        e.set_deleted(t0, &now_id, true).unwrap();
+        let snap = build(e.state(), e.scheduler(), e.device_id(), t0, &tz);
+        assert!(!snap.items.iter().any(|i| i.item.id == now_id));
+        assert!(snap.archived.iter().any(|i| i.item.id == now_id));
+        e.set_deleted(t0, &now_id, false).unwrap();
+        let snap = build(e.state(), e.scheduler(), e.device_id(), t0, &tz);
+        assert!(snap.archived.is_empty());
+        assert!(snap.items.iter().any(|i| i.item.id == now_id));
     }
 }

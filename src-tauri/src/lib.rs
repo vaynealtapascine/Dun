@@ -15,6 +15,19 @@ fn app_version() -> String {
     format!("v{}", env!("CARGO_PKG_VERSION"))
 }
 
+#[tauri::command]
+fn open_source<R: tauri::Runtime>(app: tauri::AppHandle<R>, url: String) -> Result<(), String> {
+    use tauri_plugin_opener::OpenerExt;
+    if !(url.starts_with("https://") || url.starts_with("http://"))
+        || url.chars().any(char::is_control)
+    {
+        return Err("Only web links can be opened".into());
+    }
+    app.opener()
+        .open_url(url, None::<&str>)
+        .map_err(|e| e.to_string())
+}
+
 #[cfg(desktop)]
 pub fn run() {
     use std::sync::{Arc, Mutex};
@@ -64,6 +77,7 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .plugin(desktop::hotkey::plugin())
         .plugin(tauri_plugin_dun_android::init())
+        .plugin(tauri_plugin_opener::init())
         .manage(desktop::hotkey::HotkeyStatus::default())
         .setup(move |app| {
             let dir = app.path().app_data_dir()?;
@@ -142,6 +156,7 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             app_version,
+            open_source,
             commands::get_snapshot,
             commands::create_item,
             commands::preview_schedule,
@@ -186,8 +201,10 @@ pub fn run() {
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dun_android::init())
+        .plugin(tauri_plugin_opener::init())
         .invoke_handler(tauri::generate_handler![
             app_version,
+            open_source,
             mobile::commands::get_snapshot,
             mobile::commands::create_item,
             mobile::commands::preview_schedule,

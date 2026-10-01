@@ -7,6 +7,9 @@
 
   let rows = $state<HistoryRow[]>([]);
   let error = $state<string | null>(null);
+  let { query = "" }: { query?: string } = $props();
+  let mode = $state<"history" | "archive">("history");
+  const archived = $derived((app.snapshot?.archived ?? []).filter((i) => i.title.toLowerCase().includes(query.toLowerCase())));
 
   async function load() {
     try {
@@ -27,7 +30,7 @@
 
   const days = $derived.by(() => {
     const out: { label: string; rows: HistoryRow[] }[] = [];
-    for (const row of rows.filter((r) => r.kind !== "undo")) {
+    for (const row of rows.filter((r) => r.kind !== "undo" && r.title.toLowerCase().includes(query.toLowerCase()))) {
       const label = dayLabel(row.at, app.now);
       const last = out.at(-1);
       if (last?.label === label) last.rows.push(row);
@@ -40,6 +43,28 @@
 </script>
 
 {#if error}<p class="error">{error}</p>{/if}
+
+<div class="segmented" role="group" aria-label="History view">
+  <button aria-pressed={mode === "history"} onclick={() => (mode = "history")}>Completed</button>
+  <button aria-pressed={mode === "archive"} onclick={() => (mode = "archive")}>Archived ({app.snapshot?.archived?.length ?? 0})</button>
+</div>
+
+{#if mode === "archive"}
+  <p class="muted">Archived items stay quiet. Restoring an overdue item may make it ring again.</p>
+  <div class="list">
+    {#each archived as item (item.id)}
+      <div class="row card">
+        <span class="main title">{item.title}</span>
+        <button class="btn" onclick={() => app.run(async () => {
+          await api.deleteItem(item.id, false);
+          app.notify(`Restored “${item.title}”`);
+        })}>Restore</button>
+      </div>
+    {:else}
+      <p class="muted empty">{query ? "No matching archived items." : "No archived items."}</p>
+    {/each}
+  </div>
+{:else}
 
 {#if days.length === 0}
   <p class="muted empty">Finished reminders and timers show up here.</p>
@@ -73,6 +98,7 @@
     </div>
   </section>
 {/each}
+{/if}
 
 <style>
   section {

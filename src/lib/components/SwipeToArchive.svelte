@@ -1,16 +1,16 @@
 <script lang="ts">
-  import type { Snippet } from "svelte";
+  import { onDestroy, type Snippet } from "svelte";
   import { axisOf, offsetFor, rows, settle } from "../swipe";
   import Icon from "./Icon.svelte";
 
   let {
     label,
-    ondelete,
+    onarchive,
     role = "group",
     children,
   }: {
     label: string;
-    ondelete: () => void;
+    onarchive: () => void;
     /** What the row is to a screen reader; a list's rows are "listitem". */
     role?: "group" | "listitem";
     children: Snippet;
@@ -23,10 +23,14 @@
   let startY = 0;
   let from = 0;
   let axis: "x" | "y" | null = null;
+  let swiped = false;
 
   const close = () => (offset = 0);
+  onDestroy(() => rows.closed(close));
 
   function onpointerdown(e: PointerEvent) {
+    if (e.pointerType === "mouse" || !e.isPrimary || e.button !== 0) return;
+    swiped = false;
     // A stylus or mouse press on the delete button is that button's business.
     if ((e.target as HTMLElement).closest(".delete")) return;
     startX = e.clientX;
@@ -52,6 +56,7 @@
       // wanders off the row's own edges.
       (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
       rows.opened(close);
+      swiped = true;
     }
     offset = offsetFor(dx, from);
   }
@@ -69,6 +74,12 @@
    * is "no" rather than whatever it would normally have done.
    */
   function onclickcapture(e: MouseEvent) {
+    if (swiped) {
+      swiped = false;
+      e.preventDefault();
+      e.stopPropagation();
+      return;
+    }
     if (offset > 0 && !(e.target as HTMLElement).closest(".delete")) {
       e.preventDefault();
       e.stopPropagation();
@@ -80,14 +91,14 @@
   function remove() {
     close();
     rows.closed(close);
-    ondelete();
+    onarchive();
   }
 </script>
 
 <div class="swipe" style:--offset="{offset}px">
-  <div class="behind">
-    <button class="delete" onclick={remove} tabindex={offset === 0 ? -1 : 0} aria-label="Delete “{label}”">
-      <Icon name="trash" size={16} /> Delete
+  <div class="behind" inert={offset === 0}>
+    <button class="delete" onclick={remove} tabindex={offset === 0 ? -1 : 0} aria-label="Archive “{label}”">
+      <Icon name="archive" size={16} /> Archive
     </button>
   </div>
   <div
@@ -98,7 +109,7 @@
     {onpointerdown}
     {onpointermove}
     onpointerup={onpointerup}
-    onpointercancel={onpointerup}
+    onpointercancel={() => { dragging = false; swiped = false; close(); rows.closed(close); }}
     onclickcapture={onclickcapture}
   >
     {@render children()}
@@ -116,7 +127,7 @@
     inset: 0;
     display: flex;
     justify-content: flex-end;
-    background: var(--ringing);
+    background: var(--accent);
     border-radius: var(--radius);
   }
   .delete {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatCountdown, formatShort } from "./duration";
+import { formatCountdown, formatShort, timerName } from "./duration";
 
 describe("formatCountdown", () => {
   it.each([
@@ -22,6 +22,7 @@ describe("formatCountdown", () => {
 describe("formatShort", () => {
   it.each([
     [0, "0m"],
+    [15_000, "15s"],
     [45 * 60_000, "45m"],
     [90 * 60_000, "1h 30m"],
     [2 * 3_600_000, "2h"],
@@ -29,4 +30,10 @@ describe("formatShort", () => {
   ])("%d ms -> %s", (ms, expected) => {
     expect(formatShort(ms)).toBe(expected);
   });
+});
+
+it("names unnamed timers with their exact duration, including seconds", () => {
+  expect(timerName(15_000)).toBe("15s timer");
+  expect(timerName(65_000)).toBe("1m 5s timer");
+  expect(timerName(3_661_000)).toBe("1h 1m 1s timer");
 });

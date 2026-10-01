@@ -12,7 +12,7 @@
     onadded,
     onescape,
     autofocus = false,
-    placeholder = "Add… e.g. Laundry in 45m, Stretch every weekday at 3pm",
+    placeholder = "Add… e.g. Tea in 4m",
   }: {
     /** Open the full form with what was typed so far. */
     onmore: (draft: Partial<ItemDraft>) => void;
@@ -30,6 +30,12 @@
   let previewError = $state<string | null>(null);
   let busy = $state(false);
   let input: HTMLInputElement | undefined = $state();
+
+  function example(phrase: string) {
+    text = phrase;
+    asReminder = false;
+    input?.focus();
+  }
 
   export function focus() {
     input?.focus();
@@ -160,6 +166,7 @@
       }}
     />
     {#if parsed?.title}
+      <button class="btn btn-primary" disabled={busy} onclick={() => submit(false)} aria-label="Add item">Add</button>
       <button class="btn btn-quiet more" onclick={() => submit(true)} title="Open the full form (Shift+Enter)">More</button>
     {/if}
   </div>
@@ -180,6 +187,15 @@
       {/if}
     {/if}
   </div>
+  <details class="examples">
+    <summary>Try a quick-add phrase</summary>
+    <div class="example-buttons">
+      {#each ["Tea in 4m", "Pay rent tomorrow 9am", "Meds every day at 9am"] as phrase (phrase)}
+        <button type="button" class="btn btn-quiet" disabled={busy} onclick={() => example(phrase)}>{phrase}</button>
+      {/each}
+    </div>
+    <p class="muted">Review the time below the box, then press Add. Use More for notes and extra options.</p>
+  </details>
 </div>
 
 <style>
@@ -187,6 +203,11 @@
     display: grid;
     gap: 0.3rem;
   }
+  .examples { font-size: 0.8rem; color: var(--fg-muted); padding: 0 0.5rem; }
+  .examples summary { cursor: pointer; width: fit-content; }
+  .example-buttons { display: flex; flex-wrap: wrap; gap: 0.3rem; margin-top: 0.4rem; }
+  .example-buttons button { font-size: 0.8rem; }
+  .examples p { margin: 0.35rem 0; }
   .field-row {
     display: flex;
     align-items: center;
@@ -203,7 +224,7 @@
   input {
     flex: 1;
     min-width: 0;
-    min-height: 2.6rem;
+    min-height: max(44px, 2.6rem);
     border: none;
     outline: none;
     background: transparent;

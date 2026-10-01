@@ -31,6 +31,8 @@ describe("parseClock", () => {
 
 describe("timers", () => {
   it.each([
+    ["in 15s", "15s timer", 15_000],
+    ["5m timer", "5m timer", 300_000],
     ["Laundry in 45m", "Laundry", 45 * 60_000],
     ["Laundry in 45 minutes", "Laundry", 45 * 60_000],
     ["Bread in 1h 30m", "Bread", 90 * 60_000],

@@ -1,15 +1,18 @@
 <script lang="ts">
   import type { ItemView } from "../api/types";
   import { api } from "../api/commands";
-  import { clock, relative, ruleSummary, when } from "../format";
+  import { clock, ruleSummary, when } from "../format";
   import { app } from "../stores/app.svelte";
   import Icon from "./Icon.svelte";
   import SnoozeMenu from "./SnoozeMenu.svelte";
   import TagDot from "./TagDot.svelte";
+  import ItemActions from "./ItemActions.svelte";
+  import ReminderCountdown from "./ReminderCountdown.svelte";
+  let menu: ItemActions;
 
   let { item, onedit }: { item: ItemView; onedit: (item: ItemView) => void } = $props();
 
-  const HELD = { quiet: "held for quiet hours", mute: "muted", handoff: "ringing on your phone" } as const;
+  const HELD = { quiet: "held for quiet hours", mute: "muted", handoff: "waiting on your phone" } as const;
 
   const now = $derived(app.now);
   const tag = $derived(app.tag(item.tag));
@@ -24,9 +27,9 @@
           return `Missed ${s.missedCount}× since ${when(s.firstMissed, now)}`;
         }
         if (item.ring?.held) return `Due ${when(s.occurrence, now)} · ${HELD[item.ring.held]}`;
-        return `Due ${when(s.occurrence, now)} · ${relative(s.occurrence, now)}`;
+        return `Due ${when(s.occurrence, now)}`;
       case "upcoming":
-        return `${when(s.at, now)} · ${relative(s.at, now)}`;
+        return when(s.at, now);
       case "idle":
         return "Done";
       case "unscheduled":
@@ -37,7 +40,7 @@
   const occurrence = $derived(item.status.kind === "due" ? item.status.occurrence : null);
 </script>
 
-<div class="row" class:ringing class:overdue={item.status.kind === "due" && !ringing}>
+<div class="row" role="group" class:ringing class:overdue={item.status.kind === "due" && !ringing} oncontextmenu={(e) => menu.openAt(e)}>
   <button
     class="done"
     onclick={() => app.run(() => api.done(item.id, occurrence))}
@@ -57,15 +60,22 @@
       <span class="sub repeat"><Icon name="repeat" size={13} /> {ruleSummary(item.schedule.recurrence.rule)}</span>
     {/if}
   </button>
+  <div class="countdown-slot">
+    <ReminderCountdown title={item.title} status={item.status} {now} />
+  </div>
 
+  <div class="actions">
   {#if item.status.kind === "due"}
     <SnoozeMenu onsnooze={(m) => app.run(() => api.snooze(item.id, m, occurrence))} />
   {/if}
+  <ItemActions bind:this={menu} {item} {onedit} />
+  </div>
 </div>
 
 <style>
   .row {
-    display: flex;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) max-content auto;
     align-items: center;
     gap: 0.6rem;
     padding: 0.55rem 0.6rem 0.55rem 0.7rem;
@@ -103,7 +113,6 @@
     color: #fff;
   }
   .main {
-    flex: 1;
     min-width: 0;
     display: grid;
     gap: 0.1rem;
@@ -141,4 +150,16 @@
   .repeat {
     font-size: 0.78rem;
   }
+  .countdown-slot { justify-self: end; }
+  .actions { display: flex; align-items: center; justify-content: flex-end; min-width: 9.5rem; gap: 0.3rem; }
+  @media (max-width: 600px), (min-width: 760px) and (max-aspect-ratio: 3/4) {
+    .row { grid-template-columns: auto minmax(0, 1fr) max-content; row-gap: 0.4rem; column-gap: 0.5rem; }
+    .done { grid-column: 1; grid-row: 1; }
+    .main { grid-column: 2 / -1; grid-row: 1; }
+    .countdown-slot { grid-column: 3; grid-row: 2; }
+    .actions { grid-column: 1 / 3; grid-row: 2; justify-content: flex-start; min-width: 0; }
+    .actions :global(.btn) { padding-inline: 0.55rem; }
+    .actions :global(.btn > svg) { display: none; }
+  }
+  @media (pointer: coarse) { .done { width: 44px; height: 44px; } }
 </style>

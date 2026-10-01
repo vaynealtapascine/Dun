@@ -1,4 +1,5 @@
 import * as chrono from "chrono-node";
+import { timerName } from "../duration";
 import type { Nag, RepeatMode, Rule, Schedule, Tag } from "../api/types";
 
 /**
@@ -248,7 +249,7 @@ export function parseQuickAdd(input: string, opts: ParseOptions): Parsed {
     if (ms >= 1000) {
       out.kind = "timer";
       out.schedule = { kind: "timer", durationMs: Math.round(ms) };
-      out.title = cleanTitle(text.s);
+      out.title = cleanTitle(text.s) || timerName(Math.round(ms));
       return out;
     }
   }

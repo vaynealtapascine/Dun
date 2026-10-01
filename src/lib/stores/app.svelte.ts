@@ -1,7 +1,7 @@
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { api, errorText } from "../api/commands";
 import { isDesktop } from "../platform";
-import type { LocalSettings, Snapshot } from "../api/types";
+import type { ItemView, LocalSettings, Snapshot } from "../api/types";
 
 /** Stand-in so shared views that read device settings still render on Android. */
 const PHONE_LOCAL: LocalSettings = {
@@ -25,13 +25,35 @@ class AppStore {
   error = $state<string | null>(null);
   /** A short confirmation ("Added “Tea”"), cleared after a few seconds. */
   notice = $state<string | null>(null);
+  noticeUndo = $state<(() => Promise<void>) | null>(null);
   now = $state(Date.now());
   #noticeTimer: ReturnType<typeof setTimeout> | undefined;
 
   notify(message: string) {
+    this.noticeUndo = null;
     this.notice = message;
     clearTimeout(this.#noticeTimer);
     this.#noticeTimer = setTimeout(() => (this.notice = null), 2500);
+  }
+
+  async archive(item: ItemView): Promise<boolean> {
+    try {
+      await api.deleteItem(item.id);
+      this.notify(`Archived “${item.title}”`);
+      clearTimeout(this.#noticeTimer);
+      this.noticeUndo = async () => {
+        await api.deleteItem(item.id, false);
+        this.notify(`Restored “${item.title}”`);
+      };
+      this.#noticeTimer = setTimeout(() => {
+        this.notice = null;
+        this.noticeUndo = null;
+      }, 8000);
+      return true;
+    } catch (e) {
+      this.error = errorText(e);
+      return false;
+    }
   }
 
   /** Core clock minus browser clock, from the last snapshot. */

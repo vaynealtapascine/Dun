@@ -2,6 +2,8 @@
   // 24px stroke icons, drawn for Dun.
   const PATHS = {
     check: "M5 12.5l4.5 4.5L19 7.5",
+    archive: "M3 3h18v5H3zM5 8v13h14V8M9 12h6",
+    more: "M5 12h.01M12 12h.01M19 12h.01",
     plus: "M12 5v14M5 12h14",
     gear: "M12 15.2a3.2 3.2 0 1 0 0-6.4 3.2 3.2 0 0 0 0 6.4Zm7.4-2.2.1-1-.1-1 2-1.6-2-3.4-2.4.9a7.6 7.6 0 0 0-1.7-1L15 3h-4l-.4 2.6c-.6.3-1.2.6-1.7 1l-2.4-.9-2 3.4 2 1.6-.1 1 .1 1-2 1.6 2 3.4 2.4-.9c.5.4 1.1.7 1.7 1L11 21h4l.4-2.6c.6-.3 1.2-.6 1.7-1l2.4.9 2-3.4-2.1-1.6Z",
     snooze: "M4 8h5l-5 6h5M13 5h7l-7 9h7",
@@ -27,7 +29,7 @@
 
 <script lang="ts">
   let { name, size = 20, label }: { name: IconName; size?: number; label?: string } = $props();
-  const fill = $derived(name === "play" ? "currentColor" : "none");
+  const fill = $derived(name === "play" || name === "gear" ? "currentColor" : "none");
 </script>
 
 <svg
@@ -35,6 +37,7 @@
   height={size}
   viewBox="0 0 24 24"
   fill={fill}
+  fill-rule="evenodd"
   stroke="currentColor"
   stroke-width="1.8"
   stroke-linecap="round"

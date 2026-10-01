@@ -49,21 +49,47 @@ export function groupReminders(items: ItemView[], now: number): Group[] {
     .filter((g) => g.items.length > 0);
 }
 
-export type TimerBuckets = { ringing: ItemView[]; running: ItemView[]; paused: ItemView[]; idle: ItemView[] };
+export type TimerBuckets = {
+  ringing: ItemView[];
+  running: ItemView[];
+  paused: ItemView[];
+  idle: ItemView[];
+  /** Expired first, then running and paused together in a stable order. */
+  active: ItemView[];
+};
 
-export function groupTimers(items: ItemView[]): TimerBuckets {
-  const out: TimerBuckets = { ringing: [], running: [], paused: [], idle: [] };
-  for (const item of items) {
-    if (item.kind !== "timer") continue;
-    if (item.status.kind === "due") out.ringing.push(item);
-    else if (item.timer.state === "running") out.running.push(item);
-    else if (item.timer.state === "paused") out.paused.push(item);
-    else out.idle.push(item);
+/** Newest creation first; legacy timers without creation metadata use their ID. */
+function compareTimerCreation(a: ItemView, b: ItemView): number {
+  const aCreated = a.created?.at;
+  const bCreated = b.created?.at;
+  if (aCreated !== bCreated) {
+    if (aCreated == null) return 1;
+    if (bCreated == null) return -1;
+    return bCreated - aCreated;
   }
-  out.ringing.sort((a, b) => sortTime(a) - sortTime(b));
-  out.running.sort((a, b) => sortTime(a) - sortTime(b));
-  out.paused.sort((a, b) => a.title.localeCompare(b.title));
-  out.idle.sort((a, b) => a.title.localeCompare(b.title));
+  return a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
+}
+
+/**
+ * Timer positions depend on creation, never their changing countdown or title.
+ * Starting moves a ready timer into the active group; pause/resume keeps its
+ * position there. Expiry promotes it into the attention group, whose ordering
+ * also survives snoozing and alert updates. Snapshot ordering is irrelevant.
+ */
+export function groupTimers(items: ItemView[]): TimerBuckets {
+  const out: TimerBuckets = { ringing: [], running: [], paused: [], idle: [], active: [] };
+  const timers = items.filter((item) => item.kind === "timer").sort(compareTimerCreation);
+  for (const item of timers) {
+    if (item.status.kind === "due") out.ringing.push(item);
+    else if (item.timer.state === "running") {
+      out.running.push(item);
+      out.active.push(item);
+    } else if (item.timer.state === "paused") {
+      out.paused.push(item);
+      out.active.push(item);
+    } else out.idle.push(item);
+  }
+  out.active = [...out.ringing, ...out.active];
   return out;
 }
 

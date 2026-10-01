@@ -3,6 +3,7 @@
   import type { Preset } from "../lib/api/types";
   import { api } from "../lib/api/commands";
   import { joinDuration, splitDuration } from "../lib/dates";
+  import { timerName } from "../lib/duration";
   import { app } from "../lib/stores/app.svelte";
   import Icon from "../lib/components/Icon.svelte";
   import Modal from "../lib/components/Modal.svelte";
@@ -15,6 +16,7 @@
   let s = $state(0);
   let nagOn = $state(true);
   let error = $state<string | null>(null);
+  let busy = $state(false);
 
   $effect(() => {
     if (open) untrack(reset);
@@ -28,12 +30,13 @@
   }
 
   async function save() {
+    if (busy) return;
     const durationMs = joinDuration(h, m, s);
-    if (!name.trim()) return (error = "Give the preset a name.");
-    if (durationMs < 1000) return (error = "Set a duration.");
+    if (!Number.isFinite(durationMs) || durationMs < 1000 || [h, m, s].some((v) => v < 0)) return (error = "Set a valid duration.");
+    busy = true;
     try {
       await api.savePreset(preset?.id ?? null, {
-        name: name.trim(),
+        name: name.trim() || timerName(durationMs),
         durationMs,
         nag: nagOn ? (app.snapshot?.settings.nagDefault ?? { mode: "repeat", intervalMin: 1 }) : { mode: "once" },
         chime: preset?.chime ?? null,
@@ -43,14 +46,16 @@
       open = false;
     } catch (e) {
       error = String(e);
+    } finally {
+      busy = false;
     }
   }
 </script>
 
 <Modal bind:open title={preset ? "Edit preset" : "New preset"}>
   <label class="field">
-    <span>Name</span>
-    <input class="input" bind:value={name} placeholder="Tea" onkeydown={(e) => e.key === "Enter" && save()} />
+    <span>Name (optional)</span>
+    <input class="input" bind:value={name} placeholder={timerName(joinDuration(h, m, s))} onkeydown={(e) => e.key === "Enter" && save()} />
   </label>
   <div class="field">
     <span>Duration</span>
@@ -75,7 +80,7 @@
       <span class="spacer"></span>
     {/if}
     <button class="btn" onclick={() => (open = false)}>Cancel</button>
-    <button class="btn btn-primary" onclick={save}>Save</button>
+    <button class="btn btn-primary" onclick={save} disabled={busy}>{busy ? "Saving…" : "Save"}</button>
   {/snippet}
 </Modal>
 

@@ -70,9 +70,16 @@ describe("groupReminders", () => {
 });
 
 describe("groupTimers", () => {
+  const t = (id: string, status: StatusView, timer: ItemView["timer"], createdAt: number | null = null) =>
+    item(id, status, {
+      kind: "timer",
+      timer,
+      schedule: { kind: "timer", durationMs: 60_000 },
+      created: createdAt == null ? null : { at: createdAt, kind: "timer", by: "test-device" },
+    });
+  const ids = (items: ItemView[]) => items.map((item) => item.id);
+
   it("buckets by state", () => {
-    const t = (id: string, status: StatusView, timer: ItemView["timer"]) =>
-      item(id, status, { kind: "timer", timer, schedule: { kind: "timer", durationMs: 60_000 } });
     const b = groupTimers([
       t("ringing", due(now - 1000), { state: "running", endAt: now - 1000 }),
       t("run-b", { kind: "upcoming", at: now + 9000 }, { state: "running", endAt: now + 9000 }),
@@ -85,6 +92,62 @@ describe("groupTimers", () => {
     expect(b.running.map((i) => i.id)).toEqual(["run-a", "run-b"]);
     expect(b.paused.map((i) => i.id)).toEqual(["paused"]);
     expect(b.idle.map((i) => i.id)).toEqual(["idle"]);
+    expect(ids(b.active)).toEqual(["ringing", "paused", "run-a", "run-b"]);
+  });
+
+  it("keeps a timer in its active position when paused and resumed", () => {
+    const older = t("older", { kind: "upcoming", at: now + 1000 }, { state: "running", endAt: now + 1000 }, now - 2000);
+    const newer = t("newer", { kind: "upcoming", at: now + 9000 }, { state: "running", endAt: now + 9000 }, now - 1000);
+    expect(ids(groupTimers([older, newer]).active)).toEqual(["newer", "older"]);
+
+    const paused = { ...newer, status: { kind: "idle" } as const, timer: { state: "paused", remainingMs: 8000 } as const };
+    expect(ids(groupTimers([paused, older]).active)).toEqual(["newer", "older"]);
+
+    const resumed = { ...newer, status: { kind: "upcoming", at: now + 120_000 } as const, timer: { state: "running", endAt: now + 120_000 } as const };
+    expect(ids(groupTimers([older, resumed]).active)).toEqual(["newer", "older"]);
+  });
+
+  it("promotes a started ready timer without changing the order of existing active timers", () => {
+    const older = t("older", { kind: "upcoming", at: now + 1000 }, { state: "running", endAt: now + 1000 }, now - 3000);
+    const paused = t("paused", { kind: "idle" }, { state: "paused", remainingMs: 5000 }, now - 2000);
+    const ready = t("ready", { kind: "idle" }, { state: "idle" }, now - 1000);
+    expect(ids(groupTimers([ready, older, paused]).active)).toEqual(["paused", "older"]);
+    expect(ids(groupTimers([ready, older, paused]).idle)).toEqual(["ready"]);
+
+    const started = { ...ready, status: { kind: "upcoming", at: now + 60_000 } as const, timer: { state: "running", endAt: now + 60_000 } as const };
+    expect(ids(groupTimers([older, started, paused]).active)).toEqual(["ready", "paused", "older"]);
+  });
+
+  it("promotes expiry but does not shuffle expired timers when snoozed or alert times change", () => {
+    const older = t("older", { kind: "upcoming", at: now + 1000 }, { state: "running", endAt: now + 1000 }, now - 3000);
+    const newer = t("newer", due(now - 1000), { state: "running", endAt: now - 1000 }, now - 2000);
+    const paused = t("paused", { kind: "idle" }, { state: "paused", remainingMs: 5000 }, now - 1000);
+    expect(ids(groupTimers([older, newer, paused]).active)).toEqual(["newer", "paused", "older"]);
+
+    const expired = { ...older, status: due(now - 500) };
+    expect(ids(groupTimers([paused, expired, newer]).active)).toEqual(["newer", "older", "paused"]);
+
+    const snoozed = { ...newer, title: "Renamed", status: due(now + 300_000, true) };
+    expect(ids(groupTimers([expired, paused, snoozed]).active)).toEqual(["newer", "older", "paused"]);
+
+    const reset = { ...expired, status: { kind: "idle" } as const, timer: { state: "idle" } as const };
+    expect(ids(groupTimers([reset, paused, snoozed]).active)).toEqual(["newer", "paused"]);
+    expect(ids(groupTimers([reset, paused, snoozed]).idle)).toEqual(["older"]);
+  });
+
+  it("uses immutable IDs for equal or missing creation dates, independent of snapshot order and titles", () => {
+    const timers = [
+      t("legacy-b", { kind: "idle" }, { state: "paused", remainingMs: 5000 }),
+      t("new-b", { kind: "upcoming", at: now + 1000 }, { state: "running", endAt: now + 1000 }, now - 1000),
+      t("legacy-a", { kind: "upcoming", at: now + 9000 }, { state: "running", endAt: now + 9000 }),
+      t("new-a", { kind: "idle" }, { state: "paused", remainingMs: 5000 }, now - 1000),
+    ];
+    const originalIds = ids(timers);
+    expect(ids(groupTimers(timers).active)).toEqual(["new-a", "new-b", "legacy-a", "legacy-b"]);
+    expect(ids(timers)).toEqual(originalIds);
+
+    const shuffled = [timers[3]!, timers[2]!, timers[1]!, { ...timers[0]!, title: "A different title" }];
+    expect(ids(groupTimers(shuffled).active)).toEqual(["new-a", "new-b", "legacy-a", "legacy-b"]);
   });
 });
 

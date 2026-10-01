@@ -30,6 +30,7 @@ jiff.workspace = true
 rusqlite.workspace = true
 tauri = { version = "~2.11.5", features = ["tray-icon", "image-png"] }
 tauri-plugin-dun-android = { path = "../plugins/tauri-plugin-dun-android" }
+tauri-plugin-opener = "2"
 dun-sync = { workspace = true, features = ["client"] }
 tokio = { version = "1", features = ["rt-multi-thread", "time"] }
 sha2 = "0.10"

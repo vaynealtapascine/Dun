@@ -26,6 +26,7 @@ export function formatCountdown(ms: number): string {
 
 /** Compact human form for labels: `45m`, `1h 30m`, `2d 4h`. */
 export function formatShort(ms: number): string {
+  if (Math.abs(ms) > 0 && Math.abs(ms) < 60_000) return `${Math.ceil(Math.abs(ms) / 1000)}s`;
   const totalMinutes = Math.round(Math.abs(ms) / 60_000);
   const days = Math.floor(totalMinutes / 1440);
   const hours = Math.floor((totalMinutes % 1440) / 60);
@@ -35,4 +36,14 @@ export function formatShort(ms: number): string {
   if (hours) parts.push(`${hours}h`);
   if (minutes && !days) parts.push(`${minutes}m`);
   return parts.length ? parts.join(" ") : "0m";
+}
+
+/** Exact, readable default so even a short unnamed timer is distinguishable. */
+export function timerName(ms: number): string {
+  if (!Number.isFinite(ms) || ms <= 0) return "Timer";
+  const seconds = Math.max(1, Math.round(ms / 1000));
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  const s = seconds % 60;
+  return `${[h && `${h}h`, m && `${m}m`, s && `${s}s`].filter(Boolean).join(" ")} timer`;
 }

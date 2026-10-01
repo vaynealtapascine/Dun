@@ -20,6 +20,7 @@
 
 <dialog
   bind:this={dialog}
+  aria-label={title}
   onclose={() => (open = false)}
   onkeydown={(e) => {
     // Chromium only fires `cancel` for Escape after certain user activation,
@@ -56,7 +57,7 @@
     border: none;
     background: transparent;
     width: min(34rem, calc(100vw - 1.5rem));
-    max-height: calc(100vh - 1.5rem);
+    max-height: calc(100dvh - 1.5rem);
     color: var(--fg);
   }
   dialog::backdrop {
@@ -65,13 +66,14 @@
   .sheet {
     display: flex;
     flex-direction: column;
-    max-height: calc(100vh - 1.5rem);
+    max-height: calc(100dvh - 1.5rem);
     background: var(--bg);
     border-radius: var(--radius);
     box-shadow: var(--shadow);
     border: 1px solid var(--border);
   }
   header {
+    flex-shrink: 0;
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -88,10 +90,17 @@
     gap: 0.9rem;
   }
   footer {
+    flex-shrink: 0;
+    flex-wrap: wrap;
     display: flex;
     gap: 0.5rem;
     justify-content: flex-end;
     padding: 0.75rem 1.1rem;
     border-top: 1px solid var(--border);
+  }
+  @media (max-width: 540px) {
+    dialog { width: calc(100vw - 1rem); }
+    .body { padding-inline: 0.85rem; }
+    footer { padding: 0.65rem 0.85rem; }
   }
 </style>

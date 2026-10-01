@@ -4,11 +4,13 @@
   import { api } from "../lib/api/commands";
   import { fromLocalInput, joinDuration, roundUpMinutes, splitDuration, toDateInput, toLocalInput } from "../lib/dates";
   import { relative } from "../lib/format";
+  import { timerName } from "../lib/duration";
   import { isPhone } from "../lib/platform";
   import { app } from "../lib/stores/app.svelte";
   import Icon from "../lib/components/Icon.svelte";
   import Modal from "../lib/components/Modal.svelte";
   import RepeatEditor from "../lib/components/RepeatEditor.svelte";
+  import SourceLink from "../lib/components/SourceLink.svelte";
 
   type Kind = "once" | "repeat" | "timer";
 
@@ -102,7 +104,7 @@
     }
     if (kind === "timer") {
       const durationMs = joinDuration(durH, durM, durS);
-      if (durationMs < 1000) return "Set how long the timer runs.";
+      if (!Number.isFinite(durationMs) || durationMs < 1000 || [durH, durM, durS].some((v) => v < 0)) return "Set a valid timer duration.";
       return { kind: "timer", durationMs };
     }
     const start = rule.kind === "interval" ? `${startAt.slice(0, 16)}:00` : `${startDate}T00:00:00`;
@@ -111,17 +113,18 @@
   }
 
   async function save() {
+    if (busy) return;
     const schedule = buildSchedule();
     if (typeof schedule === "string") {
       error = schedule;
       return;
     }
-    if (!title.trim()) {
+    if (!title.trim() && kind !== "timer") {
       error = "Give it a title.";
       return;
     }
     const draft: ItemDraft = {
-      title: title.trim(),
+      title: title.trim() || timerName(joinDuration(durH, durM, durS)),
       notes,
       tag,
       schedule,
@@ -144,8 +147,7 @@
 
   async function remove() {
     if (!item) return;
-    await app.run(() => api.deleteItem(item!.id));
-    open = false;
+    if (await app.archive(item)) open = false;
   }
 
   const chimeKey = (c: ChimeRef | null) => (c == null ? "" : c.kind === "bundled" ? `b:${c.id}` : `c:${c.sha256}`);
@@ -161,13 +163,13 @@
   {/if}
 
   <label class="field">
-    <span>Title</span>
+    <span>Title {kind === "timer" ? "(optional)" : ""}</span>
     <!-- svelte-ignore a11y_autofocus -->
     <input
       class="input"
       bind:value={title}
-      placeholder={kind === "timer" ? "Laundry" : "Pay rent"}
-      autofocus
+      placeholder={kind === "timer" ? timerName(joinDuration(durH, durM, durS)) : "Pay rent"}
+      autofocus={!isPhone}
       onkeydown={(e) => e.key === "Enter" && save()}
     />
   </label>
@@ -269,16 +271,17 @@
     <span>Notes</span>
     <textarea class="input" bind:value={notes} rows="2"></textarea>
   </label>
+  <SourceLink {notes} />
 
   {#if error}<p class="error" role="alert">{error}</p>{/if}
 
   {#snippet footer()}
     {#if item}
-      <button class="btn btn-danger btn-quiet" onclick={remove}><Icon name="trash" size={16} /> Delete</button>
+      <button class="btn btn-quiet" onclick={remove} disabled={busy}><Icon name="archive" size={16} /> Archive</button>
       <span class="spacer"></span>
     {/if}
     <button class="btn" onclick={() => (open = false)}>Cancel</button>
-    <button class="btn btn-primary" onclick={save} disabled={busy}>{item ? "Save" : "Add"}</button>
+    <button class="btn btn-primary" onclick={save} disabled={busy}>{busy ? "Saving…" : item ? "Save" : kind === "timer" && startTimer ? "Start timer" : "Add"}</button>
   {/snippet}
 </Modal>
 

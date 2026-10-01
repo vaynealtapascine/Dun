@@ -94,6 +94,7 @@ export type Settings = {
 };
 
 export type Snapshot = {
+  archived?: ItemView[];
   now: Ms;
   tz: string;
   deviceId: string;

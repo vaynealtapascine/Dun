@@ -5,140 +5,153 @@
   import { groupTimers } from "../lib/grouping";
   import { app } from "../lib/stores/app.svelte";
   import Icon from "../lib/components/Icon.svelte";
-  import SwipeToDelete from "../lib/components/SwipeToDelete.svelte";
+  import SwipeToArchive from "../lib/components/SwipeToArchive.svelte";
   import TimerCard from "../lib/components/TimerCard.svelte";
+  import TimerStart from "../lib/components/TimerStart.svelte";
   import PresetForm from "./PresetForm.svelte";
 
   let { items, onedit }: { items: ItemView[]; onedit: (item: ItemView) => void } = $props();
 
   const buckets = $derived(groupTimers(items));
-  const active = $derived([...buckets.ringing, ...buckets.running, ...buckets.paused]);
-  const presets = $derived([...(app.snapshot?.presets ?? [])].sort((a, b) => a.order - b.order));
+  const active = $derived(buckets.active);
+  const presets = $derived([...(app.snapshot?.presets ?? [])].filter((p) => !p.deleted).sort((a, b) => a.order - b.order));
 
   let presetOpen = $state(false);
   let editing = $state<Preset | null>(null);
+  let starting = $state<string[]>([]);
+  let managingPresets = $state(false);
+
+  function editPreset(preset: Preset | null) {
+    editing = preset;
+    presetOpen = true;
+  }
+
+  async function startPreset(preset: Preset) {
+    if (starting.includes(preset.id)) return;
+    starting = [...starting, preset.id];
+    try {
+      const id = await app.run(() => api.startPreset(preset.id));
+      if (id) app.notify(`Started “${preset.name}”`);
+    } finally {
+      starting = starting.filter((id) => id !== preset.id);
+    }
+  }
 </script>
 
-<section>
-  <h3>Presets</h3>
-  <div class="presets">
-    {#each presets as p (p.id)}
-      <div class="preset card">
-        <button class="start" onclick={() => app.run(() => api.startPreset(p.id))} title="Start {p.name}">
-          <span class="name">{p.name}</span>
-          <span class="muted">{formatShort(p.durationMs)}</span>
-        </button>
-        <button
-          class="icon-btn edit"
-          aria-label="Edit {p.name}"
-          onclick={() => {
-            editing = p;
-            presetOpen = true;
-          }}><Icon name="edit" size={15} /></button
-        >
-      </div>
-    {/each}
-    <button
-      class="preset add"
-      onclick={() => {
-        editing = null;
-        presetOpen = true;
-      }}><Icon name="plus" size={16} /> Preset</button
-    >
-  </div>
-</section>
-
-{#if active.length > 0}
-  <section>
-    <h3>Running</h3>
-    <div class="list">
+<div class="timer-workspace">
+  {#if active.length > 0}
+    <div class="timer-list" role="list" aria-label="Active timers">
       {#each active as item (item.id)}
-        <SwipeToDelete label={item.title} ondelete={() => app.run(() => api.deleteItem(item.id))}>
+        <SwipeToArchive role="listitem" label={item.title} onarchive={() => app.archive(item)}>
           <TimerCard {item} {onedit} />
-        </SwipeToDelete>
+        </SwipeToArchive>
       {/each}
     </div>
-  </section>
-{/if}
+  {/if}
 
-{#if buckets.idle.length > 0}
-  <section>
-    <h3>Stopped</h3>
-    <div class="list">
-      {#each buckets.idle as item (item.id)}
-        <SwipeToDelete label={item.title} ondelete={() => app.run(() => api.deleteItem(item.id))}>
-          <TimerCard {item} {onedit} />
-        </SwipeToDelete>
+  <TimerStart {managingPresets} onmanagepresets={() => managingPresets = !managingPresets}>
+    <div class="presets" role="group" aria-label="Timer presets">
+      {#each presets as preset (preset.id)}
+        <div class="preset">
+          <button
+            class="preset-start"
+            onclick={() => startPreset(preset)}
+            disabled={starting.includes(preset.id)}
+            aria-label="Start {preset.name}, {formatShort(preset.durationMs)}"
+          >
+            <span class="preset-name">{preset.name}</span>
+            <span class="preset-duration">{formatShort(preset.durationMs)}</span>
+          </button>
+        </div>
       {/each}
     </div>
-  </section>
-{/if}
+    {#if managingPresets || presets.length === 0}
+      <div class="preset-management" role="group" aria-label="Manage presets">
+        {#each presets as preset (preset.id)}<button class="btn" onclick={() => editPreset(preset)}>Edit {preset.name}</button>{/each}
+        <button class="btn" onclick={() => editPreset(null)}><Icon name="plus" size={16} /> Add preset</button>
+      </div>
+    {/if}
+  </TimerStart>
 
-{#if active.length === 0 && buckets.idle.length === 0}
-  <p class="muted empty">No timers yet. Start a preset or add one with +.</p>
-{/if}
+  {#if buckets.idle.length > 0}
+    <section class="ready">
+      <h2>Ready to start</h2>
+      <div class="timer-list" role="list" aria-label="Ready timers">
+        {#each buckets.idle as item (item.id)}
+          <SwipeToArchive role="listitem" label={item.title} onarchive={() => app.archive(item)}>
+            <TimerCard {item} {onedit} />
+          </SwipeToArchive>
+        {/each}
+      </div>
+    </section>
+  {/if}
+</div>
 
 <PresetForm bind:open={presetOpen} preset={editing} />
 
 <style>
-  section {
+  .timer-workspace,
+  .timer-list {
     display: grid;
-    gap: 0.45rem;
-  }
-  section + section {
-    margin-top: 1rem;
-  }
-  h3 {
-    margin: 0;
-    padding: 0 0.2rem;
-    font-size: 0.78rem;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    color: var(--fg-muted);
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.5rem;
+    min-width: 0;
   }
   .presets {
     display: flex;
-    flex-wrap: wrap;
-    gap: 0.4rem;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding-bottom: 0.1rem;
+    gap: 0.45rem;
+    min-width: 0;
   }
+  .timer-list { gap: 0.5625rem; }
   .preset {
     display: flex;
-    align-items: center;
-    border-radius: 999px;
-    padding: 0 0.15rem 0 0;
+    flex: 1 0 calc((100% - 0.9rem) / 3);
+    min-width: 0;
+    background: var(--bg-sunken);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
   }
-  .start {
+  .preset-start {
     display: flex;
-    gap: 0.4rem;
-    align-items: baseline;
-    padding: 0.45rem 0.4rem 0.45rem 0.9rem;
-    border: none;
-    background: none;
-    cursor: pointer;
-  }
-  .name {
-    font-weight: 600;
-  }
-  .edit {
-    width: 1.9rem;
-    height: 1.9rem;
-  }
-  .add {
-    display: inline-flex;
     align-items: center;
-    gap: 0.3rem;
-    padding: 0.45rem 0.9rem;
-    border: 1px dashed var(--fg-faint);
+    justify-content: center;
+    gap: 0.35rem;
+    flex: 1;
+    min-width: 0;
+    min-height: max(44px, 2.1rem);
+    padding: 0.45rem 0.55rem;
+    border: 0;
+    border-radius: var(--radius-sm);
     background: transparent;
-    color: var(--fg-muted);
+    font-weight: 700;
+    font-size: 0.75rem;
     cursor: pointer;
   }
-  .list {
-    display: grid;
-    gap: 0.45rem;
+  .preset-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
-  .empty {
-    text-align: center;
-    padding: 2.5rem 1rem;
+  .preset-duration {
+    flex: none;
+    font-variant-numeric: tabular-nums;
+  }
+  .preset-start:hover { background: color-mix(in srgb, var(--fg) 7%, transparent); }
+  .preset-start:disabled { opacity: 0.55; cursor: wait; }
+  .ready {
+    display: grid;
+    gap: 0.5rem;
+    margin-top: 0.6rem;
+  }
+  .preset-management { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.5rem; }
+  h2 {
+    margin: 0;
+    font-family: var(--font-ui);
+    font-size: 1.3rem;
+    line-height: 1.2;
+    font-weight: 700;
   }
 </style>
