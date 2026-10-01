@@ -298,7 +298,7 @@ export function installMockBackend() {
         return copy(history.filter((row) => (a.itemId == null || row.itemId === a.itemId) &&
           (a.before == null || row.at < Number(a.before))).sort((left, right) => right.at - left.at).slice(0, Number(a.limit ?? 100)));
       case "app_version":
-        return "v0.1.0 (preview)";
+        return "v1.0.0 (preview)";
       case "preview_schedule": {
         // Rough stand-in for the engine: good enough to see the preview UI.
         const s = (a.draft as { schedule: import("../api/types").Schedule }).schedule;
