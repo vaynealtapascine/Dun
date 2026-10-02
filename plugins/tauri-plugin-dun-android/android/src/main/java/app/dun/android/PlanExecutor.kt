@@ -6,6 +6,8 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.os.Build
+import android.os.SystemClock
+import android.widget.RemoteViews
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
@@ -30,7 +32,7 @@ object PlanExecutor {
     const val EXTRA_OCC = "occ"
     const val EXTRA_BUTTON = "button"
 
-    private val BUTTON_LABELS = linkedMapOf("done" to "Done", "snooze5" to "+5m", "snooze15" to "+15m")
+    private val BUTTON_LABELS = linkedMapOf("done" to "Done", "snooze5" to "+5m", "snooze15" to "+15m", "pause" to "Pause", "reset" to "Reset")
 
     /** Applies a `handleEvent` response. Falls back loud when Rust reported an error. */
     fun applyResponse(context: Context, response: JSONObject) {
@@ -129,7 +131,20 @@ object PlanExecutor {
         }
 
         val notes = p.optString("notes")
-        if (notes.isNotEmpty() && notes != "null") {
+        if (ongoing && !p.isNull("countdownTo")) {
+            val endsAt = p.getLong("countdownTo")
+            // RemoteViews chronometers use monotonic time, unlike the saved UTC deadline.
+            val base = SystemClock.elapsedRealtime() + (endsAt - System.currentTimeMillis())
+            fun countdown(layout: Int): RemoteViews = RemoteViews(context.packageName, layout).apply {
+                setTextViewText(R.id.timer_title, p.getString("title"))
+                setChronometer(R.id.timer_countdown, base, null, true)
+                setChronometerCountDown(R.id.timer_countdown, true)
+            }
+            builder.setStyle(NotificationCompat.DecoratedCustomViewStyle())
+                .setCustomContentView(countdown(R.layout.notification_timer_small))
+                .setCustomBigContentView(countdown(R.layout.notification_timer_large))
+                .setShowWhen(false)
+        } else if (notes.isNotEmpty() && notes != "null") {
             builder.setStyle(NotificationCompat.BigTextStyle().bigText("${p.optString("text")}\n$notes"))
         }
 

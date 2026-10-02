@@ -13,6 +13,8 @@ pub enum Button {
     Done,
     Snooze5,
     Snooze15,
+    Pause,
+    Reset,
 }
 
 impl Button {

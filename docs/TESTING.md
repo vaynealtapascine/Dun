@@ -27,6 +27,7 @@ bundles.
 | Quick-add parsing | `src/lib/*.test.ts` | Table-driven phrases → drafts, durations, tags, nag overrides |
 | App API | `src-tauri/src/desktop/integrations.rs` | Loopback HTTP auth, browser refusal, invalid inputs, duplicate/archive safety, rotation, persisted items |
 | App adapters | `scripts/integrations/*.test.mjs` | Per-send credentials, delivery failures, Memos user isolation, dry runs, occurrence IDs and flattened reminder tags |
+| Countdown controls | `src-tauri/src/mobile/bridge.rs` | Pause/reset applies only to the current timer run; stale controls are ignored |
 
 The parser is checked against the engine at runtime too: the quick-add preview
 asks Rust to validate the draft and hand back the next occurrences, so the TS

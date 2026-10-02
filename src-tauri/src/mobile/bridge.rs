@@ -133,6 +133,17 @@ fn apply(engine: &mut Engine, event: &Event, now: Timestamp, tz: &TimeZone) -> R
                 Button::Done => engine.done(now, tz, item_id, occurrence),
                 Button::Snooze5 => engine.snooze(now, tz, item_id, occurrence, 5),
                 Button::Snooze15 => engine.snooze(now, tz, item_id, occurrence, 15),
+                Button::Pause | Button::Reset => {
+                    // A button from an older countdown must not change a restarted timer.
+                    if !engine.state().items.get(item_id).is_some_and(|item| {
+                        !item.deleted && matches!(item.timer, TimerState::Running { end_at, .. } if end_at.0 == *occ)
+                    }) { return Ok(()); }
+                    if *button == Button::Pause {
+                        engine.pause_timer(now, item_id)
+                    } else {
+                        engine.reset_timer(now, item_id)
+                    }
+                }
             };
             match result {
                 // The item may have been finished or deleted on the PC in the
@@ -256,8 +267,8 @@ fn countdowns(plan: &mut Plan, engine: &Engine, now: Timestamp) {
                     text: String::new(),
                     notes: None,
                     when: Some(end_at.0),
-                    // Nothing to press: it hasn't gone off yet.
-                    actions: Vec::new(),
+                    // Control the current countdown without opening the app.
+                    actions: vec![Button::Pause, Button::Reset],
                     ongoing: true,
                     countdown_to: Some(end_at.0),
                 })
@@ -574,10 +585,7 @@ mod tests {
         assert_eq!(post.countdown_to, Some(t0.plus(45 * MINUTE).0));
         assert_eq!(post.channel, "timers_running");
         assert!(post.silent);
-        assert!(
-            post.actions.is_empty(),
-            "nothing to press until it goes off"
-        );
+        assert_eq!(post.actions, vec![Button::Pause, Button::Reset]);
         assert_ne!(
             post.notif_id,
             notif_id(&id),
@@ -592,6 +600,31 @@ mod tests {
         let plan = event(dir.path(), t0.plus(MINUTE), r#"{"type":"appStarted"}"#);
         assert!(plan.post.iter().all(|p| p.notif_id != countdown));
         assert!(plan.cancel.contains(&countdown));
+    }
+
+    #[test]
+    fn countdown_buttons_control_only_the_current_timer_run() {
+        let dir = dir();
+        let path = dir.path().display().to_string();
+        let t0 = Timestamp(1_000_000);
+        let id = core::with_engine(&path, |engine| {
+            engine.create_item(t0, timer("Tea", 10 * MINUTE)).unwrap()
+        })
+        .unwrap();
+        let action = |occ, button| Event::Action {
+            item_id: id.clone(),
+            occ,
+            button,
+        };
+        core::with_engine(&path, |engine| {
+            apply(engine, &action(t0.plus(10 * MINUTE).0, Button::Pause), t0.plus(MINUTE), &TimeZone::UTC).unwrap();
+            assert!(matches!(engine.state().items[&id].timer, TimerState::Paused { remaining_ms } if remaining_ms == 9 * MINUTE));
+            engine.start_timer(t0.plus(2 * MINUTE), &id).unwrap();
+            apply(engine, &action(t0.plus(10 * MINUTE).0, Button::Reset), t0.plus(3 * MINUTE), &TimeZone::UTC).unwrap();
+            assert!(matches!(engine.state().items[&id].timer, TimerState::Running { .. }));
+            apply(engine, &action(t0.plus(12 * MINUTE).0, Button::Reset), t0.plus(3 * MINUTE), &TimeZone::UTC).unwrap();
+            assert_eq!(engine.state().items[&id].timer, TimerState::Idle);
+        }).unwrap();
     }
 
     #[test]
