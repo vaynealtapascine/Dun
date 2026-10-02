@@ -3,12 +3,13 @@
  *
  * Under an hour: `m:ss` (e.g. `4:05`). An hour or more: `h:mm:ss`.
  * A day or more: `Nd h:mm:ss`. Negative values (overdue) get a leading `-`.
- * Sub-second remainders round up so a countdown never shows `0:00` while
- * time is still left.
+ * Remaining time rounds up so a countdown never shows `0:00` while time is
+ * still left; elapsed time rounds down so an overdue clock reaches `-0:01`
+ * only after a whole second has passed.
  */
 export function formatCountdown(ms: number): string {
-  const sign = ms < 0 ? "-" : "";
-  const totalSeconds = Math.ceil(Math.abs(ms) / 1000);
+  const totalSeconds = ms < 0 ? Math.floor(-ms / 1000) : Math.ceil(ms / 1000);
+  const sign = ms < 0 && totalSeconds > 0 ? "-" : "";
   const days = Math.floor(totalSeconds / 86_400);
   const hours = Math.floor((totalSeconds % 86_400) / 3600);
   const minutes = Math.floor((totalSeconds % 3600) / 60);

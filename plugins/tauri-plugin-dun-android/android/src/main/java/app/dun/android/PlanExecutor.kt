@@ -138,6 +138,8 @@ object PlanExecutor {
                 .setShowWhen(true)
         } else if (!p.isNull("when")) {
             builder.setWhen(p.getLong("when")).setShowWhen(true)
+            // A finished timer keeps counting up from when it went off, as in the app.
+            if (named.startsWith("timer_")) builder.setUsesChronometer(true)
         }
 
         val notes = p.optString("notes")

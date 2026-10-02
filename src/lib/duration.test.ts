@@ -14,6 +14,11 @@ describe("formatCountdown", () => {
     [86_400_000, "1d 0:00:00"],
     [90_061_000, "1d 1:01:01"],
     [-65_000, "-1:05"],
+    // Elapsed time rounds down: no sign until a whole second has passed.
+    [-999, "0:00"],
+    [-1_000, "-0:01"],
+    [-65_999, "-1:05"],
+    [-90_061_000, "-1d 1:01:01"],
   ])("%d ms -> %s", (ms, expected) => {
     expect(formatCountdown(ms)).toBe(expected);
   });

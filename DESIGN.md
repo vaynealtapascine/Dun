@@ -297,7 +297,7 @@ Explicit `data-theme="light"` and `data-theme="dark"` win over the OS preference
 
 ### Hierarchy
 
-- **Display / display-long:** expired or snoozed countdowns. The short face uses the responsive display token; long clocks use the smaller display-long token. The type retains its natural proportions with a 0.9 line height; day prefixes remain separate and smaller.
+- **Display / display-long:** overdue (counting up) or snoozed countdowns. The short face uses the responsive display token; long clocks use the smaller display-long token. The type retains its natural proportions with a 0.9 line height; day prefixes remain separate and smaller.
 - **Countdown / countdown-long:** remaining time inside the dial. At widths up to 420px, the normal clock becomes 2rem and the long clock 1.35rem.
 - **Reminder-countdown / reminder-countdown-compact:** one semibold `YYy MMm DDd HH:MM:SS` line in the right side of the reminder row, at 1.5rem with a 1.2 line height. Use 1.25rem at widths up to 600px and for scaled portrait layouts at least 760px wide with an aspect ratio no greater than 3:4. All six fields remain visible. Leading empty units and the padding zero of every positive unit below 10 use 0.42 opacity; meaningful zeros after the first nonzero unit stay readable, and an all-zero readout retains legible seconds. Use lining tabular figures at natural width, with only y/m/d suffixes beside the calendar units.
 - **Setter:** inline numeric Hours / Minutes / Seconds entry. At widths up to 399px, the input numerals become 1.7rem.
@@ -367,7 +367,7 @@ Timers, Reminders, and History divide the tab strip equally. The selected tab us
 
 Running and paused rows share a stable creation-based order and show remaining time with direct Pause / Resume and Reset controls. Expired timers move ahead of that group; pausing and resuming do not change position within it. The SVG progress uses a remaining-duration fraction. While running, its stroke offset transitions for 1s linearly so it drains continuously between clock ticks; other changes (start, reset, edit) sweep once with the ease-out curve. Reduced motion snaps to the data. A finished face fades and settles into place once; it never pulses. The ticking numeral itself does not enter a live region.
 
-A due face distinguishes Time’s up, Snoozed, Quiet hours, Alerts muted, and Waiting on phone. A snoozed face shows time until the alert resumes; a held face reports elapsed time since completion of the countdown. Done, Snooze, and Restart remain separate controls, and the title still opens editing. The visible state has a polite, atomic status announcement outside the ticking clock.
+A due face distinguishes Time’s up, Snoozed, Quiet hours, Alerts muted, and Waiting on phone. A snoozed face counts down to when the alert resumes. A ringing or held face keeps counting up from the moment the countdown finished, shown as a negative clock (`−0:42`) whose lighter minus sign leaves the digits leading; the Android alert notification counts up the same way with a system chronometer. Done, Snooze, and Restart remain separate controls, and the title still opens editing. The visible state has a polite, atomic status announcement outside the ticking clock.
 
 ### Timer start and presets
 

@@ -28,13 +28,17 @@
     return Math.max(0, duration);
   });
   const fraction = $derived(duration > 0 ? Math.min(1, Math.max(0, remaining / duration)) : 0);
-  const display = $derived(formatCountdown(
-    due ? (snoozed && item.status.kind === "due" ? Math.max(0, item.status.ringsAt - app.now) : 0) : remaining,
-  ));
-  const dayBreak = $derived(display.indexOf("d "));
-  const days = $derived(dayBreak >= 0 ? display.slice(0, dayBreak + 1) : null);
-  const clock = $derived(dayBreak >= 0 ? display.slice(dayBreak + 2) : display);
   const elapsed = $derived(item.status.kind === "due" ? Math.max(0, app.now - item.status.occurrence) : 0);
+  // A snoozed face counts down to the next alert; a finished one keeps
+  // counting up from when it went off, so it says how long it has waited.
+  const display = $derived(formatCountdown(
+    due ? (snoozed && item.status.kind === "due" ? Math.max(0, item.status.ringsAt - app.now) : -elapsed) : remaining,
+  ));
+  const overdue = $derived(display.startsWith("-"));
+  const unsigned = $derived(overdue ? display.slice(1) : display);
+  const dayBreak = $derived(unsigned.indexOf("d "));
+  const days = $derived(dayBreak >= 0 ? unsigned.slice(0, dayBreak + 1) : null);
+  const clock = $derived(dayBreak >= 0 ? unsigned.slice(dayBreak + 2) : unsigned);
   const stateLabel = $derived.by(() => {
     if (snoozed) return "Snoozed";
     if (due) {
@@ -79,15 +83,13 @@
     </div>
     <div class="alarm-display" in:faceIn>
       <div class="alarm-time" class:long={clock.length > 5} role="timer" aria-live="off"
-        aria-label={snoozed ? `${display} until alert resumes` : "Timer finished"}>
-        {#if days}<span class="days">{days}</span>{/if}
-        <span>{clock}</span>
+        aria-label={snoozed ? `${display} until alert resumes` : overdue ? `Finished ${unsigned} ago` : "Timer finished"}>
+        {#if days}<span class="days">{overdue ? "−" : ""}{days}</span>{/if}
+        <span>{#if overdue && !days}<span class="sign">−</span>{/if}{clock}</span>
       </div>
       <div class="alarm-state">{stateLabel}</div>
       {#if snoozed}
         <div class="alarm-detail">Alert resumes after the countdown</div>
-      {:else if !ringing}
-        <div class="alarm-detail">Finished {formatCountdown(elapsed)} ago</div>
       {/if}
     </div>
     <div class="alarm-actions">
@@ -256,6 +258,8 @@
   .alarm-display { display: grid; justify-items: center; padding: 0.15rem 0 0.8rem; }
   .alarm-time { font-size: clamp(5.5rem, 25vw, 7.375rem); line-height: 0.9; }
   .alarm-time.long { font-size: clamp(3rem, 13vw, 4.4rem); }
+  /* The overdue sign is lighter than the digits so the time still leads. */
+  .sign { font-weight: 600; opacity: 0.8; margin-right: 0.04em; }
   .alarm-state {
     margin-top: 0;
     font-family: var(--font-ui);
