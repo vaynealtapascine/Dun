@@ -345,7 +345,7 @@ The form language is rectangular with gently eased corners: the radius token for
 
 Confident labeled controls give the action a clear name. Primary actions use the activity pair; secondary actions use the sunken surface and structural border. General controls use label typography and the primary variant raises weight to 700. Timer actions use the timer-action typography, and their horizontal space grows with the row. Hover mixes the current surface with ink; active and disabled states remain visible. Icon controls retain accessible names and a 44px target.
 
-Global focus is a two-pixel outline with a three-pixel offset. On the solid alarm face, focus uses the alarm foreground. The base state transition is 150ms ease-out; reduced motion removes perceptible transition.
+Global focus is a two-pixel outline with a three-pixel offset. On the solid alarm face, focus uses the alarm foreground. State changes use the fast motion token; a pressed control scales to 0.97 so a tap is answered at once. Hover styles apply only under `(hover: hover)`, so a tapped control does not keep a hover color on touch screens.
 
 ### Chips
 
@@ -361,11 +361,11 @@ Quick entry is always available above Timers and Reminders, preserving the phras
 
 ### Navigation
 
-Timers, Reminders, and History divide the tab strip equally. The selected tab uses teal, weight 700, and a bottom underline. Hover uses the sunken surface; arrow keys, Home, and End move between tabs. Ringing counts appear on inactive tabs only and use local expiry red. Preserve the compact inline badge cascade on narrow screens.
+Timers, Reminders, and History divide the tab strip equally. The selected tab uses teal, weight 700, and a single bottom underline that travels to the selected tab. The incoming panel enters from the side of travel, each tab keeps its own scroll position, and tapping the current tab scrolls back to the top. Hover uses the sunken surface; arrow keys, Home, and End move between tabs. Ringing counts appear on inactive tabs only and use local expiry red. Preserve the compact inline badge cascade on narrow screens.
 
 ### Timer instrument
 
-Running and paused rows share a stable creation-based order and show remaining time with direct Pause / Resume and Reset controls. Expired timers move ahead of that group; pausing and resuming do not change position within it. The SVG progress uses a remaining-duration fraction; its stroke offset transitions for 0.9s linearly, and reduced motion snaps to the data. The ticking numeral itself does not enter a live region.
+Running and paused rows share a stable creation-based order and show remaining time with direct Pause / Resume and Reset controls. Expired timers move ahead of that group; pausing and resuming do not change position within it. The SVG progress uses a remaining-duration fraction. While running, its stroke offset transitions for 1s linearly so it drains continuously between clock ticks; other changes (start, reset, edit) sweep once with the ease-out curve. Reduced motion snaps to the data. A finished face fades and settles into place once; it never pulses. The ticking numeral itself does not enter a live region.
 
 A due face distinguishes Time’s up, Snoozed, Quiet hours, Alerts muted, and Waiting on phone. A snoozed face shows time until the alert resumes; a held face reports elapsed time since completion of the countdown. Done, Snooze, and Restart remain separate controls, and the title still opens editing. The visible state has a polite, atomic status announcement outside the ticking clock.
 
@@ -378,6 +378,18 @@ The setter and primary launch button form one compact instrument. Preset name an
 Reminder rows keep the title, scheduled date, recurrence, Done, Snooze, and context actions. A single `YYy MMm DDd HH:MM:SS` countdown sits to their right, before the grouped Snooze and context actions; all six fields remain visible even when zero, without additional labels. Desktop rows use Done, flexible title/details, a max-content numeric column, and the action group. At widths up to 600px, and in scaled portrait layouts at least 760px wide with an aspect ratio no greater than 3:4, title/details occupy the top row beside Done, with actions below on the left and the countdown line below on the right. Retain two rows rather than stacking actions beneath the readout. Leading empty units, including their separators and suffixes, inherit the semantic text color at 0.42 opacity. The padding zero of each positive unit below 10 also uses 0.42 opacity. Apply opacity once rather than compounding nested spans. Meaningful zeros after the first nonzero unit retain normal emphasis so clocks such as 10:00 remain clear; all-zero readouts keep seconds at normal emphasis. Years, months, and days follow the user's local calendar with end-of-month clamping; the remaining clock reflects actual elapsed time across daylight-saving changes. Future durations round seconds up; elapsed durations round them down.
 
 Upcoming reminders count toward the next occurrence; snoozed reminders count toward alert resumption. Unsnoozed overdue reminders count elapsed time from the first missed occurrence, or the current occurrence when none is recorded, and use the ringing text color. Preserve Due in, Alerts resume in, Overdue by, Due now, and Resuming alerts in the complete spoken aria-label without printing these labels beside the digits. At an elapsed deadline, clamp pending status to zero until the core updates it. Idle and unreadable schedules have no countdown. Use the shared app clock rather than a separate interval; the timer role has aria-live off, so ticks do not repeatedly announce.
+
+## Motion & Gestures
+
+Motion explains a change the person caused or needs to notice: where a row went, which tab is showing, that a sheet can be put away. Nothing loops, and no element animates for decoration. Tokens live on `:root` (`--ease-out`, `--ease-in-out`, `--dur-fast` 120ms, `--dur` 200ms, `--dur-slow` 280ms); Svelte transitions share them through `src/lib/motion.ts`, which also makes every transition instant under reduced motion.
+
+- **Lists.** Rows rise 8px into place when added, glide to new positions when the order changes (an expired timer moving to the top), and collapse with their gap when completed or archived. Completing a reminder fills its check and strikes the title as the row leaves.
+- **Swipe to archive.** Touch, mouse drag, and trackpad two-finger swipes all move a row. Releasing past 40% of the 88px button opens it; a quick flick decides on its own; a long swipe (55% of the row, at least 176px) archives outright with a haptic tick on Android as it arms. Only one row is open at a time, the first tap on an open row closes it, and Escape closes it from the keyboard. Archive keeps its Undo.
+- **Dialogs.** Desktop dialogs fade and rise slightly; on phones (≤540px) they are bottom sheets with a handle that can be dragged down to dismiss. Close and Escape animate out before the dialog closes.
+- **Menus, toasts, and badges.** Context menus scale in from the corner they open from. Toasts rise in and fade out. A new ringing count on an inactive tab arrives with a short pop.
+- **Pointer conveniences.** Duration fields select on focus, step with Up/Down (Shift for ten) and with the wheel once focused. Preset and tag strips scroll horizontally with an ordinary mouse wheel. The reminder add button tucks its label away while the list scrolls down.
+
+**The Explained Motion Rule.** Animate a change of place or state the person caused or must notice; never animate for ornament, and never repeat.
 
 ## Do's and Don'ts
 
@@ -395,7 +407,7 @@ Upcoming reminders count toward the next occurrence; snoozed reminders count tow
 
 - **Don’t** give snoozed or held expiry the locally ringing solid red face, or describe either state as Done.
 - **Don’t** reintroduce decorative display lettering or distort the humanist family’s natural proportions.
-- **Don’t** add a decorative pulse, simulated progress, gradient material, or raster artwork to the interval instrument.
+- **Don’t** add a decorative pulse, looping motion, simulated progress, gradient material, or raster artwork to the interval instrument.
 - **Don’t** convert the approved single-column timer rows into a desktop tile dashboard.
 - **Don’t** let a navigation count badge cover or displace the tab label at narrow widths.
 - **Don’t** claim native audio, background delivery, or PC–phone sync has been verified by a browser preview.

@@ -146,8 +146,10 @@ before it installs anything.
 The **History** tab lists what you've finished. Undo puts an item back as if it
 had never been done; Restart runs a timer again from the top.
 
-Swipe an item left and tap **Archive**, or open its **…** actions (right-click
-on desktop). Archiving stops its alerts and syncs to the other device. Use
+Swipe an item left and tap **Archive**, or swipe all the way across to archive
+it in one go. On desktop you can drag a row with the mouse or swipe sideways
+with two fingers on a touchpad, or open its **…** actions (right-click).
+Archiving stops its alerts and syncs to the other device. Use
 **Undo** immediately, or **History → Archived → Restore** later. Restoring an
 overdue item can make it ring again. Previously deleted items also appear here.
 
@@ -155,6 +157,9 @@ Timer and preset names are optional: a blank name becomes **5m timer**, for
 example. Quick add accepts **in 15s** or **5m timer** without a separate title.
 On desktop, **Ctrl+K** focuses quick add and **Ctrl+F** focuses search. Use arrow
 keys to switch tabs or move through an item's actions, and Escape to dismiss.
+In **New timer**, Up and Down (or the mouse wheel) change the focused hours,
+minutes, or seconds; hold Shift to step by ten. On a phone, pull a sheet's top
+edge down to put it away, and tap the current tab again to jump to the top.
 
 **Settings → Backup** writes everything to a JSON file. Importing offers two
 ways:

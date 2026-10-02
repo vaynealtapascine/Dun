@@ -603,19 +603,49 @@
     ],
     "motion": [
       {
-        "name": "control-transition",
-        "value": "150ms ease-out",
-        "purpose": "Background and border state changes in shared buttons and switches."
+        "name": "ease-out",
+        "value": "cubic-bezier(0.25, 1, 0.5, 1)",
+        "purpose": "--ease-out: the default curve. Responds immediately and lands softly; used for entrances, settles, and the travelling tab indicator."
       },
       {
-        "name": "remaining-arc-transition",
-        "value": "0.9s linear",
-        "purpose": "Remaining-time stroke-dashoffset transitions; removed on the timer arc for reduced motion."
+        "name": "ease-in-out",
+        "value": "cubic-bezier(0.65, 0, 0.35, 1)",
+        "purpose": "--ease-in-out: exits that leave the screen, such as an archived row sliding off or a sheet closing."
+      },
+      {
+        "name": "duration-fast",
+        "value": "120ms",
+        "purpose": "--dur-fast: control feedback (background, border, color) and menu entrance. Presses tighten to 60ms."
+      },
+      {
+        "name": "duration",
+        "value": "200ms",
+        "purpose": "--dur: panel entrances, revealed tools, toasts, dialogs."
+      },
+      {
+        "name": "duration-slow",
+        "value": "280ms",
+        "purpose": "--dur-slow: travel and collapse: the tab indicator, swipe settle, a row leaving a list, the phone sheet."
+      },
+      {
+        "name": "press",
+        "value": "scale(0.97)",
+        "purpose": "Active state of buttons and icon buttons, so a tap is answered before its result arrives."
+      },
+      {
+        "name": "remaining-arc-running",
+        "value": "1s linear",
+        "purpose": "A running timer's arc drains continuously between one-second clock ticks."
+      },
+      {
+        "name": "remaining-arc-settle",
+        "value": "0.6s var(--ease-out)",
+        "purpose": "Starting, resetting, or editing a timer sweeps the arc once to its new value."
       },
       {
         "name": "reduced-motion-duration",
         "value": "0.01ms",
-        "purpose": "The global animation and transition duration override under prefers-reduced-motion: reduce."
+        "purpose": "The global CSS override under prefers-reduced-motion: reduce; Svelte transitions read the same query through src/lib/motion.ts and become instant."
       }
     ],
     "breakpoints": [
