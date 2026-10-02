@@ -104,6 +104,7 @@ object PlanExecutor {
         if (silent || ongoing) TimerSoundService.cancel(notifId)
         val builder = NotificationCompat.Builder(context, channel)
             .setSmallIcon(R.drawable.ic_stat_dun)
+            .setColor(0xFFE0483E.toInt())
             .setContentTitle(p.getString("title"))
             .setContentText(p.optString("text"))
             // A timer is an alarm as far as the system is concerned: that is
