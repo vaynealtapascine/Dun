@@ -7,6 +7,9 @@
   import { when } from "./lib/format";
   import { isPhone } from "./lib/platform";
   import { startForegroundSync } from "./lib/phoneSync";
+  import { enterFrom, ms, reducedMotion, reveal } from "./lib/motion";
+  import { wheelScrollsX } from "./lib/gestures";
+  import { fade, fly } from "svelte/transition";
   import { app } from "./lib/stores/app.svelte";
   import Icon from "./lib/components/Icon.svelte";
   import QuickAdd from "./lib/components/QuickAdd.svelte";
@@ -19,7 +22,17 @@
 
   type Tab = "reminders" | "timers" | "history";
 
+  const TABS: Tab[] = ["timers", "reminders", "history"];
+
   let tab = $state<Tab>("timers");
+  /** Which way the last tab change went, so the new panel arrives from that side. */
+  let direction = $state(0);
+  let mainEl = $state<HTMLElement>();
+  /** Each tab keeps its own place in the list. */
+  const scrollTops: Record<Tab, number> = { timers: 0, reminders: 0, history: 0 };
+  /** The add button tucks its label away while the list scrolls down. */
+  let fabCompact = $state(false);
+  let lastScroll = 0;
   let showSettings = $state(false);
   let showTools = $state(false);
   let query = $state("");
@@ -79,6 +92,37 @@
     snapshot?.settings.muteUntil != null && snapshot.settings.muteUntil > app.now ? snapshot.settings.muteUntil : null,
   );
 
+  /** New counts arrive with a small pop, so a tab that starts ringing is noticed. */
+  function badgeIn(_node: Element) {
+    return {
+      duration: ms(260),
+      css: (t: number) => `transform: scale(${0.4 + 0.6 * (1 - Math.pow(1 - t, 3)) + Math.sin(t * Math.PI) * 0.12}); opacity: ${Math.min(1, t * 2)};`,
+    };
+  }
+
+  function selectTab(next: Tab) {
+    if (next === tab) {
+      // A second tap on the current tab goes back to the top, as on most phones.
+      mainEl?.scrollTo({ top: 0, behavior: reducedMotion() ? "auto" : "smooth" });
+      return;
+    }
+    if (mainEl) scrollTops[tab] = mainEl.scrollTop;
+    direction = Math.sign(TABS.indexOf(next) - TABS.indexOf(tab));
+    tab = next;
+    fabCompact = false;
+    tick().then(() => {
+      if (mainEl) mainEl.scrollTop = scrollTops[next];
+      lastScroll = mainEl?.scrollTop ?? 0;
+    });
+  }
+
+  function onscroll() {
+    const top = mainEl?.scrollTop ?? 0;
+    if (Math.abs(top - lastScroll) < 12) return;
+    fabCompact = top > lastScroll && top > 48;
+    lastScroll = top;
+  }
+
   function edit(item: ItemView) {
     editing = item;
     prefill = null;
@@ -116,23 +160,23 @@
   </header>
 
   {#if showSettings}
-    <main class="settings-main"><Settings /></main>
+    <main class="settings-main" in:enterFrom={{ x: 24 }}><Settings /></main>
   {:else}
     <div class="tabs" role="tablist" tabindex="-1" aria-label="Items" onkeydown={(e) => {
       if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(e.key)) return;
       e.preventDefault();
-      const tabs: Tab[] = ["timers", "reminders", "history"];
-      const index = e.key === "Home" ? 0 : e.key === "End" ? 2 : (tabs.indexOf(tab) + (e.key === "ArrowRight" ? 1 : 2)) % 3;
-      tab = tabs[index]!;
+      const index = e.key === "Home" ? 0 : e.key === "End" ? 2 : (TABS.indexOf(tab) + (e.key === "ArrowRight" ? 1 : 2)) % 3;
+      selectTab(TABS[index]!);
       (e.currentTarget.children[index] as HTMLElement).focus();
     }}>
-      <button id="tab-timers" role="tab" tabindex={tab === "timers" ? 0 : -1} aria-controls="items-panel" aria-selected={tab === "timers"} onclick={() => (tab = "timers")}>Timers {#if timersRingingCount > 0 && tab !== "timers"}<span class="badge">{timersRingingCount}</span>{/if}</button>
-      <button id="tab-reminders" role="tab" tabindex={tab === "reminders" ? 0 : -1} aria-controls="items-panel" aria-selected={tab === "reminders"} onclick={() => (tab = "reminders")}>Reminders {#if ringingCount > 0 && tab !== "reminders"}<span class="badge">{ringingCount}</span>{/if}</button>
-      <button id="tab-history" role="tab" tabindex={tab === "history" ? 0 : -1} aria-controls="items-panel" aria-selected={tab === "history"} onclick={() => (tab = "history")}>History</button>
+      <button id="tab-timers" role="tab" tabindex={tab === "timers" ? 0 : -1} aria-controls="items-panel" aria-selected={tab === "timers"} onclick={() => selectTab("timers")}>Timers {#if timersRingingCount > 0 && tab !== "timers"}<span class="badge" in:badgeIn>{timersRingingCount}</span>{/if}</button>
+      <button id="tab-reminders" role="tab" tabindex={tab === "reminders" ? 0 : -1} aria-controls="items-panel" aria-selected={tab === "reminders"} onclick={() => selectTab("reminders")}>Reminders {#if ringingCount > 0 && tab !== "reminders"}<span class="badge" in:badgeIn>{ringingCount}</span>{/if}</button>
+      <button id="tab-history" role="tab" tabindex={tab === "history" ? 0 : -1} aria-controls="items-panel" aria-selected={tab === "history"} onclick={() => selectTab("history")}>History</button>
+      <span class="indicator" aria-hidden="true" style:--tab-index={TABS.indexOf(tab)}></span>
     </div>
 
     {#if showTools}
-      <div class="toolbar" id="filter-tools">
+      <div class="toolbar" id="filter-tools" transition:reveal>
         <div class="search-row">
           <label class="search">
             <Icon name="search" size={18} /><span class="sr-only">Search</span>
@@ -140,7 +184,7 @@
           </label>
         </div>
         {#if (snapshot?.tags.length ?? 0) > 0}
-          <div class="tags" role="group" aria-label="Filter by tag">
+          <div class="tags" role="group" aria-label="Filter by tag" use:wheelScrollsX>
             <button class="chip" aria-pressed={tagFilter === null} onclick={() => (tagFilter = null)}>All</button>
             {#each snapshot?.tags ?? [] as t (t.id)}
               <button class="chip" aria-pressed={tagFilter === t.id} onclick={() => (tagFilter = tagFilter === t.id ? null : t.id)}><TagDot color={t.color} />{t.name}</button>
@@ -155,8 +199,9 @@
       </div>
     {/if}
 
-    <main class:reminder-panel={tab === "reminders"}>
-      <div id="items-panel" role="tabpanel" aria-labelledby={"tab-" + tab} tabindex="-1">
+    <main class:reminder-panel={tab === "reminders"} bind:this={mainEl} {onscroll}>
+      {#key tab}
+      <div id="items-panel" role="tabpanel" aria-labelledby={"tab-" + tab} tabindex="-1" in:enterFrom={{ x: direction * 24 }}>
       {#if !snapshot}
         <p class="muted loading" role="status">Loading timers and reminders…</p>
       {:else if tab !== "history" && (query || tagFilter) && !visible.some((i) => tab === "timers" ? i.kind === "timer" : i.kind !== "timer" && i.status.kind !== "idle")}
@@ -173,21 +218,24 @@
         <History {query} />
       {/if}
       </div>
+      {/key}
     </main>
 
     {#if tab === "reminders"}
-      <button class="fab" aria-label="Add reminder" onclick={() => add()}><Icon name="plus" size={24} /> Add reminder</button>
+      <button class="fab" class:compact={fabCompact} aria-label="Add reminder" onclick={() => add()} transition:fly={{ y: 24, duration: ms(200) }}>
+        <Icon name="plus" size={24} /><span class="fab-label">Add reminder</span>
+      </button>
     {/if}
   {/if}
 
   {#if app.notice && !app.error}
-    <div class="notice" role="status">
+    <div class="notice" role="status" in:fly={{ y: 16, duration: ms(220) }} out:fade={{ duration: ms(160) }}>
       <span>{app.notice}</span>
       {#if app.noticeUndo}<button class="btn" onclick={() => app.run(() => app.noticeUndo!())}>Undo</button>{/if}
     </div>
   {/if}
   {#if app.error}
-    <div class="error" role="alert">
+    <div class="error" role="alert" in:fly={{ y: 16, duration: ms(220) }} out:fade={{ duration: ms(160) }}>
       <span>{app.error}</span>
       <button class="icon-btn" aria-label="Dismiss" onclick={() => (app.error = null)}><Icon name="close" size={18} /></button>
     </div>
@@ -206,11 +254,13 @@
   .mute-status { display: inline-flex; align-items: center; gap: 0.35rem; min-height: 36px; padding: 0.3rem 0.55rem; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--overdue-bg); color: var(--overdue); cursor: pointer; font-size: 0.8rem; max-width: 50%; }
   .mute-status span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .tools-active { color: var(--accent); background: var(--bg-sunken); }
-  .tabs { display: flex; padding: 0 0.75rem; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
-  .tabs button { flex: 1; position: relative; min-height: 44px; padding: 0.45rem 0.25rem; border: none; background: transparent; color: var(--fg-muted); cursor: pointer; font-size: 1rem; font-weight: 600; }
+  .tabs { position: relative; display: flex; padding: 0 0.75rem; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+  .tabs button { flex: 1; position: relative; min-height: 44px; padding: 0.45rem 0.25rem; border: none; background: transparent; color: var(--fg-muted); cursor: pointer; font-size: 1rem; font-weight: 600; transition: color var(--dur) var(--ease-out), background-color var(--dur-fast) ease-out; }
   .tabs button[aria-selected="true"] { color: var(--accent); font-weight: 700; }
-  .tabs button[aria-selected="true"]::after { content: ""; position: absolute; left: 0.25rem; right: 0.25rem; bottom: 0; height: 0.25rem; border-radius: 4px 4px 0 0; background: var(--accent); }
-  .tabs button:hover { background: var(--bg-sunken); }
+  /* One underline travels between tabs rather than three blinking on and off. */
+  .indicator { position: absolute; left: 0.75rem; bottom: 0; width: calc((100% - 1.5rem) / 3); height: 0.25rem; padding-inline: 0.25rem; background-clip: content-box; border-radius: 4px 4px 0 0; background-color: var(--accent); transform: translateX(calc(var(--tab-index) * 100%)); transition: transform var(--dur-slow) var(--ease-out); pointer-events: none; }
+  @media (hover: hover) { .tabs button:hover { background: var(--bg-sunken); } }
+  .tabs button:active { background: var(--bg-sunken); }
   .badge { position: absolute; right: 0.7rem; top: 50%; transform: translateY(-50%); display: inline-grid; place-items: center; min-width: 1.15rem; height: 1.15rem; padding: 0 0.25rem; border-radius: 4px; background: var(--alarm); color: var(--alarm-fg); font-size: 0.75rem; font-weight: 700; }
   @media (max-width: 600px) {
     .tabs button { font-size: 0.9rem; }
@@ -224,9 +274,11 @@
   .search input { width: 100%; min-width: 0; min-height: 44px; padding: 0; border: none; outline: none; background: transparent; color: var(--fg); }
   .tags { display: flex; gap: 0.4rem; overflow-x: auto; padding: 0.15rem 0 0.3rem; }
   .chip { display: inline-flex; align-items: center; gap: 0.35rem; min-height: 36px; padding: 0.3rem 0.7rem; border-radius: var(--radius-sm); border: 1px solid var(--border); background: var(--bg-raised); white-space: nowrap; cursor: pointer; }
+  .chip { transition: background-color var(--dur-fast) ease-out, color var(--dur-fast) ease-out, border-color var(--dur-fast) ease-out, transform var(--dur-fast) var(--ease-out); }
+  .chip:active { transform: scale(0.96); }
   .chip[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); font-weight: 700; }
   .capture { padding: 0.75rem 0.75rem 0; }
-  main { flex: 1; min-height: 0; overflow-y: auto; padding: 0.5rem 0.625rem max(0.4rem, env(safe-area-inset-bottom)); }
+  main { flex: 1; min-height: 0; overflow-y: auto; overflow-x: clip; padding: 0.5rem 0.625rem max(0.4rem, env(safe-area-inset-bottom)); }
   .reminder-panel { padding-bottom: 5.5rem; }
   .settings-main { border-top: 1px solid var(--border); }
   @media (min-width: 760px) and (max-aspect-ratio: 3/4) { .app { max-width: none; } }
@@ -234,7 +286,12 @@
   .empty-results { text-align: center; padding: 3rem 1rem; }
   .empty-results h2 { margin: 0; font-size: 1.6rem; }
   .empty-results p { margin: 0.5rem 0 1.25rem; }
-  .fab { position: fixed; right: max(1rem, calc((100vw - 960px) / 2 + 1rem)); bottom: max(1rem, env(safe-area-inset-bottom)); display: flex; align-items: center; justify-content: center; gap: 0.5rem; min-height: 48px; padding: 0.5rem 1rem; border-radius: var(--radius); border: none; background: var(--accent); color: var(--accent-fg); font-weight: 700; box-shadow: var(--shadow); cursor: pointer; }
+  .fab { position: fixed; right: max(1rem, calc((100vw - 960px) / 2 + 1rem)); bottom: max(1rem, env(safe-area-inset-bottom)); display: flex; align-items: center; justify-content: center; min-height: 48px; min-width: 48px; padding: 0.5rem 1rem 0.5rem 0.75rem; border-radius: var(--radius); border: none; background: var(--accent); color: var(--accent-fg); font-weight: 700; box-shadow: var(--shadow); cursor: pointer; transition: padding var(--dur-slow) var(--ease-out), transform var(--dur-fast) var(--ease-out), background-color var(--dur-fast) ease-out; }
+  .fab-label { display: inline-block; max-width: 10rem; margin-left: 0.5rem; overflow: hidden; white-space: nowrap; transition: max-width var(--dur-slow) var(--ease-out), margin var(--dur-slow) var(--ease-out), opacity var(--dur) ease-out; }
+  .fab.compact { padding-inline: 0.75rem; }
+  .fab.compact .fab-label { max-width: 0; margin-left: 0; opacity: 0; }
+  @media (hover: hover) { .fab:hover { background: color-mix(in srgb, var(--accent) 88%, var(--fg)); } }
+  .fab:active { transform: scale(0.96); }
   .error, .notice { position: fixed; z-index: 20; left: max(0.75rem, calc((100vw - 960px) / 2 + 0.75rem)); bottom: max(1rem, env(safe-area-inset-bottom)); display: flex; align-items: center; gap: 0.6rem; max-width: min(90vw, 880px); padding: 0.5rem 0.8rem; border-radius: var(--radius); box-shadow: var(--shadow); }
   .error { right: max(0.75rem, calc((100vw - 960px) / 2 + 0.75rem)); background: var(--alarm); color: var(--alarm-fg); }
   .error span { flex: 1; }

@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { fade, scale } from "svelte/transition";
+  import { easeOut, ms } from "../motion";
   import type { ItemDraft, Ms } from "../api/types";
   import { api, errorText } from "../api/commands";
   import { formatShort } from "../duration";
@@ -166,13 +168,13 @@
       }}
     />
     {#if parsed?.title}
-      <button class="btn btn-primary" disabled={busy} onclick={() => submit(false)} aria-label="Add item">Add</button>
-      <button class="btn btn-quiet more" onclick={() => submit(true)} title="Open the full form (Shift+Enter)">More</button>
+      <button class="btn btn-primary" disabled={busy} onclick={() => submit(false)} aria-label="Add item" in:scale={{ start: 0.9, duration: ms(160), easing: easeOut }}>Add</button>
+      <button class="btn btn-quiet more" onclick={() => submit(true)} title="Open the full form (Shift+Enter)" in:fade={{ duration: ms(160) }}>More</button>
     {/if}
   </div>
   <div id="quick-preview" class="preview" aria-live="polite">
     {#if parsed && summary}
-      <div class="line" class:error={previewError}>
+      <div class="line" class:error={previewError} in:fade={{ duration: ms(160) }}>
         <span class="what"><strong>{parsed.title || "…"}</strong>{detail}</span>
         {#if parsed.schedule?.kind === "timer" || asReminder}
           <button class="link" onclick={() => (asReminder = !asReminder)}>
@@ -218,6 +220,7 @@
     border: 1px solid var(--border);
     color: var(--fg-muted);
   }
+  .field-row { transition: border-color var(--dur-fast) ease-out; }
   .field-row:focus-within {
     border-color: var(--focus);
   }
