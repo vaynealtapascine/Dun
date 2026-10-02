@@ -28,6 +28,9 @@ A date with no time uses 9:00 by default. If a time has already passed today,
 Dun rolls it to tomorrow. Anything it can't place stays as the title, and
 **More…** opens the full form.
 
+Open **Try a quick-add phrase** to fill the box with an example. It only fills the
+box; review the displayed date or duration before pressing Add.
+
 ## Reminders from other apps
 
 On the PC, **Settings → App connections** lets Memos, Arbor and other apps send
@@ -142,6 +145,16 @@ before it installs anything.
 
 The **History** tab lists what you've finished. Undo puts an item back as if it
 had never been done; Restart runs a timer again from the top.
+
+Swipe an item left and tap **Archive**, or open its **…** actions (right-click
+on desktop). Archiving stops its alerts and syncs to the other device. Use
+**Undo** immediately, or **History → Archived → Restore** later. Restoring an
+overdue item can make it ring again. Previously deleted items also appear here.
+
+Timer and preset names are optional: a blank name becomes **5m timer**, for
+example. Quick add accepts **in 15s** or **5m timer** without a separate title.
+On desktop, **Ctrl+K** focuses quick add and **Ctrl+F** focuses search. Use arrow
+keys to switch tabs or move through an item's actions, and Escape to dismiss.
 
 **Settings → Backup** writes everything to a JSON file. Importing offers two
 ways:
