@@ -26,3 +26,6 @@ Thumbs.db
 # Logs
 *.log
 npm-debug.log*
+
+# Design tooling captures (large screenshots; regenerated on demand)
+/.impeccable/review/

@@ -1,0 +1,11 @@
+Scope: Dun shared Svelte app, Operate mode. Personal and distributed Windows/Android use. Open Timers by default; keep durable alerts and existing timer actions, filters, presets, context menus, swipe archive and Undo.
+
+THESIS: A stopwatch becomes the main instrument; time needing attention owns the opening screen.
+OWN-WORLD: Interval instrument: cool gray ground, ink text, teal activity, red expiry, broad tabular numerals and flat rectangular labeled controls.
+STORY: Resolve an expired timer with Done or Snooze; glance at running and paused countdowns; set hours/minutes/seconds or start a preset.
+FIRST VIEWPORT: Compact Dun header/settings; Timers-first underlined navigation; full red expired face with enormous 0:00 and Done/Snooze/Restart; wide running and paused rows with large left dials and right controls; New timer setter after active timers. Approved comp: .impeccable/mocks/interval-01.webp. Real data replaces illustrative Eggs/Pomodoro/Bread proof; held and snoozed expiry stays quieter.
+FORM: Interval instrument, grounded rank 1, model-pick; seed ac4be546. Composition wide-rows explicitly approved through decision page.
+SIGNATURE: Remaining-time arc decreases on the existing core-aligned clock; expiry replaces the dial with a red face. Arc transitions 0.9s linear; reduced motion snaps. No decorative pulse.
+FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, DESIGN.md, and every shipping raster carrying its provenance
+
+Implementation constraints: semantic text/controls and data-driven SVG arcs; light/dark/system themes; 360px minimum, phone390px, native480px and wider desktop. Comp letterforms use closest obtainable self-hosted face. The helper has no session build-path override; composition approval was completed manually before supported start --comp, preserving the standing code preference.

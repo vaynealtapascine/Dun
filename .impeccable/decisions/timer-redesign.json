@@ -1,0 +1,239 @@
+{
+  "title": "Dun: a timer-centered redesign",
+  "question": "Choose how Dun should make time and urgency visible. All options keep persistent alerts, open on Timers, and preserve Done, Snooze, Pause, Resume and Reset.",
+  "options": [
+    {
+      "id": "assigned",
+      "label": "Signal desk",
+      "kicker": "THE ROLL",
+      "lineage": "Emergency dispatch panels and household alarm controls",
+      "thesis": "Time that needs attention owns the screen, with large dials and unmistakable alert bands.",
+      "palette": [
+        "#F1F3F5",
+        "#17222C",
+        "#D84A34",
+        "#E7AE38"
+      ],
+      "materials": [
+        "flat instrument faces",
+        "clear state bands",
+        "substantial labeled controls"
+      ],
+      "viewport": "An expired timer leads with a red alarm band; running timers have large circular countdowns and direct Pause and Reset controls.",
+      "risk": "Stronger urgency needs restraint so a paused timer stays quiet.",
+      "raised": [
+        {
+          "from": "Type specimen",
+          "raise": "Countdowns become the largest readable element, with tabular figures and room to breathe."
+        },
+        {
+          "from": "Japanese utility grid",
+          "raise": "Every timer keeps its controls and state visible without burying them in menus."
+        },
+        {
+          "from": "Dance score",
+          "raise": "Remaining time is visible as proportional progress, not only a number."
+        },
+        {
+          "from": "Centre-rail reference",
+          "raise": "Navigation and filtering occupy their own consistent rail."
+        },
+        {
+          "from": "Garden guide",
+          "raise": "One central dial anchors each timer instead of a scattering of decorations."
+        },
+        {
+          "from": "Factory catalog",
+          "raise": "Each state commits to one clear treatment across the whole app."
+        }
+      ],
+      "comp": ".impeccable/mocks/decision/signal-desk.webp"
+    },
+    {
+      "id": "model-pick",
+      "label": "Interval instrument",
+      "kicker": "IMPECCABLE’S PICK",
+      "lineage": "Sports stopwatches and interval-training timers",
+      "thesis": "A familiar stopwatch becomes the main instrument, with bold countdowns and a decisive finish state.",
+      "palette": [
+        "#E9EEF1",
+        "#162B37",
+        "#287D87",
+        "#DA462F"
+      ],
+      "materials": [
+        "large timing dials",
+        "tabular numerals",
+        "tactile rectangular buttons"
+      ],
+      "viewport": "Two generous timer faces dominate; a compact duration setter starts the next timer, and expired timers switch to a full red attention treatment.",
+      "risk": "This is the most familiar direction and resembles dedicated stopwatch apps.",
+      "comp": ".impeccable/mocks/decision/interval-instrument.webp"
+    },
+    {
+      "id": "challenger-type",
+      "label": "Countdown specimen",
+      "verdict": "competitive",
+      "lineage": "Interactive type specimens",
+      "thesis": "Huge countdown figures are the whole point, with the duration control directly beneath them.",
+      "palette": [
+        "#FAFAF8",
+        "#202327",
+        "#D84A34"
+      ],
+      "materials": [
+        "oversized tabular figures",
+        "strict alignment",
+        "flat controls"
+      ],
+      "viewport": "One selected timer fills the main field; other timers form a readable strip and a duration slider updates the next countdown.",
+      "case": "Excellent countdown clarity; individual users may find selecting a featured timer less familiar.",
+      "risk": "Several simultaneous timers get less equal visibility.",
+      "comp": ".impeccable/mocks/decision/countdown-specimen.webp",
+      "board": "https://impeccable.style/worlds/cards/variable-font-specimen.webp",
+      "hero": "https://impeccable.style/worlds/cards/variable-font-specimen-hero.webp"
+    },
+    {
+      "id": "challenger-density",
+      "label": "Utility mosaic",
+      "verdict": "declined",
+      "lineage": "Japanese high-density utility sites",
+      "thesis": "All timers and reminders fit into a tightly ruled utility board.",
+      "palette": [
+        "#FFFFFF",
+        "#202327",
+        "#D84A34",
+        "#D7DBDE"
+      ],
+      "materials": [
+        "ruled modules",
+        "compact labels",
+        "red state tabs"
+      ],
+      "viewport": "A dense mosaic shows durations, states, presets and controls together.",
+      "case": "The dense interface weakens the prominent, glanceable timer experience.",
+      "kept": "Visible controls and disciplined grouping.",
+      "risk": "Crowding would make time less prominent.",
+      "board": "https://impeccable.style/worlds/cards/japanese-high-density-web.webp"
+    },
+    {
+      "id": "challenger-score",
+      "label": "Time score",
+      "verdict": "declined",
+      "lineage": "Labanotation dance scores",
+      "thesis": "Timer durations become proportional blocks moving through a time score.",
+      "palette": [
+        "#FFFFFF",
+        "#202327",
+        "#C9CED2"
+      ],
+      "materials": [
+        "duration blocks",
+        "vertical staff",
+        "progress bands"
+      ],
+      "viewport": "Simultaneous timers flank a central time line.",
+      "case": "The unfamiliar notation makes a traditional timer task harder to recognize.",
+      "kept": "Progress represents remaining time proportionally.",
+      "risk": "Reading the score would require learning a new convention.",
+      "board": "https://impeccable.style/worlds/cards/notation-diagram-systems-labanotation.webp"
+    },
+    {
+      "id": "challenger-reference",
+      "label": "Keyed reference",
+      "verdict": "declined",
+      "lineage": "Ruled reference-setting pages",
+      "thesis": "A centre rail organizes timer actions between two columns.",
+      "palette": [
+        "#F4F2ED",
+        "#22252A",
+        "#D84A34"
+      ],
+      "materials": [
+        "hairline rules",
+        "keyed rail",
+        "small apparatus"
+      ],
+      "viewport": "Countdowns and notes sit on either side of a keyed control rail.",
+      "case": "Small reference typography and split columns reduce countdown clarity.",
+      "kept": "A consistent rail keeps navigation away from the timer faces.",
+      "risk": "Too much reading for a task that should be glanceable.",
+      "board": "https://impeccable.style/worlds/cards/rw-centre-rail-reference-setting.webp"
+    },
+    {
+      "id": "challenger-garden",
+      "label": "Timer islands",
+      "verdict": "declined",
+      "lineage": "Garden guide maps",
+      "thesis": "Each timer occupies a colored island that changes shape with time.",
+      "palette": [
+        "#F5F1E4",
+        "#8ED462",
+        "#2C2E2A",
+        "#FF705D"
+      ],
+      "materials": [
+        "flat color fields",
+        "organic timer areas",
+        "capsule controls"
+      ],
+      "viewport": "A large timer island leads, with smaller timers along its edge.",
+      "case": "Playful organic shapes weaken the urgency and familiar controls the brief asks for.",
+      "kept": "One dominant shape anchors each timer.",
+      "risk": "Friendly motion could make expired timers feel optional.",
+      "board": "https://impeccable.style/worlds/cards/aww2-zoo-gardens-guide-map.webp"
+    },
+    {
+      "id": "challenger-catalog",
+      "label": "Pulse catalog",
+      "verdict": "declined",
+      "lineage": "Factory Records catalog identity",
+      "thesis": "Timers become numbered entries against a sparse black field.",
+      "palette": [
+        "#16181B",
+        "#F3F4F5",
+        "#D84A34"
+      ],
+      "materials": [
+        "matte black",
+        "pulse plots",
+        "coded state strips"
+      ],
+      "viewport": "One timer pulse owns the field while the catalog indexes others.",
+      "case": "Coded names and sparse labels conflict with clear everyday timer operation.",
+      "kept": "Consistent state treatment at full commitment.",
+      "risk": "Decoding timer names would obscure the actual job.",
+      "board": "https://impeccable.style/worlds/cards/brand-identity-canon-saville-catalog-sleeve.webp"
+    }
+  ],
+  "reroll": {
+    "registers": [
+      "safer",
+      "bolder"
+    ]
+  },
+  "buildPath": {
+    "value": "comp",
+    "toggle": true
+  },
+  "canon": true,
+  "canonCard": {
+    "label": "Traditional clock app",
+    "thesis": "Conventional clock-app controls and circular countdowns, executed with care.",
+    "palette": [
+      "#F5F6F8",
+      "#20252B",
+      "#277BA9",
+      "#D84A34"
+    ],
+    "materials": [
+      "standard timer faces",
+      "simple navigation",
+      "familiar controls"
+    ],
+    "viewport": "A clean timer grid, a duration picker, and direct controls beneath each countdown.",
+    "risk": "Deliberately close to other clock apps.",
+    "comp": ".impeccable/mocks/decision/canon.webp"
+  },
+  "steer": true
+}

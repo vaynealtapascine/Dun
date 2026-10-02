@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Scaffold reference: interval-01.webp</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Titillium+Web:wght@700&family=Kalnia:wght@700&display=swap">
+  <link rel="stylesheet" href="layout.css">
+  <style>html,body{margin:0}body{background:#f1f2f6}.region{box-sizing:border-box}.region.text p{white-space:pre-wrap}</style>
+</head>
+<body>
+<!-- Reference only. Every region sits at its measured box inside a comp-aspect frame. Take the boxes (layout.css), keep your own semantic structure. -->
+<main class="comp-frame" style="max-width:971px">
+  <div class="r-wordmark region text" data-region="wordmark"><!-- Visible UI: Dun wordmark --><p style="font-size:var(--r-wordmark-font);font-family:var(--r-wordmark-family),sans-serif;font-weight:var(--r-wordmark-weight);line-height:1.05;margin:0">wordmark</p></div>
+  <div class="r-settings region control" data-region="settings"><!-- Visible UI: settings gear button: rebuild the control's chrome from the crop (comp-spec.mjs --crop settings); its ink box, border, fill, radius, and label size are the comp's --></div>
+  <div class="r-tab-timers region control" data-region="tab-timers"><!-- Visible UI: Timers active tab with teal underline: rebuild the control's chrome from the crop (comp-spec.mjs --crop tab-timers); its ink box, border, fill, radius, and label size are the comp's --></div>
+  <div class="r-tab-reminders region control" data-region="tab-reminders"><!-- Visible UI: Reminders tab: rebuild the control's chrome from the crop (comp-spec.mjs --crop tab-reminders); its ink box, border, fill, radius, and label size are the comp's --></div>
+  <div class="r-tab-history region control" data-region="tab-history"><!-- Visible UI: History tab: rebuild the control's chrome from the crop (comp-spec.mjs --crop tab-history); its ink box, border, fill, radius, and label size are the comp's --></div>
+  <div class="r-alarm-face region chrome" data-region="alarm-face"><!-- Visible UI: undivided flat red alarm background --></div>
+  <div class="r-alarm-title region text" data-region="alarm-title"><!-- Visible UI: Eggs --><p style="font-size:var(--r-alarm-title-font);line-height:1.05;margin:0">alarm-title</p></div>
+  <div class="r-alarm-countdown region text" data-region="alarm-countdown"><!-- Visible UI: 0:00 in huge white tabular numerals --><p style="font-size:var(--r-alarm-countdown-font);font-family:var(--r-alarm-countdown-family),sans-serif;font-weight:var(--r-alarm-countdown-weight);line-height:1.05;margin:0">alarm-countdown</p></div>
+  <div class="r-alarm-state region text" data-region="alarm-state"><!-- Visible UI: Time’s up --><p style="font-size:var(--r-alarm-state-font);line-height:1.05;margin:0">alarm-state</p></div>
+  <div class="r-alarm-done region control" data-region="alarm-done"><!-- Visible UI: Done white primary control: rebuild the control's chrome from the crop (comp-spec.mjs --crop alarm-done); its ink box, border, fill, radius, and label size are the comp's --></div>
+  <div class="r-alarm-snooze region control" data-region="alarm-snooze"><!-- Visible UI: Snooze tinted red control: rebuild the control's chrome from the crop (comp-spec.mjs --crop alarm-snooze); its ink box, border, fill, radius, and label size are the comp's --></div>
+  <div class="r-alarm-restart region control" data-region="alarm-restart"><!-- Visible UI: Restart tinted red control: rebuild the control's chrome from the crop (comp-spec.mjs --crop alarm-restart); its ink box, border, fill, radius, and label size are the comp's --></div>
+  <div class="r-running-face region chrome" data-region="running-face"><!-- Visible UI: flat pale running timer surface --></div>
+  <div class="r-running-dial region chrome" data-region="running-dial"><!-- Visible UI: circular remaining time progress chart from runtime data --></div>
+  <div class="r-running-time region text" data-region="running-time"><!-- Visible UI: 17:24 --><p style="font-size:var(--r-running-time-font);line-height:1.05;margin:0">running-time</p></div>
+  <div class="r-running-title region text" data-region="running-title"><!-- Visible UI: Pomodoro --><p style="font-size:var(--r-running-title-font);line-height:1.05;margin:0">running-title</p></div>
+  <div class="r-running-state region text" data-region="running-state"><!-- Visible UI: Running --><p style="font-size:var(--r-running-state-font);line-height:1.05;margin:0">running-state</p></div>
+  <div class="r-running-pause region control" data-region="running-pause"><!-- Visible UI: Pause teal rectangular control: rebuild the control's chrome from the crop (comp-spec.mjs --crop running-pause); its ink box, border, fill, radius, and label size are the comp's --></div>
+  <div class="r-running-reset region control" data-region="running-reset"><!-- Visible UI: Reset pale rectangular control: rebuild the control's chrome from the crop (comp-spec.mjs --crop running-reset); its ink box, border, fill, radius, and label size are the comp's --></div>
+  <div class="r-paused-face region chrome" data-region="paused-face"><!-- Visible UI: flat pale paused timer surface --></div>
+  <div class="r-paused-dial region chrome" data-region="paused-dial"><!-- Visible UI: circular paused remaining time progress chart from runtime data --></div>
+  <div class="r-paused-time region text" data-region="paused-time"><!-- Visible UI: 38:00 --><p style="font-size:var(--r-paused-time-font);line-height:1.05;margin:0">paused-time</p></div>
+  <div class="r-paused-title region text" data-region="paused-title"><!-- Visible UI: Bread proof --><p style="font-size:var(--r-paused-title-font);line-height:1.05;margin:0">paused-title</p></div>
+  <div class="r-paused-state region text" data-region="paused-state"><!-- Visible UI: Paused --><p style="font-size:var(--r-paused-state-font);line-height:1.05;margin:0">paused-state</p></div>
+  <div class="r-paused-resume region control" data-region="paused-resume"><!-- Visible UI: Resume teal rectangular control: rebuild the control's chrome from the crop (comp-spec.mjs --crop paused-resume); its ink box, border, fill, radius, and label size are the comp's --></div>
+  <div class="r-paused-reset region control" data-region="paused-reset"><!-- Visible UI: Reset pale rectangular control: rebuild the control's chrome from the crop (comp-spec.mjs --crop paused-reset); its ink box, border, fill, radius, and label size are the comp's --></div>
+  <div class="r-setter-face region chrome" data-region="setter-face"><!-- Visible UI: flat pale new timer surface --></div>
+  <div class="r-setter-title region text" data-region="setter-title"><!-- Visible UI: New timer --><p style="font-size:var(--r-setter-title-font);line-height:1.05;margin:0">setter-title</p></div>
+  <div class="r-hours region control" data-region="hours"><!-- Visible UI: 00 hours numeric input: rebuild the control's chrome from the crop (comp-spec.mjs --crop hours); its ink box, border, fill, radius, and label size are the comp's --></div>
+  <div class="r-minutes region control" data-region="minutes"><!-- Visible UI: 05 minutes numeric input: rebuild the control's chrome from the crop (comp-spec.mjs --crop minutes); its ink box, border, fill, radius, and label size are the comp's --></div>
+  <div class="r-seconds region control" data-region="seconds"><!-- Visible UI: 00 seconds numeric input: rebuild the control's chrome from the crop (comp-spec.mjs --crop seconds); its ink box, border, fill, radius, and label size are the comp's --></div>
+  <div class="r-duration-labels region text" data-region="duration-labels"><!-- Visible UI: Hours Minutes Seconds --><p style="font-size:var(--r-duration-labels-font);line-height:1.05;margin:0">duration-labels</p></div>
+  <div class="r-start-timer region control" data-region="start-timer"><!-- Visible UI: Start timer teal control: rebuild the control's chrome from the crop (comp-spec.mjs --crop start-timer); its ink box, border, fill, radius, and label size are the comp's --></div>
+  <div class="r-preset-tea region control" data-region="preset-tea"><!-- Visible UI: Tea 4m preset: rebuild the control's chrome from the crop (comp-spec.mjs --crop preset-tea); its ink box, border, fill, radius, and label size are the comp's --></div>
+  <div class="r-preset-pomodoro region control" data-region="preset-pomodoro"><!-- Visible UI: Pomodoro 25m preset: rebuild the control's chrome from the crop (comp-spec.mjs --crop preset-pomodoro); its ink box, border, fill, radius, and label size are the comp's --></div>
+  <div class="r-preset-laundry region control" data-region="preset-laundry"><!-- Visible UI: Laundry 45m preset: rebuild the control's chrome from the crop (comp-spec.mjs --crop preset-laundry); its ink box, border, fill, radius, and label size are the comp's --></div>
+</main>
+</body>
+</html>

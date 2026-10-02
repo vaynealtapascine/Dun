@@ -1,0 +1,30 @@
+{
+  "title": "Interval instrument: choose the layout",
+  "question": "Choose the composition to build. Keep what feels right, or add a correction. All three retain large countdowns, persistent alarms, and labeled controls.",
+  "options": [
+    {
+      "id": "wide-rows",
+      "label": "Wide instrument rows",
+      "kicker": "RECOMMENDED",
+      "thesis": "An unmistakable alarm leads, followed by generous timer dials and their controls.",
+      "comp": ".impeccable/mocks/interval-01.webp"
+    },
+    {
+      "id": "paired-dials",
+      "label": "Paired dials",
+      "thesis": "Running and paused timers sit side by side beneath the alarm.",
+      "comp": ".impeccable/mocks/interval-02.webp"
+    },
+    {
+      "id": "creation-first",
+      "label": "Control station first",
+      "thesis": "A compact alarm leads into timer creation, followed by live timers.",
+      "comp": ".impeccable/mocks/interval-03.webp"
+    }
+  ],
+  "steer": true,
+  "buildPath": {
+    "value": "comp",
+    "toggle": false
+  }
+}

@@ -1,0 +1,473 @@
+{
+  "regions": [
+    {
+      "id": "wordmark",
+      "kind": "text",
+      "grid": "A0:B0",
+      "note": "Visible UI: Dun wordmark",
+      "box": {
+        "x": 0.032955715756951595,
+        "h": 0.026559604694255712,
+        "y": 0.01173563928350834,
+        "w": 0.1101956745623069
+      },
+      "snap": false
+    },
+    {
+      "id": "settings",
+      "kind": "control",
+      "grid": "J0:J0",
+      "note": "Visible UI: settings gear button",
+      "box": {
+        "x": 0.9207003089598352,
+        "h": 0.033971587399629403,
+        "y": 0.0074119827053736875,
+        "w": 0.05252317198764161
+      },
+      "snap": false
+    },
+    {
+      "id": "tab-timers",
+      "kind": "control",
+      "grid": "A0:D0",
+      "note": "Visible UI: Timers active tab with teal underline",
+      "box": {
+        "x": 0.032955715756951595,
+        "h": 0.03767757875231625,
+        "y": 0.0592958616429895,
+        "w": 0.30484037075180226
+      },
+      "snap": false
+    },
+    {
+      "id": "tab-reminders",
+      "kind": "control",
+      "grid": "E0:G0",
+      "note": "Visible UI: Reminders tab",
+      "box": {
+        "x": 0.43048403707518024,
+        "h": 0.024088943792464484,
+        "y": 0.06300185299567634,
+        "w": 0.15653964984552007
+      },
+      "snap": false
+    },
+    {
+      "id": "tab-history",
+      "kind": "control",
+      "grid": "H0:J0",
+      "note": "Visible UI: History tab",
+      "box": {
+        "x": 0.7641606591143152,
+        "h": 0.024088943792464484,
+        "y": 0.06300185299567634,
+        "w": 0.10607621009268794
+      },
+      "snap": false
+    },
+    {
+      "id": "alarm-face",
+      "kind": "chrome",
+      "grid": "A1:J3",
+      "note": "Visible UI: undivided flat red alarm background",
+      "container": true,
+      "box": {
+        "x": 0.02059732234809475,
+        "h": 0.2804200123533045,
+        "y": 0.10747374922791847,
+        "w": 0.9588053553038105
+      },
+      "snap": false
+    },
+    {
+      "id": "alarm-title",
+      "kind": "text",
+      "grid": "A1:B1",
+      "note": "Visible UI: Eggs",
+      "box": {
+        "x": 0.05252317198764161,
+        "h": 0.027177269919703522,
+        "y": 0.12291537986411365,
+        "w": 0.11946446961894953
+      },
+      "snap": false
+    },
+    {
+      "id": "alarm-countdown",
+      "kind": "text",
+      "grid": "C1:H2",
+      "note": "Visible UI: 0:00 in huge white tabular numerals",
+      "box": {
+        "x": 0.24716786817713698,
+        "h": 0.10500308832612724,
+        "y": 0.15873996294008647,
+        "w": 0.5077239958805355
+      },
+      "snap": false
+    },
+    {
+      "id": "alarm-state",
+      "kind": "text",
+      "grid": "D2:G3",
+      "note": "Visible UI: Time’s up",
+      "box": {
+        "x": 0.3666323377960865,
+        "h": 0.02964793082149475,
+        "y": 0.27547869054972207,
+        "w": 0.2708547888774459
+      },
+      "snap": false
+    },
+    {
+      "id": "alarm-done",
+      "kind": "control",
+      "grid": "A3:D3",
+      "note": "Visible UI: Done white primary control",
+      "box": {
+        "x": 0.03913491246138002,
+        "h": 0.053736874613959235,
+        "y": 0.3224212476837554,
+        "w": 0.31513903192584963
+      },
+      "snap": false
+    },
+    {
+      "id": "alarm-snooze",
+      "kind": "control",
+      "grid": "D3:G3",
+      "note": "Visible UI: Snooze tinted red control",
+      "box": {
+        "x": 0.3728115345005149,
+        "h": 0.053736874613959235,
+        "y": 0.3224212476837554,
+        "w": 0.2883625128733265
+      },
+      "snap": false
+    },
+    {
+      "id": "alarm-restart",
+      "kind": "control",
+      "grid": "G3:J3",
+      "note": "Visible UI: Restart tinted red control",
+      "box": {
+        "x": 0.6776519052523172,
+        "h": 0.053736874613959235,
+        "y": 0.3224212476837554,
+        "w": 0.2842430484037075
+      },
+      "snap": false
+    },
+    {
+      "id": "running-face",
+      "kind": "chrome",
+      "grid": "A4:J5",
+      "note": "Visible UI: flat pale running timer surface",
+      "box": {
+        "x": 0.02059732234809475,
+        "h": 0.1933292155651637,
+        "y": 0.3977764051883879,
+        "w": 0.9588053553038105
+      },
+      "snap": false
+    },
+    {
+      "id": "running-dial",
+      "kind": "chrome",
+      "grid": "A4:D5",
+      "note": "Visible UI: circular remaining time progress chart from runtime data",
+      "box": {
+        "x": 0.05870236869207003,
+        "h": 0.17232859789993824,
+        "y": 0.40889437924644845,
+        "w": 0.2842430484037075
+      },
+      "snap": false
+    },
+    {
+      "id": "running-time",
+      "kind": "text",
+      "grid": "B4:C5",
+      "note": "Visible UI: 17:24",
+      "box": {
+        "x": 0.101956745623069,
+        "h": 0.0426189005558987,
+        "y": 0.47251389746757255,
+        "w": 0.19979402677651906
+      },
+      "snap": false
+    },
+    {
+      "id": "running-title",
+      "kind": "text",
+      "grid": "D4:G4",
+      "note": "Visible UI: Pomodoro",
+      "box": {
+        "x": 0.388259526261586,
+        "h": 0.02964793082149475,
+        "y": 0.4280420012353304,
+        "w": 0.23480947476828012
+      },
+      "snap": false
+    },
+    {
+      "id": "running-state",
+      "kind": "text",
+      "grid": "D4:F4",
+      "note": "Visible UI: Running",
+      "box": {
+        "x": 0.388259526261586,
+        "h": 0.024088943792464484,
+        "y": 0.4644842495367511,
+        "w": 0.1462409886714727
+      },
+      "snap": false
+    },
+    {
+      "id": "running-pause",
+      "kind": "control",
+      "grid": "D5:G5",
+      "note": "Visible UI: Pause teal rectangular control",
+      "box": {
+        "x": 0.388259526261586,
+        "h": 0.054354539839407044,
+        "y": 0.5101914762198888,
+        "w": 0.2842430484037075
+      },
+      "snap": false
+    },
+    {
+      "id": "running-reset",
+      "kind": "control",
+      "grid": "H5:J5",
+      "note": "Visible UI: Reset pale rectangular control",
+      "box": {
+        "x": 0.6951596292481977,
+        "h": 0.054354539839407044,
+        "y": 0.5101914762198888,
+        "w": 0.2554067971163749
+      },
+      "snap": false
+    },
+    {
+      "id": "paused-face",
+      "kind": "chrome",
+      "grid": "A6:J7",
+      "note": "Visible UI: flat pale paused timer surface",
+      "box": {
+        "x": 0.02059732234809475,
+        "h": 0.1933292155651637,
+        "y": 0.6022235948116121,
+        "w": 0.9588053553038105
+      },
+      "snap": false
+    },
+    {
+      "id": "paused-dial",
+      "kind": "chrome",
+      "grid": "A6:D7",
+      "note": "Visible UI: circular paused remaining time progress chart from runtime data",
+      "box": {
+        "x": 0.05870236869207003,
+        "h": 0.17232859789993824,
+        "y": 0.6133415688696726,
+        "w": 0.28527291452111225
+      },
+      "snap": false
+    },
+    {
+      "id": "paused-time",
+      "kind": "text",
+      "grid": "B6:C7",
+      "note": "Visible UI: 38:00",
+      "box": {
+        "x": 0.09886714727085479,
+        "h": 0.0426189005558987,
+        "y": 0.6769610870907968,
+        "w": 0.2059732234809475
+      },
+      "snap": false
+    },
+    {
+      "id": "paused-title",
+      "kind": "text",
+      "grid": "D6:G6",
+      "note": "Visible UI: Bread proof",
+      "box": {
+        "x": 0.388259526261586,
+        "h": 0.030883261272390366,
+        "y": 0.6331068560840025,
+        "w": 0.2615859938208033
+      },
+      "snap": false
+    },
+    {
+      "id": "paused-state",
+      "kind": "text",
+      "grid": "D6:F6",
+      "note": "Visible UI: Paused",
+      "box": {
+        "x": 0.388259526261586,
+        "h": 0.024088943792464484,
+        "y": 0.6676961087090797,
+        "w": 0.12976313079299692
+      },
+      "snap": false
+    },
+    {
+      "id": "paused-resume",
+      "kind": "control",
+      "grid": "D7:G7",
+      "note": "Visible UI: Resume teal rectangular control",
+      "box": {
+        "x": 0.388259526261586,
+        "h": 0.053736874613959235,
+        "y": 0.7146386658431131,
+        "w": 0.28527291452111225
+      },
+      "snap": false
+    },
+    {
+      "id": "paused-reset",
+      "kind": "control",
+      "grid": "H7:J7",
+      "note": "Visible UI: Reset pale rectangular control",
+      "box": {
+        "x": 0.6951596292481977,
+        "h": 0.053736874613959235,
+        "y": 0.7146386658431131,
+        "w": 0.2554067971163749
+      },
+      "snap": false
+    },
+    {
+      "id": "setter-face",
+      "kind": "chrome",
+      "grid": "A8:J9",
+      "note": "Visible UI: flat pale new timer surface",
+      "box": {
+        "x": 0.02059732234809475,
+        "h": 0.18097591105620753,
+        "y": 0.8066707844348363,
+        "w": 0.9588053553038105
+      },
+      "snap": false
+    },
+    {
+      "id": "setter-title",
+      "kind": "text",
+      "grid": "A8:C8",
+      "note": "Visible UI: New timer",
+      "box": {
+        "x": 0.053553038105046344,
+        "h": 0.02470660901791229,
+        "y": 0.8190240889437924,
+        "w": 0.2008238928939238
+      },
+      "snap": false
+    },
+    {
+      "id": "hours",
+      "kind": "control",
+      "grid": "A8:B8",
+      "note": "Visible UI: 00 hours numeric input",
+      "box": {
+        "x": 0.05458290422245108,
+        "h": 0.056207535515750466,
+        "y": 0.849289684990735,
+        "w": 0.15756951596292482
+      },
+      "snap": false
+    },
+    {
+      "id": "minutes",
+      "kind": "control",
+      "grid": "C8:E8",
+      "note": "Visible UI: 05 minutes numeric input",
+      "box": {
+        "x": 0.2512873326467559,
+        "h": 0.056207535515750466,
+        "y": 0.849289684990735,
+        "w": 0.15653964984552007
+      },
+      "snap": false
+    },
+    {
+      "id": "seconds",
+      "kind": "control",
+      "grid": "F8:G8",
+      "note": "Visible UI: 00 seconds numeric input",
+      "box": {
+        "x": 0.45417095777548916,
+        "h": 0.056207535515750466,
+        "y": 0.849289684990735,
+        "w": 0.15756951596292482
+      },
+      "snap": false
+    },
+    {
+      "id": "duration-labels",
+      "kind": "text",
+      "grid": "A9:G9",
+      "note": "Visible UI: Hours Minutes Seconds",
+      "box": {
+        "x": 0.09989701338825953,
+        "h": 0.019147621988882025,
+        "y": 0.9104385423100679,
+        "w": 0.4840370751802266
+      },
+      "snap": false
+    },
+    {
+      "id": "start-timer",
+      "kind": "control",
+      "grid": "G8:J9",
+      "note": "Visible UI: Start timer teal control",
+      "box": {
+        "x": 0.6457260556127703,
+        "h": 0.06485484867201977,
+        "y": 0.8486720197652872,
+        "w": 0.305870236869207
+      },
+      "snap": false
+    },
+    {
+      "id": "preset-tea",
+      "kind": "control",
+      "grid": "A9:C9",
+      "note": "Visible UI: Tea 4m preset",
+      "box": {
+        "x": 0.04943357363542739,
+        "h": 0.04138357010500309,
+        "y": 0.9357628165534281,
+        "w": 0.29042224510813597
+      },
+      "snap": false
+    },
+    {
+      "id": "preset-pomodoro",
+      "kind": "control",
+      "grid": "D9:G9",
+      "note": "Visible UI: Pomodoro 25m preset",
+      "box": {
+        "x": 0.35633367662203913,
+        "h": 0.04138357010500309,
+        "y": 0.9357628165534281,
+        "w": 0.2893923789907312
+      },
+      "snap": false
+    },
+    {
+      "id": "preset-laundry",
+      "kind": "control",
+      "grid": "G9:J9",
+      "note": "Visible UI: Laundry 45m preset",
+      "box": {
+        "x": 0.6622039134912462,
+        "h": 0.04138357010500309,
+        "y": 0.9357628165534281,
+        "w": 0.29042224510813597
+      },
+      "snap": false
+    }
+  ]
+}

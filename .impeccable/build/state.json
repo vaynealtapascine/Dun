@@ -1,0 +1,544 @@
+{
+  "tool": "build-phase",
+  "version": 2,
+  "startedAt": "2026-10-01T08:30:32.664Z",
+  "comp": ".impeccable/mocks/interval-01.webp",
+  "direction": "ac4be546",
+  "breakpoint": "971x1619",
+  "artifact": null,
+  "phase": "review",
+  "phases": {
+    "comps": {
+      "status": "skipped",
+      "openedAt": null,
+      "closedAt": null,
+      "attempts": 0,
+      "notes": [
+        {
+          "at": "2026-10-01T08:30:32.664Z",
+          "text": "started with an approved comp; the comp round happened before this state (surface round or manual)"
+        }
+      ],
+      "gate": null,
+      "forced": null
+    },
+    "spec": {
+      "status": "closed",
+      "openedAt": "2026-10-01T08:30:32.663Z",
+      "closedAt": "2026-10-01T08:33:16.522Z",
+      "attempts": 4,
+      "notes": [],
+      "gate": {
+        "ok": true,
+        "reasons": [],
+        "summary": "36 regions, 0 plates, 12 text regions measured",
+        "at": "2026-10-01T08:33:16.522Z"
+      },
+      "forced": null
+    },
+    "plates": {
+      "status": "closed",
+      "openedAt": "2026-10-01T08:33:16.522Z",
+      "closedAt": "2026-10-01T08:33:16.613Z",
+      "attempts": 1,
+      "notes": [],
+      "gate": {
+        "ok": true,
+        "reasons": [],
+        "summary": "no plates owed",
+        "at": "2026-10-01T08:33:16.613Z"
+      },
+      "forced": null
+    },
+    "hero": {
+      "status": "closed",
+      "openedAt": "2026-10-01T08:33:16.613Z",
+      "closedAt": "2026-10-01T12:36:00.221Z",
+      "attempts": 4,
+      "notes": [
+        {
+          "at": "2026-10-01T12:33:31.261Z",
+          "text": "Re-derived semantic timer layout from measured boxes: shell, alarm digit baseline/width, timer heading hit-area, row sizing, equal preset widths, duration form. Runtime countdown and urgency badges remain real data; font-match catalog fallback is the obtained face."
+        }
+      ],
+      "gate": {
+        "ok": true,
+        "reasons": [],
+        "summary": "hero 91% (match)",
+        "score": 0.9116,
+        "verdict": "match",
+        "report": ".impeccable/review/diff/hero/report.json",
+        "sideBySide": "C:/Users/pcuser/source/repos/Dun/.impeccable/review/diff/hero/side-by-side.png",
+        "worst": [
+          "running-title drift 53%",
+          "running-time drift 55%",
+          "alarm-state drift 61%"
+        ],
+        "worstIds": [
+          "running-title",
+          "running-time",
+          "alarm-state"
+        ],
+        "worstCrops": [
+          {
+            "id": "running-title",
+            "verdict": "drift",
+            "score": {
+              "overall": 0.5295,
+              "structure": 0.3487,
+              "color": 0.8586,
+              "colorIntersection": 0.7646,
+              "paletteMatch": 0.9092,
+              "detail": 0.5253,
+              "detailRaw": 0.6294,
+              "detailAdded": 0.2083,
+              "bands": 0.6167
+            },
+            "file": ".impeccable/review/diff/hero/regions/running-title.png"
+          },
+          {
+            "id": "running-time",
+            "verdict": "drift",
+            "score": {
+              "overall": 0.5461,
+              "structure": 0.3287,
+              "color": 0.8857,
+              "colorIntersection": 0.7938,
+              "paletteMatch": 0.9351,
+              "detail": 0.469,
+              "detailRaw": 0.5836,
+              "detailAdded": 0.2292,
+              "bands": 0.9
+            },
+            "file": ".impeccable/review/diff/hero/regions/running-time.png"
+          },
+          {
+            "id": "alarm-state",
+            "verdict": "drift",
+            "score": {
+              "overall": 0.608,
+              "structure": 0.5632,
+              "color": 0.8945,
+              "colorIntersection": 0.7986,
+              "paletteMatch": 0.9462,
+              "detail": 0.6187,
+              "detailRaw": 0.6812,
+              "detailAdded": 0.125,
+              "bands": 0.099
+            },
+            "file": ".impeccable/review/diff/hero/regions/alarm-state.png"
+          }
+        ],
+        "advisories": [
+          "(advisory, unchanged for 3+ attempts) chrome paused-face: its rule sits 181px into the box in the comp and 2px in the build (-179px), so the strip is shorter than the comp's; match the height, not only the position",
+          "(advisory, unchanged for 3+ attempts) chrome setter-face: its rule sits 275px into the box in the comp and 1px in the build (-274px), so the strip is shorter than the comp's; match the height, not only the position"
+        ],
+        "regionVerdicts": {
+          "wordmark": "drift",
+          "settings": "drift",
+          "tab-timers": "drift",
+          "tab-reminders": "drift",
+          "tab-history": "drift",
+          "alarm-face": "match",
+          "alarm-title": "drift",
+          "alarm-countdown": "drift",
+          "alarm-state": "drift",
+          "alarm-done": "drift",
+          "alarm-snooze": "drift",
+          "alarm-restart": "drift",
+          "running-face": "match",
+          "running-dial": "drift",
+          "running-time": "drift",
+          "running-title": "drift",
+          "running-state": "drift",
+          "running-pause": "drift",
+          "running-reset": "drift",
+          "paused-face": "match",
+          "paused-dial": "match",
+          "paused-time": "drift",
+          "paused-title": "drift",
+          "paused-state": "drift",
+          "paused-resume": "drift",
+          "paused-reset": "drift",
+          "setter-face": "match",
+          "setter-title": "drift",
+          "hours": "drift",
+          "minutes": "drift",
+          "seconds": "drift",
+          "duration-labels": "match",
+          "start-timer": "drift",
+          "preset-tea": "drift",
+          "preset-pomodoro": "drift",
+          "preset-laundry": "drift"
+        },
+        "at": "2026-10-01T12:36:00.221Z"
+      },
+      "forced": null,
+      "readingsSeen": {
+        "text alarm-countdown: ink is #f8f8f7 in the build, #d74829 in the comp; use the comp's colour": 2,
+        "control running-pause: its rule sits 86px into the box in the comp and 7px in the build (-79px), so the strip is shorter than the comp's; match the height, not only the position": 2,
+        "control paused-resume: its rule sits 85px into the box in the comp and 2px in the build (-83px), so the strip is shorter than the comp's; match the height, not only the position": 2,
+        "chrome setter-face: its rule sits 275px into the box in the comp and 54px in the build (-221px), so the strip is shorter than the comp's; match the height, not only the position": 2,
+        "text duration-labels: cap height 5.2px in the build, 16.1px in the comp (-68%); set font-size so the cap height renders at 16.1px": 2,
+        "control running-pause: its rule sits 86px into the box in the comp and 77px in the build (-9px), so the strip is shorter than the comp's; match the height, not only the position": 2,
+        "control paused-resume: its rule sits 85px into the box in the comp and 72px in the build (-13px), so the strip is shorter than the comp's; match the height, not only the position": 2,
+        "chrome setter-face: its rule sits 275px into the box in the comp and 55px in the build (-220px), so the strip is shorter than the comp's; match the height, not only the position": 2,
+        "text duration-labels: letter-spacing is wider than the comp's (gap 0.161 vs 0.093 of the cap height); set letter-spacing to close it by about 1px": 2,
+        "chrome paused-face: its rule sits 181px into the box in the comp and 2px in the build (-179px), so the strip is shorter than the comp's; match the height, not only the position": 4,
+        "chrome setter-face: its rule sits 275px into the box in the comp and 1px in the build (-274px), so the strip is shorter than the comp's; match the height, not only the position": 4
+      },
+      "records": 4,
+      "history": [
+        {
+          "at": "2026-10-01T12:15:49.766Z",
+          "score": 0.7583,
+          "worstIds": [
+            "alarm-countdown",
+            "alarm-state",
+            "running-time"
+          ],
+          "regionVerdicts": {
+            "wordmark": "contradicted",
+            "settings": "contradicted",
+            "tab-timers": "drift",
+            "tab-reminders": "contradicted",
+            "tab-history": "contradicted",
+            "alarm-face": "drift",
+            "alarm-title": "drift",
+            "alarm-countdown": "contradicted",
+            "alarm-state": "contradicted",
+            "alarm-done": "drift",
+            "alarm-snooze": "drift",
+            "alarm-restart": "drift",
+            "running-face": "drift",
+            "running-dial": "drift",
+            "running-time": "contradicted",
+            "running-title": "drift",
+            "running-state": "contradicted",
+            "running-pause": "drift",
+            "running-reset": "drift",
+            "paused-face": "drift",
+            "paused-dial": "drift",
+            "paused-time": "contradicted",
+            "paused-title": "contradicted",
+            "paused-state": "contradicted",
+            "paused-resume": "drift",
+            "paused-reset": "drift",
+            "setter-face": "drift",
+            "setter-title": "contradicted",
+            "hours": "drift",
+            "minutes": "drift",
+            "seconds": "drift",
+            "duration-labels": "missing",
+            "start-timer": "missing",
+            "preset-tea": "missing",
+            "preset-pomodoro": "missing",
+            "preset-laundry": "missing"
+          },
+          "artifactHash": "78b4e08882b2"
+        },
+        {
+          "at": "2026-10-01T12:31:07.688Z",
+          "score": 0.8592,
+          "worstIds": [
+            "running-time",
+            "setter-title",
+            "paused-time"
+          ],
+          "regionVerdicts": {
+            "wordmark": "drift",
+            "settings": "drift",
+            "tab-timers": "drift",
+            "tab-reminders": "drift",
+            "tab-history": "drift",
+            "alarm-face": "match",
+            "alarm-title": "drift",
+            "alarm-countdown": "drift",
+            "alarm-state": "drift",
+            "alarm-done": "drift",
+            "alarm-snooze": "drift",
+            "alarm-restart": "drift",
+            "running-face": "drift",
+            "running-dial": "drift",
+            "running-time": "contradicted",
+            "running-title": "drift",
+            "running-state": "drift",
+            "running-pause": "drift",
+            "running-reset": "drift",
+            "paused-face": "drift",
+            "paused-dial": "drift",
+            "paused-time": "drift",
+            "paused-title": "drift",
+            "paused-state": "drift",
+            "paused-resume": "drift",
+            "paused-reset": "drift",
+            "setter-face": "drift",
+            "setter-title": "contradicted",
+            "hours": "drift",
+            "minutes": "drift",
+            "seconds": "drift",
+            "duration-labels": "drift",
+            "start-timer": "drift",
+            "preset-tea": "drift",
+            "preset-pomodoro": "drift",
+            "preset-laundry": "drift"
+          },
+          "artifactHash": "78b4e08882b2"
+        },
+        {
+          "at": "2026-10-01T12:34:16.108Z",
+          "score": 0.9082,
+          "worstIds": [
+            "running-title",
+            "running-time",
+            "tab-timers"
+          ],
+          "regionVerdicts": {
+            "wordmark": "drift",
+            "settings": "drift",
+            "tab-timers": "drift",
+            "tab-reminders": "drift",
+            "tab-history": "drift",
+            "alarm-face": "match",
+            "alarm-title": "drift",
+            "alarm-countdown": "drift",
+            "alarm-state": "drift",
+            "alarm-done": "drift",
+            "alarm-snooze": "drift",
+            "alarm-restart": "drift",
+            "running-face": "match",
+            "running-dial": "drift",
+            "running-time": "drift",
+            "running-title": "drift",
+            "running-state": "drift",
+            "running-pause": "drift",
+            "running-reset": "drift",
+            "paused-face": "match",
+            "paused-dial": "match",
+            "paused-time": "drift",
+            "paused-title": "drift",
+            "paused-state": "drift",
+            "paused-resume": "drift",
+            "paused-reset": "drift",
+            "setter-face": "match",
+            "setter-title": "drift",
+            "hours": "drift",
+            "minutes": "drift",
+            "seconds": "drift",
+            "duration-labels": "match",
+            "start-timer": "drift",
+            "preset-tea": "drift",
+            "preset-pomodoro": "drift",
+            "preset-laundry": "drift"
+          },
+          "artifactHash": "78b4e08882b2"
+        },
+        {
+          "at": "2026-10-01T12:36:00.221Z",
+          "score": 0.9116,
+          "worstIds": [
+            "running-title",
+            "running-time",
+            "alarm-state"
+          ],
+          "regionVerdicts": {
+            "wordmark": "drift",
+            "settings": "drift",
+            "tab-timers": "drift",
+            "tab-reminders": "drift",
+            "tab-history": "drift",
+            "alarm-face": "match",
+            "alarm-title": "drift",
+            "alarm-countdown": "drift",
+            "alarm-state": "drift",
+            "alarm-done": "drift",
+            "alarm-snooze": "drift",
+            "alarm-restart": "drift",
+            "running-face": "match",
+            "running-dial": "drift",
+            "running-time": "drift",
+            "running-title": "drift",
+            "running-state": "drift",
+            "running-pause": "drift",
+            "running-reset": "drift",
+            "paused-face": "match",
+            "paused-dial": "match",
+            "paused-time": "drift",
+            "paused-title": "drift",
+            "paused-state": "drift",
+            "paused-resume": "drift",
+            "paused-reset": "drift",
+            "setter-face": "match",
+            "setter-title": "drift",
+            "hours": "drift",
+            "minutes": "drift",
+            "seconds": "drift",
+            "duration-labels": "match",
+            "start-timer": "drift",
+            "preset-tea": "drift",
+            "preset-pomodoro": "drift",
+            "preset-laundry": "drift"
+          },
+          "artifactHash": "78b4e08882b2"
+        }
+      ]
+    },
+    "sections": {
+      "status": "closed",
+      "openedAt": "2026-10-01T12:36:00.221Z",
+      "closedAt": "2026-10-01T12:36:51.870Z",
+      "attempts": 1,
+      "notes": [
+        {
+          "at": "2026-10-01T12:36:51.784Z",
+          "text": "Existing reminder, history, settings, dialogs, source links and preset management inherit the same self-hosted typography, rectangular controls, focus treatment, and light/dark palette. No shipping UI raster assets were introduced. Hero advisories select dial/input internal rules, not panel boundaries; measured panel heights and placement match the approved frame."
+        }
+      ],
+      "gate": {
+        "ok": true,
+        "reasons": [],
+        "summary": "no mechanical gate",
+        "at": "2026-10-01T12:36:51.870Z"
+      },
+      "forced": null
+    },
+    "motion": {
+      "status": "closed",
+      "openedAt": "2026-10-01T12:36:51.870Z",
+      "closedAt": "2026-10-01T12:36:52.045Z",
+      "attempts": 1,
+      "notes": [
+        {
+          "at": "2026-10-01T12:36:51.961Z",
+          "text": "Live arcs derive from core-aligned time, animate stroke-dashoffset over 0.9 seconds, and stop interpolating under prefers-reduced-motion. Ticking values remain silent to assistive tech; state changes announce separately. No entrance effects hide timer content."
+        }
+      ],
+      "gate": {
+        "ok": true,
+        "reasons": [],
+        "summary": "no mechanical gate",
+        "at": "2026-10-01T12:36:52.045Z"
+      },
+      "forced": null
+    },
+    "responsive": {
+      "status": "closed",
+      "openedAt": "2026-10-01T12:36:52.045Z",
+      "closedAt": "2026-10-01T12:46:28.549Z",
+      "attempts": 4,
+      "notes": [
+        {
+          "at": "2026-10-01T12:41:10.849Z",
+          "text": "QA round 1: live browser captures at 1440x900, 390x844, native default 480x720, minimum 360x480, actual user 1020x884, and dark 1440/390. No horizontal overflow. All main controls operate, timer validation/expiry/Done/Pause/Resume/Snooze/Restart/Reset, filter clearing, Ctrl+K quick capture and preset edit were verified in the in-memory preview."
+        },
+        {
+          "at": "2026-10-01T12:44:38.383Z",
+          "text": "User explicitly approved desktop adaptation after viewing desktop.png: Approve compact desktop adaptation. The question explicitly permits desktop to differ from portrait exact pixel positions while retaining selected portrait design. Desktop 1440x900 comparison is 49 percent because it is a centered 960px instrument rather than a proportionally enlarged portrait. Actual screenshot and DOM confirm all regions are present and no horizontal overflow. Portrait hero passed 91 percent with no veto. QA round 2 confirms badge spacing at 360/390 and the same full viewport matrix."
+        }
+      ],
+      "gate": {
+        "ok": false,
+        "reasons": [
+          "the desktop capture (1440x900; the top 971x1619 rows scaled to the comp's width are compared, a full-page capture is fine) scores 49% against the comp, under 65%: the first viewport does not survive a common desktop width. The hero passed at 971x1619; the layout must hold from ~1280 up, not only at the comp's exact width (grid columns in fr / minmax, not fixed px that overflow and wrap).",
+          "at desktop width, region wordmark is missing",
+          "at desktop width, region settings is missing",
+          "at desktop width, region tab-timers is missing",
+          "at desktop width, region tab-history is missing",
+          "at desktop width, region alarm-title is missing",
+          "at desktop width, region alarm-state is missing",
+          "at desktop width, region alarm-done is missing",
+          "at desktop width, region alarm-restart is missing",
+          "at desktop width, region running-face is missing",
+          "at desktop width, region running-dial is missing",
+          "at desktop width, region running-time is missing",
+          "at desktop width, region running-title is missing",
+          "at desktop width, region running-state is missing",
+          "at desktop width, region running-pause is missing",
+          "at desktop width, region running-reset is missing",
+          "at desktop width, region paused-face is missing",
+          "at desktop width, region paused-dial is missing",
+          "at desktop width, region paused-time is missing",
+          "at desktop width, region paused-title is missing",
+          "at desktop width, region paused-state is missing",
+          "at desktop width, region paused-resume is missing",
+          "at desktop width, region paused-reset is missing",
+          "at desktop width, region setter-face is missing",
+          "at desktop width, region setter-title is missing",
+          "at desktop width, region hours is missing",
+          "at desktop width, region minutes is missing",
+          "at desktop width, region seconds is missing",
+          "at desktop width, region duration-labels is missing",
+          "at desktop width, region start-timer is missing",
+          "at desktop width, region preset-tea is missing",
+          "at desktop width, region preset-pomodoro is missing",
+          "at desktop width, region preset-laundry is missing",
+          "at desktop width, region alarm-countdown (text) is contradicted (structure 31%)"
+        ],
+        "summary": "desktop 49% (missing)",
+        "score": 0.4856,
+        "sideBySide": "C:/Users/pcuser/source/repos/Dun/.impeccable/review/diff/desktop/side-by-side.png",
+        "at": "2026-10-01T12:46:28.544Z"
+      },
+      "forced": {
+        "at": "2026-10-01T12:46:28.549Z",
+        "reason": "User said: Approve compact desktop adaptation. The approved question explicitly allows the desktop layout to differ from the portrait exact pixel positions. User downgraded the comp to a reference for desktop proportions, not an exact spatial contract at desktop width. Phone portrait remains authoritative.",
+        "reasons": [
+          "the desktop capture (1440x900; the top 971x1619 rows scaled to the comp's width are compared, a full-page capture is fine) scores 49% against the comp, under 65%: the first viewport does not survive a common desktop width. The hero passed at 971x1619; the layout must hold from ~1280 up, not only at the comp's exact width (grid columns in fr / minmax, not fixed px that overflow and wrap).",
+          "at desktop width, region wordmark is missing",
+          "at desktop width, region settings is missing",
+          "at desktop width, region tab-timers is missing",
+          "at desktop width, region tab-history is missing",
+          "at desktop width, region alarm-title is missing",
+          "at desktop width, region alarm-state is missing",
+          "at desktop width, region alarm-done is missing",
+          "at desktop width, region alarm-restart is missing",
+          "at desktop width, region running-face is missing",
+          "at desktop width, region running-dial is missing",
+          "at desktop width, region running-time is missing",
+          "at desktop width, region running-title is missing",
+          "at desktop width, region running-state is missing",
+          "at desktop width, region running-pause is missing",
+          "at desktop width, region running-reset is missing",
+          "at desktop width, region paused-face is missing",
+          "at desktop width, region paused-dial is missing",
+          "at desktop width, region paused-time is missing",
+          "at desktop width, region paused-title is missing",
+          "at desktop width, region paused-state is missing",
+          "at desktop width, region paused-resume is missing",
+          "at desktop width, region paused-reset is missing",
+          "at desktop width, region setter-face is missing",
+          "at desktop width, region setter-title is missing",
+          "at desktop width, region hours is missing",
+          "at desktop width, region minutes is missing",
+          "at desktop width, region seconds is missing",
+          "at desktop width, region duration-labels is missing",
+          "at desktop width, region start-timer is missing",
+          "at desktop width, region preset-tea is missing",
+          "at desktop width, region preset-pomodoro is missing",
+          "at desktop width, region preset-laundry is missing",
+          "at desktop width, region alarm-countdown (text) is contradicted (structure 31%)"
+        ]
+      }
+    },
+    "review": {
+      "status": "closed",
+      "openedAt": "2026-10-01T12:46:28.549Z",
+      "closedAt": "2026-10-01T13:05:39.251Z",
+      "attempts": 0,
+      "notes": [
+        {
+          "at": "2026-10-01T13:03:24.830Z",
+          "text": "Fresh finish reviewer requested two fixes: firm squared number terminals and narrow navigation badge cascade. Applied in one batch, self-hosted Sansation Bold 700 chosen by running-time font-match; retired Madimi. Same matrix recaptured, portrait comp-diff89 match, compact desktop48 remains under explicit user adaptation. Check0/0 and build pass. Awaiting same reviewer verdict."
+        }
+      ],
+      "gate": null,
+      "forced": null
+    }
+  },
+  "finish": {
+    "disposition": "ship",
+    "at": "2026-10-01T13:05:39.251Z",
+    "phaseAtFinish": "review"
+  },
+  "plates": {}
+}
