@@ -4,6 +4,8 @@
   import { formatShort } from "../lib/duration";
   import { groupTimers } from "../lib/grouping";
   import { app } from "../lib/stores/app.svelte";
+  import { reorder, rowIn, rowOut } from "../lib/motion";
+  import { wheelScrollsX } from "../lib/gestures";
   import Icon from "../lib/components/Icon.svelte";
   import SwipeToArchive from "../lib/components/SwipeToArchive.svelte";
   import TimerCard from "../lib/components/TimerCard.svelte";
@@ -39,18 +41,19 @@
 </script>
 
 <div class="timer-workspace">
-  {#if active.length > 0}
+  <!-- Always present, so the last timer can leave with the same motion as the rest. -->
     <div class="timer-list" role="list" aria-label="Active timers">
       {#each active as item (item.id)}
-        <SwipeToArchive role="listitem" label={item.title} onarchive={() => app.archive(item)}>
-          <TimerCard {item} {onedit} />
-        </SwipeToArchive>
+        <div class="row-slot" role="listitem" animate:reorder in:rowIn out:rowOut>
+          <SwipeToArchive label={item.title} onarchive={() => app.archive(item)}>
+            <TimerCard {item} {onedit} />
+          </SwipeToArchive>
+        </div>
       {/each}
     </div>
-  {/if}
 
   <TimerStart {managingPresets} onmanagepresets={() => managingPresets = !managingPresets}>
-    <div class="presets" role="group" aria-label="Timer presets">
+    <div class="presets" role="group" aria-label="Timer presets" use:wheelScrollsX>
       {#each presets as preset (preset.id)}
         <div class="preset">
           <button
@@ -74,13 +77,15 @@
   </TimerStart>
 
   {#if buckets.idle.length > 0}
-    <section class="ready">
+    <section class="ready" in:rowIn out:rowOut>
       <h2>Ready to start</h2>
       <div class="timer-list" role="list" aria-label="Ready timers">
         {#each buckets.idle as item (item.id)}
-          <SwipeToArchive role="listitem" label={item.title} onarchive={() => app.archive(item)}>
-            <TimerCard {item} {onedit} />
-          </SwipeToArchive>
+          <div class="row-slot" role="listitem" animate:reorder in:rowIn out:rowOut>
+            <SwipeToArchive label={item.title} onarchive={() => app.archive(item)}>
+              <TimerCard {item} {onedit} />
+            </SwipeToArchive>
+          </div>
         {/each}
       </div>
     </section>
@@ -101,12 +106,16 @@
     display: flex;
     flex-wrap: nowrap;
     overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scroll-snap-type: x proximity;
     padding-bottom: 0.1rem;
     gap: 0.45rem;
     min-width: 0;
   }
   .timer-list { gap: 0.5625rem; }
+  .timer-list:empty { display: none; }
   .preset {
+    scroll-snap-align: start;
     display: flex;
     flex: 1 0 calc((100% - 0.9rem) / 3);
     min-width: 0;
@@ -139,7 +148,9 @@
     flex: none;
     font-variant-numeric: tabular-nums;
   }
-  .preset-start:hover { background: color-mix(in srgb, var(--fg) 7%, transparent); }
+  .preset-start { transition: background-color var(--dur-fast) ease-out, transform var(--dur-fast) var(--ease-out); }
+  @media (hover: hover) { .preset-start:hover { background: color-mix(in srgb, var(--fg) 7%, transparent); } }
+  .preset-start:active:not(:disabled) { background: color-mix(in srgb, var(--fg) 12%, transparent); transform: scale(0.97); }
   .preset-start:disabled { opacity: 0.55; cursor: wait; }
   .ready {
     display: grid;

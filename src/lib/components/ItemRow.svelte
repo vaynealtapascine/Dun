@@ -8,6 +8,7 @@
   import TagDot from "./TagDot.svelte";
   import ItemActions from "./ItemActions.svelte";
   import ReminderCountdown from "./ReminderCountdown.svelte";
+  import { haptic } from "../motion";
   let menu: ItemActions;
 
   let { item, onedit }: { item: ItemView; onedit: (item: ItemView) => void } = $props();
@@ -38,12 +39,26 @@
   });
 
   const occurrence = $derived(item.status.kind === "due" ? item.status.occurrence : null);
+
+  /**
+   * Shows the check from the tap until the row has left. A recurring reminder
+   * (or a failed Done) stays in the list, so the check clears again after.
+   */
+  let completing = $state(false);
+
+  async function done() {
+    if (completing) return;
+    completing = true;
+    haptic(10);
+    await app.run(() => api.done(item.id, occurrence));
+    setTimeout(() => (completing = false), 500);
+  }
 </script>
 
-<div class="row" role="group" class:ringing class:overdue={item.status.kind === "due" && !ringing} oncontextmenu={(e) => menu.openAt(e)}>
+<div class="row" role="group" class:ringing class:completing class:overdue={item.status.kind === "due" && !ringing} oncontextmenu={(e) => menu.openAt(e)}>
   <button
     class="done"
-    onclick={() => app.run(() => api.done(item.id, occurrence))}
+    onclick={done}
     aria-label="Mark “{item.title}” done"
     title="Done"
   >
@@ -82,6 +97,7 @@
     border-radius: var(--radius);
     background: var(--bg-raised);
     border: 1px solid var(--border);
+    transition: background-color var(--dur-slow) ease-out, border-color var(--dur-slow) ease-out;
   }
   .row.ringing {
     background: var(--ringing-bg);
@@ -102,15 +118,34 @@
     background: transparent;
     color: transparent;
     cursor: pointer;
-    transition: all 0.12s;
+    transition: background-color var(--dur-fast) ease-out, border-color var(--dur-fast) ease-out, color var(--dur-fast) ease-out, transform var(--dur-fast) var(--ease-out);
   }
   .ringing .done {
     border-color: var(--ringing);
   }
-  .done:hover {
+  @media (hover: hover) {
+    .done:hover {
+      border-color: var(--ok);
+      color: var(--ok);
+    }
+    .row:hover { border-color: color-mix(in srgb, var(--border) 60%, var(--fg-faint)); }
+  }
+  .done:active { transform: scale(0.9); }
+  .completing .done {
     border-color: var(--ok);
     background: var(--ok);
-    color: #fff;
+    color: var(--bg-raised);
+    animation: check-in var(--dur-slow) var(--ease-out);
+  }
+  .completing .title {
+    color: var(--fg-muted);
+    text-decoration: line-through;
+    text-decoration-color: var(--fg-faint);
+  }
+  @keyframes check-in {
+    from { transform: scale(0.75); }
+    60% { transform: scale(1.12); }
+    to { transform: scale(1); }
   }
   .main {
     min-width: 0;

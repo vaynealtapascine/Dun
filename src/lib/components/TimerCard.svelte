@@ -7,6 +7,7 @@
   import TagDot from "./TagDot.svelte";
   import ItemActions from "./ItemActions.svelte";
   import SourceLink from "./SourceLink.svelte";
+  import { easeOut, ms } from "../motion";
 
   let { item, onedit }: { item: ItemView; onedit: (item: ItemView) => void } = $props();
   let menu: ItemActions | undefined = $state();
@@ -49,6 +50,15 @@
 
   const R = 44;
   const C = 2 * Math.PI * R;
+  /** The finished face settles in, so the change of state reads as one event. */
+  function faceIn(_node: Element) {
+    return {
+      duration: ms(320),
+      easing: easeOut,
+      css: (t: number, u: number) => `opacity: ${t}; transform: scale(${1 - 0.06 * u});`,
+    };
+  }
+
   const act = (action: "start" | "pause" | "resume" | "reset") => app.run(() => api.timer(item.id, action));
 </script>
 
@@ -67,7 +77,7 @@
       </div>
       <div class="more"><ItemActions bind:this={menu} {item} {onedit} /></div>
     </div>
-    <div class="alarm-display">
+    <div class="alarm-display" in:faceIn>
       <div class="alarm-time" class:long={clock.length > 5} role="timer" aria-live="off"
         aria-label={snoozed ? `${display} until alert resumes` : "Timer finished"}>
         {#if days}<span class="days">{days}</span>{/if}
@@ -125,6 +135,7 @@
 <style>
   .timer {
     --dial-size: 8.625rem;
+    transition: background-color var(--dur-slow) ease-out, border-color var(--dur-slow) ease-out, color var(--dur-slow) ease-out;
     display: grid;
     grid-template-columns: var(--dial-size) minmax(0, 1fr);
     align-items: center;
@@ -181,12 +192,12 @@
     overflow: hidden;
     overflow-wrap: anywhere;
   }
-  .title:hover { text-decoration: underline; text-underline-offset: 0.16em; }
+  @media (hover: hover) { .title:hover { text-decoration: underline; text-underline-offset: 0.16em; } }
   .more { flex: none; margin-top: -0.3rem; margin-right: -0.35rem; }
   .more :global(> .icon-btn) { width: 44px; height: 44px; }
   .alarm-header .title { font-size: 1.65rem; }
   .due .more :global(> .icon-btn) { color: inherit; }
-  .ringing .more :global(> .icon-btn:hover) { background: color-mix(in srgb, var(--alarm-fg) 12%, transparent); }
+  @media (hover: hover) { .ringing .more :global(> .icon-btn:hover) { background: color-mix(in srgb, var(--alarm-fg) 12%, transparent); } }
   .alarm-heading :global(.source-link) { color: inherit; }
   .dial {
     position: relative;
@@ -198,11 +209,14 @@
   .dial svg { position: absolute; inset: 0; width: 100%; height: 100%; }
   .track, .progress { fill: none; stroke-width: 7; }
   .track { stroke: var(--timer-track); }
+  /* Starting, resetting and editing move the arc in one eased sweep… */
   .progress {
     stroke: var(--accent);
     stroke-linecap: round;
-    transition: stroke-dashoffset 0.9s linear;
+    transition: stroke-dashoffset 0.6s var(--ease-out), stroke var(--dur) ease-out;
   }
+  /* …while a running timer drains continuously, one second per tick. */
+  .running .progress { transition: stroke-dashoffset 1s linear, stroke var(--dur) ease-out; }
   .paused .progress { stroke: var(--fg-muted); }
   .dial-value, .alarm-time {
     display: flex;
@@ -267,7 +281,8 @@
     border-color: transparent;
     background: color-mix(in srgb, var(--alarm) 82%, var(--alarm-fg));
   }
-  .ringing .alarm-actions .btn:hover, .ringing .snooze-action :global(> .btn:hover) { filter: brightness(0.94); }
+  @media (hover: hover) { .ringing .alarm-actions .btn:hover, .ringing .snooze-action :global(> .btn:hover) { filter: brightness(0.94); } }
+  .ringing .alarm-actions .btn:active, .ringing .snooze-action :global(> .btn:active) { filter: brightness(0.88); }
   .ringing .title:focus-visible, .ringing .alarm-actions .btn:focus-visible,
   .ringing .more :global(> .icon-btn:focus-visible),
   .ringing .snooze-action :global(> .btn:focus-visible),

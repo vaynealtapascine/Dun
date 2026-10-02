@@ -2,6 +2,8 @@
   import type { ItemView } from "../lib/api/types";
   import { GROUP_TITLES, groupReminders } from "../lib/grouping";
   import { app } from "../lib/stores/app.svelte";
+  import { ms, reorder, rowIn, rowOut } from "../lib/motion";
+  import { fade } from "svelte/transition";
   import ItemRow from "../lib/components/ItemRow.svelte";
   import SwipeToArchive from "../lib/components/SwipeToArchive.svelte";
 
@@ -11,25 +13,29 @@
 </script>
 
 {#if groups.length === 0}
-  <div class="empty">
+  <div class="empty" in:fade={{ duration: ms(200) }}>
     <p class="big">Nothing to nag you about.</p>
     <p class="muted">Add a reminder with the + button.</p>
   </div>
 {:else}
+  <div class="groups">
   {#each groups as group (group.key)}
-    <section>
+    <section animate:reorder in:rowIn out:rowOut>
       <h3 class:alert={group.key === "ringing"}>
         {GROUP_TITLES[group.key]} <span class="count">{group.items.length}</span>
       </h3>
       <div class="list" role="list">
         {#each group.items as item (item.id)}
-          <SwipeToArchive role="listitem" label={item.title} onarchive={() => app.archive(item)}>
-            <ItemRow {item} {onedit} />
-          </SwipeToArchive>
+          <div class="row-slot" role="listitem" animate:reorder in:rowIn out:rowOut>
+            <SwipeToArchive label={item.title} onarchive={() => app.archive(item)}>
+              <ItemRow {item} {onedit} />
+            </SwipeToArchive>
+          </div>
         {/each}
       </div>
     </section>
   {/each}
+  </div>
 {/if}
 
 <style>
@@ -37,8 +43,9 @@
     display: grid;
     gap: 0.4rem;
   }
-  section + section {
-    margin-top: 1rem;
+  .groups {
+    display: grid;
+    gap: 1rem;
   }
   h3 {
     margin: 0;
