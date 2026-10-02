@@ -4,6 +4,7 @@
   import { timerName } from "../duration";
   import { app } from "../stores/app.svelte";
   import Icon from "./Icon.svelte";
+  import { stepField } from "../gestures";
 
   let { children, onmanagepresets, managingPresets = false }: { children?: Snippet; onmanagepresets?: () => void; managingPresets?: boolean } = $props();
 
@@ -31,6 +32,37 @@
     if (field === "minutes") minutes = padded;
     if (field === "seconds") seconds = padded;
   }
+
+  const MAX = { hours: 999, minutes: 59, seconds: 59 } as const;
+  type Field = keyof typeof MAX;
+
+  function stepBy(field: Field, delta: number) {
+    const next = stepField({ hours, minutes, seconds }[field], delta, MAX[field]);
+    if (field === "hours") hours = next;
+    if (field === "minutes") minutes = next;
+    if (field === "seconds") seconds = next;
+  }
+
+  /** Up and Down nudge a field; with Shift, by ten. */
+  function onkeydown(e: KeyboardEvent, field: Field) {
+    if (e.key !== "ArrowUp" && e.key !== "ArrowDown") return;
+    e.preventDefault();
+    stepBy(field, (e.key === "ArrowUp" ? 1 : -1) * (e.shiftKey ? 10 : 1));
+  }
+
+  /** The wheel turns a field only once it has focus, so scrolling past never changes it. */
+  function wheelSteps(node: HTMLInputElement, field: Field) {
+    function onwheel(e: WheelEvent) {
+      if (document.activeElement !== node || e.deltaY === 0) return;
+      e.preventDefault();
+      stepBy(field, e.deltaY < 0 ? 1 : -1);
+    }
+    node.addEventListener("wheel", onwheel, { passive: false });
+    return { destroy: () => node.removeEventListener("wheel", onwheel) };
+  }
+
+  /** Focusing a field selects it, so typing replaces "05" rather than appending to it. */
+  const selectAll = (e: FocusEvent) => (e.currentTarget as HTMLInputElement).select();
 
   async function start() {
     if (busy) return;
@@ -74,20 +106,20 @@
   <form onsubmit={(event) => { event.preventDefault(); void start(); }} novalidate aria-busy={busy}>
     <div class="duration-setter">
       <label>
-        <input type="text" inputmode="numeric" autocomplete="off" maxlength="3" bind:value={hours}
-          onblur={() => padField("hours")} aria-describedby={error ? "timer-start-error" : undefined} disabled={busy} />
+        <input type="text" inputmode="numeric" autocomplete="off" maxlength="3" bind:value={hours} use:wheelSteps={"hours"}
+          onfocus={selectAll} onkeydown={(e) => onkeydown(e, "hours")} onblur={() => padField("hours")} aria-describedby={error ? "timer-start-error" : undefined} disabled={busy} />
         <span>Hours</span>
       </label>
       <span class="separator" aria-hidden="true">:</span>
       <label>
-        <input type="text" inputmode="numeric" autocomplete="off" maxlength="2" bind:value={minutes}
-          onblur={() => padField("minutes")} aria-describedby={error ? "timer-start-error" : undefined} disabled={busy} />
+        <input type="text" inputmode="numeric" autocomplete="off" maxlength="2" bind:value={minutes} use:wheelSteps={"minutes"}
+          onfocus={selectAll} onkeydown={(e) => onkeydown(e, "minutes")} onblur={() => padField("minutes")} aria-describedby={error ? "timer-start-error" : undefined} disabled={busy} />
         <span>Minutes</span>
       </label>
       <span class="separator" aria-hidden="true">:</span>
       <label>
-        <input type="text" inputmode="numeric" autocomplete="off" maxlength="2" bind:value={seconds}
-          onblur={() => padField("seconds")} aria-describedby={error ? "timer-start-error" : undefined} disabled={busy} />
+        <input type="text" inputmode="numeric" autocomplete="off" maxlength="2" bind:value={seconds} use:wheelSteps={"seconds"}
+          onfocus={selectAll} onkeydown={(e) => onkeydown(e, "seconds")} onblur={() => padField("seconds")} aria-describedby={error ? "timer-start-error" : undefined} disabled={busy} />
         <span>Seconds</span>
       </label>
     </div>
@@ -144,7 +176,9 @@
     font-variant-numeric: lining-nums tabular-nums;
     line-height: 1;
     caret-color: var(--accent);
+    transition: border-color var(--dur-fast) ease-out, background-color var(--dur-fast) ease-out;
   }
+  label input:focus { border-color: var(--focus); }
   label input:disabled {
     opacity: 0.65;
   }
