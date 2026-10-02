@@ -1,4 +1,4 @@
-![AI Disclosure: Repo code is fully AI-generated. Makes use of anthropic/claude-opus-5](assets/ai-transparency-disclosure.png)
+![AI Disclosure: Repo code is mostly AI-generated. Makes use of anthropic/claude-opus-5-5 and openai/gpt-6-1-sol](assets/ai-transparency-disclosure.png)
 
 # Dun
 
@@ -13,17 +13,20 @@ Inspired by Due for iOS.
 > Status: in development, and usable. Everything above works on Windows and on
 > Android, including pairing and two-way sync.
 
-| Doc | What |
-|---|---|
-| [docs/HELP.md](docs/HELP.md) | Using Dun: quick-add phrases, nagging, handoff, and the phone settings that decide whether reminders arrive |
-| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | How the pieces fit: pure core, two shells, the rules that hold it together |
-| [docs/SYNC-PROTOCOL.md](docs/SYNC-PROTOCOL.md) | Pairing, the wire format, merge rules, handoff timings |
-| [docs/TESTING.md](docs/TESTING.md) | What the tests cover, the manual matrices, debug flags |
-| [docs/RELEASE.md](docs/RELEASE.md) | Building the installer and a signed APK |
+| Doc                                                                  | What                                                                                                        |
+| -------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| [docs/HELP.md](docs/HELP.md)                                         | Using Dun: quick-add phrases, nagging, handoff, and the phone settings that decide whether reminders arrive |
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)                         | How the pieces fit: pure core, two shells, the rules that hold it together                                  |
+| [docs/SYNC-PROTOCOL.md](docs/SYNC-PROTOCOL.md)                       | Pairing, the wire format, merge rules, handoff timings                                                      |
+| [docs/TESTING.md](docs/TESTING.md)                                   | What the tests cover, the manual matrices, debug flags                                                      |
+| [docs/RELEASE.md](docs/RELEASE.md)                                   | Building the installer and a signed APK                                                                     |
+| [docs/APP-API.md](docs/APP-API.md)                                   | App API, Memos routing, and Arbor reminders                                                                 |
+| [docs/ANDROID-DEVICE-CHECKLIST.md](docs/ANDROID-DEVICE-CHECKLIST.md) | Batched checks for the next phone session                                                                   |
 
 ## Development setup (Windows)
 
 ### Prerequisites
+
 - Node 22.12+ and npm
 - Rust stable (`rust-toolchain.toml` pins the channel and pulls in the Android targets)
 - Visual Studio Build Tools with the C++ workload, and WebView2 (preinstalled on Windows 11)
@@ -33,6 +36,7 @@ Inspired by Due for iOS.
   - A JDK 17+ (Android Studio's bundled `jbr` works)
 
 ### Build output location
+
 Rust and Gradle build output runs to tens of GB. To keep it off a small system drive, create a machine-local, git-ignored `.cargo/config.toml`:
 
 ```toml
@@ -43,9 +47,10 @@ target-dir = "F:/DunBuild/target"
 `scripts/dev-env.ps1` uses the same root (`DUN_BUILD_ROOT`, default `F:\DunBuild`) for the NDK (`android-sdk\ndk\<version>`) and `GRADLE_USER_HOME`.
 
 ### Common commands
+
 A debug build loads its UI from the Vite dev server, so start it with
 `npm run tauri dev` (which starts both). Running `target/debug/dun.exe` on its
-own gives a window saying *localhost refused to connect* — the Rust side is
+own gives a window saying _localhost refused to connect_ — the Rust side is
 running fine, it just has no UI to show. Release builds have the UI baked in
 and need nothing else.
 
@@ -64,15 +69,16 @@ pwsh scripts/verify.ps1           # plus the NSIS installer
 ```
 
 ## Layout
-| Path | What |
-|---|---|
-| `src/` | Svelte 5 UI, shared by desktop and Android |
-| `crates/dun-core/` | Platform-neutral domain model, recurrence, scheduler, sync merge, SQLite storage |
-| `src-tauri/` | Tauri app shell (desktop and Android), commands, Windows integration |
-| `crates/dun-sync/` | TLS, certificate pinning, pairing, the HTTPS server and client |
-| `plugins/tauri-plugin-dun-android/` | The Kotlin side: alarms, notification channels, receivers |
-| `src-tauri/gen/android/` | Generated Android project, committed. Custom Kotlin lives in the local plugin, not here |
-| `scripts/` | `dev-env.ps1`, `verify.ps1` |
+
+| Path                                | What                                                                                    |
+| ----------------------------------- | --------------------------------------------------------------------------------------- |
+| `src/`                              | Svelte 5 UI, shared by desktop and Android                                              |
+| `crates/dun-core/`                  | Platform-neutral domain model, recurrence, scheduler, sync merge, SQLite storage        |
+| `src-tauri/`                        | Tauri app shell (desktop and Android), commands, Windows integration                    |
+| `crates/dun-sync/`                  | TLS, certificate pinning, pairing, the HTTPS server and client                          |
+| `plugins/tauri-plugin-dun-android/` | The Kotlin side: alarms, notification channels, receivers                               |
+| `src-tauri/gen/android/`            | Generated Android project, committed. Custom Kotlin lives in the local plugin, not here |
+| `scripts/`                          | `dev-env.ps1`, `verify.ps1`                                                             |
 
 ## License
 
