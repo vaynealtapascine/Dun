@@ -9,7 +9,7 @@ pwsh scripts/verify.ps1 -Android    # plus the APK, JNI export and 16 KB alignme
 ```
 
 It stops at the first failure and runs, in order: `svelte-check
---fail-on-warnings`, `vitest run`, `cargo fmt --check`, `cargo clippy
+--fail-on-warnings`, `vitest run`, `node --test scripts/integrations/*.test.mjs`, `cargo fmt --check`, `cargo clippy
 --workspace --all-targets -D warnings`, `cargo test --workspace`, then the
 bundles.
 
@@ -25,10 +25,15 @@ bundles.
 | A sync exchange | `dun-sync/tests/two_engines.rs` | Two real engines: changes both ways, echoes as no-ops, a phone covering a ring, Done on the phone stopping the PC |
 | TLS and pairing | `dun-sync/tests/localhost.rs` | Real handshake on localhost: wrong pin, bad token, single-use and expired codes, a dead address falling through, and starting the server with no runtime in the caller |
 | Quick-add parsing | `src/lib/*.test.ts` | Table-driven phrases → drafts, durations, tags, nag overrides |
+| App API | `src-tauri/src/desktop/integrations.rs` | Loopback HTTP auth, browser refusal, invalid inputs, duplicate/archive safety, rotation, persisted items |
+| App adapters | `scripts/integrations/*.test.mjs` | Per-send credentials, delivery failures, Memos user isolation, dry runs, occurrence IDs and flattened reminder tags |
 
 The parser is checked against the engine at runtime too: the quick-add preview
 asks Rust to validate the draft and hand back the next occurrences, so the TS
 parser and the engine can't quietly disagree.
+
+Run the adapter checks with `node --test scripts/integrations/*.test.mjs`.
+Arbor's sibling project has its own checks, including `server/dun.test.mjs`.
 
 ## Dev aids
 

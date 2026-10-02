@@ -28,6 +28,18 @@ A date with no time uses 9:00 by default. If a time has already passed today,
 Dun rolls it to tomorrow. Anything it can't place stays as the title, and
 **More…** opens the full form.
 
+## Reminders from other apps
+
+On the PC, **Settings → App connections** lets Memos, Arbor and other apps send
+reminders and start timers. Keep Dun running in its tray. These items sync to the
+paired phone normally. Open an imported item's form and use **Open in Memos** or
+**Open in Arbor** to return to its source.
+
+The original Memos account's existing reminder tags send each due occurrence to
+Dun. Arbor's item menu has **Remind me in Dun…** to pick a time. Reminders remain
+independent: finishing an Arbor item does not stop a Dun reminder. See
+[App connections](APP-API.md) for connection setup, retries and key rotation.
+
 On the PC, **Ctrl+Alt+N** (rebindable in Settings) opens a quick-add bar
 wherever you are.
 

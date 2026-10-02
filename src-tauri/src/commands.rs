@@ -20,6 +20,28 @@ pub const STATE_CHANGED: &str = "state-changed";
 type Core<'a> = State<'a, Arc<AppCore>>;
 type CmdResult<T> = Result<T, String>;
 
+type Integrations<'a> = State<'a, Arc<crate::desktop::integrations::IntegrationHub>>;
+
+#[tauri::command]
+pub fn integration_status(hub: Integrations<'_>) -> crate::desktop::integrations::Status {
+    hub.status()
+}
+
+#[tauri::command]
+pub fn integration_set_enabled(
+    hub: Integrations<'_>,
+    enabled: bool,
+) -> CmdResult<crate::desktop::integrations::Status> {
+    hub.inner().set_enabled(enabled)
+}
+
+#[tauri::command]
+pub fn integration_rotate_token(
+    hub: Integrations<'_>,
+) -> CmdResult<crate::desktop::integrations::Status> {
+    hub.rotate_token()
+}
+
 /// Runs a mutation with the engine, then notifies the scheduler and the UI.
 fn mutate<R: Runtime, T>(
     app: &AppHandle<R>,

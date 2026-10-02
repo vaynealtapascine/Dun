@@ -64,6 +64,13 @@ pub fn run() {
     tauri::Builder::default()
         // Must be the first plugin: a second launch just brings Dun forward.
         .plugin(tauri_plugin_single_instance::init(|app, argv, _cwd| {
+            if argv.iter().any(|a| a == "--apps-on") {
+                use tauri::Manager;
+                let hub = app.state::<std::sync::Arc<desktop::integrations::IntegrationHub>>();
+                if let Err(e) = hub.inner().set_enabled(true) {
+                    eprintln!("app connections: {e}");
+                }
+            }
             if desktop::window::wants_quick_add(&argv) {
                 desktop::quickadd::show(app);
             } else {
@@ -90,6 +97,16 @@ pub fn run() {
                     .send(desktop::scheduler_loop::Msg::Wake);
             });
             app.manage(core.clone());
+            let api_core = core.clone();
+            let api_app = app.handle().clone();
+            let integrations =
+                desktop::integrations::IntegrationHub::new(core.clone(), move || {
+                    commands::changed(&api_app, &api_core);
+                })?;
+            if std::env::args().any(|a| a == "--apps-on") {
+                integrations.set_enabled(true)?;
+            }
+            app.manage(integrations);
             if std::env::args().any(|a| a == "--dev-seed")
                 || std::env::var_os("DUN_DEV_SEED").is_some()
             {
@@ -191,6 +208,9 @@ pub fn run() {
             commands::pairing_open,
             commands::pairing_close,
             commands::forget_peer,
+            commands::integration_status,
+            commands::integration_set_enabled,
+            commands::integration_rotate_token,
         ])
         .run(tauri::generate_context!())
         .expect("error while running Dun");

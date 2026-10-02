@@ -10,6 +10,7 @@
   import HotkeyInput from "../lib/components/HotkeyInput.svelte";
   import PhoneSettings from "./PhoneSettings.svelte";
   import Pairing from "./Pairing.svelte";
+  import AppConnections from "./AppConnections.svelte";
   import Icon from "../lib/components/Icon.svelte";
   import TagDot from "../lib/components/TagDot.svelte";
 
@@ -176,6 +177,7 @@
     </section>
 
     {#if isDesktop}
+    <AppConnections />
     <section class="card">
       <h3>Sound <span class="scope">this device</span></h3>
       <div class="field">

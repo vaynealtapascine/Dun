@@ -29,6 +29,7 @@ function Step([string]$name, [scriptblock]$body) { $steps.Add([pscustomobject]@{
 
 Step 'svelte-check' { npx svelte-check --tsconfig ./tsconfig.json --fail-on-warnings }
 Step 'vitest' { npx vitest run }
+Step 'app adapters' { node --test scripts/integrations/*.test.mjs }
 Step 'cargo fmt' { cargo fmt --all -- --check }
 Step 'cargo clippy' { cargo clippy --workspace --all-targets -- -D warnings }
 Step 'cargo test' { cargo test --workspace }

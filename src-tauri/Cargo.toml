@@ -18,6 +18,7 @@ custom-protocol = ["tauri/custom-protocol"]
 
 [dev-dependencies]
 tempfile = "3"
+reqwest = { version = "0.13", default-features = false, features = ["json"] }
 
 [build-dependencies]
 tauri-build = { version = "~2.6.3", features = [] }
@@ -36,6 +37,7 @@ tokio = { version = "1", features = ["rt-multi-thread", "time"] }
 sha2 = "0.10"
 
 [target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
+axum = { version = "0.8", default-features = false, features = ["http1", "json", "tokio"] }
 rodio = { version = "0.22", default-features = false, features = ["playback", "wav", "vorbis", "mp3"] }
 tauri-plugin-single-instance = "~2.4.4"
 tauri-plugin-autostart = "~2.5.1"

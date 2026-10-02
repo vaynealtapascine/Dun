@@ -1131,12 +1131,14 @@ checksum = "f678cf4a922c215c63e0de95eb1ff08a958a81d47e485cf9da1e27bf6305cfa5"
 name = "dun"
 version = "1.0.0"
 dependencies = [
+ "axum",
  "dun-core",
  "dun-sync",
  "if-addrs",
  "jiff",
  "jni 0.21.1",
  "qrcode",
+ "reqwest",
  "rodio",
  "rusqlite",
  "serde",
