@@ -12,6 +12,9 @@
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.VIBRATE" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
     <!-- Only apps that ask for this appear in Android's "Do not disturb
          permission" list, and a channel's request to bypass Do Not Disturb is
          ignored until the user grants it there. Without the declaration the
@@ -24,6 +27,8 @@
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
 
     <application>
+        <service android:name="app.dun.android.TimerSoundService"
+            android:exported="false" android:foregroundServiceType="mediaPlayback" />
         <!-- Alarm fires, notification buttons and swipe-away. Only our own
              PendingIntents target it. -->
         <receiver

@@ -1,6 +1,7 @@
 <script lang="ts">
   import { invoke } from "@tauri-apps/api/core";
   import Icon from "../lib/components/Icon.svelte";
+  import { app } from "../lib/stores/app.svelte";
 
   /** What Android says about the permissions Dun needs to ring reliably. */
   type Status = {
@@ -8,9 +9,11 @@
     exactAlarms?: boolean;
     batteryUnrestricted?: boolean;
     dndAccess?: boolean;
+    alarmVolume?: boolean;
   };
 
   const CHECKS: { key: keyof Status; setting: string; title: string; why: string }[] = [
+    { key: "alarmVolume", setting: "sound", title: "Alarm volume", why: "Timers use your alarm volume, even when the phone is on silent. Turn up alarms here if you cannot hear them." },
     {
       key: "notifications",
       setting: "notifications",
@@ -27,7 +30,7 @@
       key: "dndAccess",
       setting: "dnd",
       title: "Ring through Do Not Disturb",
-      why: "Timers go out on the alarm stream, which silent and Do Not Disturb normally allow. Grant this and they get through even if you've turned alarms off there too.",
+      why: "Allow Dun through Do Not Disturb, and allow alarms in your active mode. Timer sound uses the alarm volume; ordinary reminders use notification sound.",
     },
     {
       key: "batteryUnrestricted",
@@ -58,7 +61,7 @@
     }
   }
 
-  const outstanding = $derived(CHECKS.filter((c) => status[c.key] === false).length);
+  const outstanding = $derived(CHECKS.filter((c) => status[c.key] !== true).length);
 </script>
 
 <section class="card" class:all-good={!checking && outstanding === 0}>
@@ -80,7 +83,7 @@
         {#if !ok}<span class="why muted">{check.why}</span>{/if}
       </div>
       {#if !ok}
-        <button class="btn" onclick={() => invoke("open_setting", { key: check.setting }).then(() => {})}>
+        <button class="btn" onclick={() => app.run(() => invoke("open_setting", { key: check.setting }))}>
           Open
         </button>
       {/if}

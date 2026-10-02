@@ -101,8 +101,11 @@ by its next nag.
   applies to both devices.
 - Each item can have **its own chime**, or use the default. On the PC you can
   import your own WAV, MP3 or OGG. On the phone the four bundled chimes are
-  notification channels, so Android's own per-channel volume and Do Not Disturb
-  settings apply to each of them.
+  notification channels. Timers play a short alarm chime at each nag using the
+  phone's alarm volume, including in silent and vibrate mode. Ordinary reminders
+  use notification sound. Dun's mute and PC handoff still keep either kind quiet.
+  Disabling a timer's notification channel or choosing no sound keeps it quiet.
+  Do Not Disturb is separate from silent mode: allow alarms in the active mode.
 
 ## Keeping Dun alive
 
@@ -114,6 +117,7 @@ shows a badge while something is ringing, and its tooltip says what's next.
 — it shows live status for each item:
 
 - **Notifications** must be allowed, or Dun can't tell you anything.
+- **Alarm volume** must be above zero to hear timers. Dun never raises it for you.
 - **Alarms & reminders** must be allowed, or nothing can wake the phone at an
   exact time.
 - **Unrestricted battery use**: on Samsung phones this is the single most common

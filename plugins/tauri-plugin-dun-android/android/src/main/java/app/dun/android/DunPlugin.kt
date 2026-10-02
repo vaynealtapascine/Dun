@@ -147,6 +147,9 @@ class DunPlugin(private val activity: Activity) : Plugin(activity) {
         ret.put("batteryUnrestricted", pm.isIgnoringBatteryOptimizations(ctx.packageName))
         // Without this, a channel asking to bypass Do Not Disturb is ignored.
         ret.put("dndAccess", nm.isNotificationPolicyAccessGranted)
+        val audio = ctx.getSystemService(android.media.AudioManager::class.java)
+        ret.put("alarmVolume", audio.getStreamVolume(android.media.AudioManager.STREAM_ALARM) > 0 &&
+            !audio.isStreamMute(android.media.AudioManager.STREAM_ALARM))
         ret.put("scheduledAt", AlarmLog.scheduledAt(ctx))
         ret.put("lastFiredAt", AlarmLog.lastFiredAt(ctx))
         ret.put("lastLateByMs", AlarmLog.lastLateByMs(ctx))
@@ -165,6 +168,7 @@ class DunPlugin(private val activity: Activity) : Plugin(activity) {
                 Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM, pkg) else null
             "battery" -> Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS, pkg)
             "dnd" -> Intent(Settings.ACTION_NOTIFICATION_POLICY_ACCESS_SETTINGS)
+            "sound" -> Intent(Settings.ACTION_SOUND_SETTINGS)
             "appDetails" -> Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, pkg)
             else -> null
         }

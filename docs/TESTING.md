@@ -35,6 +35,8 @@ parser and the engine can't quietly disagree.
 
 Run the adapter checks with `node --test scripts/integrations/*.test.mjs`.
 Arbor's sibling project has its own checks, including `server/dun.test.mjs`.
+The compiled APK does not prove phone layout or delivery. All device-dependent checks
+are collected in [the next-phone-session checklist](ANDROID-DEVICE-CHECKLIST.md).
 
 ## Dev aids
 
@@ -126,6 +128,34 @@ the `a=` addresses with `127.0.0.1`, and paste that into the phone's pairing
 screen. The phone then reaches the PC through loopback, which the firewall
 never sees. `adb reverse` is dropped when the cable is unplugged, so re-run it
 after reconnecting.
+
+## Interaction and Android alarm regression checks
+
+- Leave a timer title empty; start it, and verify the duration-based name.
+  Repeat with quick add `in 15s` and with an unnamed preset.
+- Right-click a timer or reminder; verify Edit, applicable timer/Done/Snooze
+  actions, and Archive. Escape returns focus; arrow keys navigate the actions.
+- Swipe left, then Archive; verify no accidental edit opens on release. Undo,
+  archive again, restart, and restore from History's Archived view. Scroll
+  vertically and cancel a partial gesture without archiving.
+- On Android, test a short timer in normal, vibrate, and silent modes, both in
+  the foreground and after pressing Home. `DunTimerSound` should log playback;
+  `dumpsys audio` should show Dun on `USAGE_ALARM`, speaker routing, and no
+  stream-volume mute. The service must disappear after the short chime.
+- Done, Snooze, Reset, Archive, and a quiet scheduler plan must cancel any
+  playing chime. App mute, PC handoff, blocked notifications, a disabled timer
+  channel, and a channel with no sound must not start audible playback.
+- DND is a separate matrix: allow alarms in the active mode; ordinary reminder
+  notifications still follow their notification channel and ringer settings.
+
+Verified on the connected Samsung phone on 2026-09-29: timer playback in
+vibrate and silent modes, including after Home, with `USAGE_ALARM` routed to
+the speaker and no playback mute reported. The playback service stopped after
+the chime. This is audio-system telemetry, not a microphone recording.
+Also checked duration-based naming, swipe Archive, Undo, and History Restore
+on-device; desktop context menus, keyboard navigation, and snooze dialogs in
+the browser preview. The frontend's 98 tests, Svelte checks, Rust workspace
+tests, formatting, and Clippy passed.
 
 ## Known environment traps
 

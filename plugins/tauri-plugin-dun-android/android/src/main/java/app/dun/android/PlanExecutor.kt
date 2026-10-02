@@ -55,7 +55,10 @@ object PlanExecutor {
         val nm = NotificationManagerCompat.from(context)
 
         plan.optJSONArray("cancel")?.let { ids ->
-            for (i in 0 until ids.length()) nm.cancel(ids.getInt(i))
+            for (i in 0 until ids.length()) {
+                TimerSoundService.cancel(ids.getInt(i))
+                nm.cancel(ids.getInt(i))
+            }
         }
 
         plan.optJSONArray("post")?.let { posts ->
@@ -93,6 +96,12 @@ object PlanExecutor {
         val named = p.optString("channel", Channels.RING_DEFAULT)
         val channel = Channels.effective(context, named)
         val ongoing = p.optBoolean("ongoing", false)
+        val silent = p.optBoolean("silent", false)
+        // Notification audio on some phones follows silent/vibrate mode even
+        // with USAGE_ALARM. Play timers as real alarm audio in a short FGS.
+        // A quiet plan (mute/handoff/countdown) must never start playback.
+        val wantsAlarmAudio = !ongoing && !silent && named.startsWith("timer_") && nm.areNotificationsEnabled()
+        if (silent || ongoing) TimerSoundService.cancel(notifId)
         val builder = NotificationCompat.Builder(context, channel)
             .setSmallIcon(R.drawable.ic_stat_dun)
             .setContentTitle(p.getString("title"))
@@ -110,7 +119,7 @@ object PlanExecutor {
             .setAutoCancel(false)
             .setOnlyAlertOnce(ongoing)
             .setOngoing(ongoing)
-            .setSilent(p.optBoolean("silent", false))
+            .setSilent(silent)
             .setContentIntent(launchIntent(context, notifId))
 
         // A countdown is not something to dismiss, so it gets no delete intent
@@ -157,7 +166,9 @@ object PlanExecutor {
         }
 
         try {
-            nm.notify(notifId, builder.build())
+            val fallback = builder.build()
+            val alarmAudio = wantsAlarmAudio && TimerSoundService.play(context, notifId, channel, fallback)
+            nm.notify(notifId, if (alarmAudio) builder.setSilent(true).build() else fallback)
         } catch (e: SecurityException) {
             Log.w(TAG, "notification permission missing; cannot post $notifId", e)
         }
