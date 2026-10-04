@@ -117,3 +117,15 @@ export function splitReminderCountdown(from: number, to: number): ReminderCountd
     spoken,
   };
 }
+
+/**
+ * Split the `YYy MMm DDd HH:MM:SS` readout where its first nonzero digit
+ * begins. Everything before it, including padding zeros, suffixes and colons,
+ * is leading filler; an all-zero readout keeps its seconds legible.
+ */
+export function splitReminderReadout(value: ReminderCountdown): { leading: string; rest: string } {
+  const readout = `${pad(value.years)}y ${pad(value.months)}m ${pad(value.days)}d ${value.clock}`;
+  const first = readout.search(/[1-9]/);
+  const split = first < 0 ? readout.length - 2 : first;
+  return { leading: readout.slice(0, split), rest: readout.slice(split) };
+}

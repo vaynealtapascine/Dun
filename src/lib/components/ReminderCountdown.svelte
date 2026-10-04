@@ -3,6 +3,7 @@
     import {
         selectReminderCountdown,
         splitReminderCountdown,
+        splitReminderReadout,
     } from "../reminderCountdown";
 
     let {
@@ -14,25 +15,10 @@
     const value = $derived(
         target ? splitReminderCountdown(now, target.at) : null,
     );
-    const parts = $derived(
-        value
-            ? [
-                  { number: value.years, suffix: "y", separator: "" },
-                  { number: value.months, suffix: "m", separator: " " },
-                  { number: value.days, suffix: "d", separator: " " },
-                  { number: value.hours, suffix: "", separator: " " },
-                  { number: value.minutes, suffix: "", separator: ":" },
-                  { number: value.seconds, suffix: "", separator: ":" },
-              ]
-            : [],
-    );
-    const firstSignificant = $derived(
-        parts.findIndex((part) => part.number > 0),
-    );
-    const leadingEnd = $derived(firstSignificant < 0 ? 5 : firstSignificant);
+    const readout = $derived(value ? splitReminderReadout(value) : null);
 </script>
 
-{#if target && value}
+{#if target && value && readout}
     <div
         class="countdown"
         class:past={target.overdue}
@@ -41,15 +27,8 @@
         aria-label={`${title}: ${target.label} ${value.spoken}`}
     >
         <span aria-hidden="true"
-            >{#each parts as part, index}<span
-                    class:muted-zero={index < leadingEnd}
-                    >{part.separator}{#if part.number > 0 && part.number < 10}<span
-                            class="muted-zero">0</span
-                        >{part.number}{:else}{String(part.number).padStart(
-                            2,
-                            "0",
-                        )}{/if}{part.suffix}</span
-                >{/each}</span
+            ><span class="muted-zero">{readout.leading}</span
+            >{readout.rest}</span
         >
     </div>
 {/if}

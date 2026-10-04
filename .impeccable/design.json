@@ -538,7 +538,7 @@
       },
       "reminder-countdown": {
         "displayName": "Reminder Countdown",
-        "purpose": "One right-aligned YYy MMm DDd HH:MM:SS line, 1.5rem semibold, with leading empty units and positive-unit padding zeros de-emphasized."
+        "purpose": "One right-aligned YYy MMm DDd HH:MM:SS line, 1.5rem semibold, with everything before the first nonzero digit de-emphasized."
       },
       "reminder-countdown-compact": {
         "displayName": "Reminder Countdown Compact",
@@ -751,7 +751,7 @@
     {
       "name": "Reminder countdown",
       "kind": "custom",
-      "description": "One right-aligned YYy MMm DDd HH:MM:SS line for upcoming occurrence, snooze resumption, or elapsed overdue time. All six fields remain visible; leading empty units and the padding zero of each positive unit below 10 use 0.42 opacity applied once. Meaningful later zeros remain at full emphasis; all-zero readouts keep seconds legible. Idle and unreadable schedules omit the readout. At 600px and narrower, or in scaled portrait layouts at least 760px wide with aspect ratio no greater than 3:4, details sit above with actions below left and countdown below right in two rows.",
+      "description": "One right-aligned YYy MMm DDd HH:MM:SS line for upcoming occurrence, snooze resumption, or elapsed overdue time. All six fields remain visible; everything before the first nonzero digit, including leading empty units, their suffixes and colons, and the first positive unit's padding zero, uses 0.42 opacity applied once. Every digit and separator from the first nonzero digit onward remains at full emphasis; all-zero readouts keep seconds legible. Idle and unreadable schedules omit the readout. At 600px and narrower, or in scaled portrait layouts at least 760px wide with aspect ratio no greater than 3:4, details sit above with actions below left and countdown below right in two rows.",
       "html": "<div class=\"ds-reminder-countdown\" role=\"timer\" aria-live=\"off\" aria-label=\"Renew passport: Due in 1 year, 2 months, 3 days, 4 hours, 5 minutes, 6 seconds\"><span aria-hidden=\"true\"><span class=\"ds-muted-zero\">0</span>1y <span class=\"ds-muted-zero\">0</span>2m <span class=\"ds-muted-zero\">0</span>3d <span class=\"ds-muted-zero\">0</span>4:<span class=\"ds-muted-zero\">0</span>5:<span class=\"ds-muted-zero\">0</span>6</span></div>",
       "css": ".ds-reminder-countdown { width:max-content; margin-left:auto; color:var(--fg, #162b37); font-family:var(--font-timer, \"Source Sans 3\", \"Segoe UI\", sans-serif); font-variant-numeric:lining-nums tabular-nums; font-size:1.5rem; font-weight:600; line-height:1.2; white-space:nowrap; text-align:right; } .ds-reminder-countdown.ds-reminder-past { color:var(--ringing, #b83424); } .ds-reminder-countdown .ds-muted-zero { opacity:0.42; } @media (max-width:600px), (min-width:760px) and (max-aspect-ratio:3/4) { .ds-reminder-countdown { font-size:1.25rem; } }"
     },

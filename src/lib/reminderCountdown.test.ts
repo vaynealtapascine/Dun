@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { StatusView } from "./api/types";
-import { selectReminderCountdown, splitReminderCountdown } from "./reminderCountdown";
+import { selectReminderCountdown, splitReminderCountdown, splitReminderReadout } from "./reminderCountdown";
 
 // Calendar arithmetic follows the local device zone; the normal test zone is UTC.
 const at = (iso: string) => Date.parse(`${iso}Z`);
@@ -91,6 +91,25 @@ describe("splitReminderCountdown", () => {
     expect(fallEnd - fallStart).toBe(25 * 3_600_000);
     expect(splitReminderCountdown(fallStart, fallEnd)).toMatchObject({ calendar: "00:00:01", clock: "00:00:00" });
     expect(splitReminderCountdown(fallStart, fallEnd - 3_600_000)).toMatchObject({ calendar: "00:00:00", clock: "24:00:00" });
+  });
+});
+
+describe("splitReminderReadout", () => {
+  const readout = (from: string, to: string) => splitReminderReadout(splitReminderCountdown(at(from), at(to)));
+
+  it.each([
+    ["2026-10-01T10:00:00", "2026-10-01T10:05:03", "00y 00m 00d 00:0", "5:03"],
+    ["2026-10-01T10:00:00", "2026-10-01T10:10:00", "00y 00m 00d 00:", "10:00"],
+    ["2026-10-01T10:00:00", "2026-10-01T11:05:07", "00y 00m 00d 0", "1:05:07"],
+    ["2026-10-01T10:00:00", "2026-10-04T10:00:09", "00y 00m 0", "3d 00:00:09"],
+    ["2026-10-01T10:00:00", "2027-10-01T10:00:00", "0", "1y 00m 00d 00:00:00"],
+    ["2026-01-01T00:00:00", "2152-01-01T00:00:00", "", "126y 00m 00d 00:00:00"],
+  ])("mutes only the zeros, suffixes and colons before the first digit from %s to %s", (from, to, leading, rest) => {
+    expect(readout(from, to)).toEqual({ leading, rest });
+  });
+
+  it("keeps the seconds of an all-zero readout legible", () => {
+    expect(splitReminderReadout(splitReminderCountdown(1000, 1000))).toEqual({ leading: "00y 00m 00d 00:00:", rest: "00" });
   });
 });
 
