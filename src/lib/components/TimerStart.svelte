@@ -134,7 +134,7 @@
     padding: 0.4rem 0.85rem;
   }
   .start-heading { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.35rem; }
-  .start-heading .icon-btn { width: 44px; height: 44px; }
+  .start-heading .icon-btn { width: var(--hit); height: var(--hit); }
   h2 {
     margin: 0;
     font-family: var(--font-ui);

@@ -112,7 +112,7 @@
     gap: 0.45rem;
     min-width: 0;
   }
-  .timer-list { gap: 0.5625rem; }
+  .timer-list { gap: var(--list-gap, 0.5625rem); }
   .timer-list:empty { display: none; }
   .preset {
     scroll-snap-align: start;
@@ -130,7 +130,7 @@
     gap: 0.35rem;
     flex: 1;
     min-width: 0;
-    min-height: max(44px, 2.1rem);
+    min-height: max(var(--hit), 2.1rem);
     padding: 0.45rem 0.55rem;
     border: 0;
     border-radius: var(--radius-sm);

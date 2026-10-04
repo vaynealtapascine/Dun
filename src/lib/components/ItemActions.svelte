@@ -78,7 +78,7 @@
   dialog[open] { animation: menu-in var(--dur-fast) var(--ease-out); }
   @keyframes menu-in { from { opacity: 0; transform: scale(0.94); } }
   .menu { display: grid; padding: 0.3rem; }
-  .menu button { text-align: left; min-height: 44px; padding: 0.5rem 0.75rem; border: 0; border-radius: var(--radius-sm); background: transparent; cursor: pointer; }
+  .menu button { text-align: left; min-height: var(--hit); padding: 0.5rem 0.75rem; border: 0; border-radius: var(--radius-sm); background: transparent; cursor: pointer; }
   .menu button { transition: background-color var(--dur-fast) ease-out; }
   @media (hover: hover) { .menu button:hover { background: var(--bg-sunken); } }
   .menu button:focus-visible, .menu button:active { background: var(--bg-sunken); }

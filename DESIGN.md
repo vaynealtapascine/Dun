@@ -277,7 +277,7 @@ The palette combines cool gray ground, blue ink, instrument teal, and direct exp
 
 ### Neutral
 
-- **Cool ground** (`bg`): the app and surrounding desktop canvas.
+- **Cool ground** (`bg`): the app and surrounding desktop canvas in the selected theme. An unanswered locally ringing timer temporarily switches the shared canvas and supporting surfaces to a deep red palette on desktop and mobile.
 - **Raised paper** (`bg-raised`): timer rows, duration entry, fields, and filter chips.
 - **Sunken gray** (`bg-sunken`): secondary controls, presets, and hover support.
 - **Ink** (`fg`): names and primary interface text; **muted ink** (`fg-muted`) supports secondary state text, and **faint ink** (`fg-faint`) supports low-priority chrome.
@@ -287,7 +287,7 @@ The palette combines cool gray ground, blue ink, instrument teal, and direct exp
 
 Explicit `data-theme="light"` and `data-theme="dark"` win over the OS preference. System mode follows `prefers-color-scheme`; it uses the same dark overrides as explicit dark mode. The alarm pair is deliberately unchanged.
 
-**The Local Ring Rule.** Use the solid alarm face only when the item is due, is not snoozed, and has no held delivery reason. Snoozed and held timers use the quieter ringing surface and state text.
+**The Local Ring Rule.** Use the solid alarm face only when the item is due, is not snoozed, and has no held delivery reason. Snoozed and held timers use the quieter ringing surface and state text. While any timer meets this local ring rule, `data-timer-overdue` applies a deep red canvas with warm, readable foregrounds and supporting surfaces across tabs and both device layouts. Handling the last such timer restores the selected light/dark/system theme; snoozed and held timers alone do not trigger the canvas. Fixed reminder actions and notices align to the same shell width token.
 
 ## Typography
 
@@ -309,7 +309,7 @@ Explicit `data-theme="light"` and `data-theme="dark"` win over the OS preference
 - **Timer-action:** firm labeled timer controls. Narrow row actions use 1.1rem at widths up to 420px.
 - **Unit-label / preset:** compact field descriptions and preset name-duration pairs.
 
-The root size is 16px with a 1.4 line height. There is no imposed geometric type-scale ratio. At viewport widths of at least 760px and aspect ratios of at most 3/4, the portrait presentation uses `min(3.3vw, 32px)` as the root size.
+The root size is 16px with a 1.4 line height. There is no imposed geometric type-scale ratio. At viewport widths of at least 760px and aspect ratios of at most 3/4, the portrait presentation uses `min(3.3vw, 32px)` as the root size. Desktop windows with a fine hovering pointer and a width of at least 760px use a 14px root instead, so mouse-scale UI does not read at phone size.
 
 Source Sans 3 normal 400/600/700 is self-hosted for offline consistency in `SourceSans3-Regular.woff2`, `SourceSans3-Semibold.woff2`, and `SourceSans3-Bold.woff2`. Keep these unmodified files with `public/fonts/ORIGIN.md` and `SourceSans3-OFL.md`; the family carries the SIL OFL 1.1 license.
 
@@ -317,7 +317,7 @@ Source Sans 3 normal 400/600/700 is self-hosted for offline consistency in `Sour
 
 ## Layout
 
-The shell is a centered single column capped at 960px and fills `100dvh`. The header and underlined tab strip stay above a scrolling main area. Main content uses the page-inline token with a compact top inset and safe-area-aware bottom padding. Ordinary desktop widening preserves the same column and makes the action regions wider; it does not add timer columns. The portrait scaling rule removes the shell cap while scaling rem-based UI.
+The shell is a centered single column capped at 720px through `--app-width` and fills `100dvh`. The header and underlined tab strip stay above a scrolling main area. Main content uses the page-inline token with a compact top inset and safe-area-aware bottom padding. Ordinary desktop widening preserves the same column and makes the action regions wider; it does not add timer columns. The portrait scaling rule removes the shell cap while scaling rem-based UI. On fine-pointer desktops the shell gains a 1.75rem page gutter shared by the header, tabs, quick entry, and main area; list rows separate by 0.75rem; and the minimum hit target (`--hit`) shrinks from 44px to 2.5rem. The portrait rule restores the touch values.
 
 Timer lists use the row-gap token. Each non-due row places a circular dial to the left of a flexible name, state, source link, and action region. The normal dial is 8.625rem with the dial-gap token; up to 420px it is 7.75rem, the gap becomes 1rem, and padding becomes 0.75rem. Names can wrap to two lines and long unbroken names wrap within the row.
 

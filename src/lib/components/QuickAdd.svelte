@@ -227,7 +227,7 @@
   input {
     flex: 1;
     min-width: 0;
-    min-height: max(44px, 2.6rem);
+    min-height: max(var(--hit), 2.6rem);
     border: none;
     outline: none;
     background: transparent;

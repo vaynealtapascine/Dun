@@ -64,7 +64,7 @@
   }
   .list {
     display: grid;
-    gap: 0.4rem;
+    gap: var(--list-gap, 0.4rem);
   }
   .empty {
     text-align: center;

@@ -88,6 +88,10 @@
     snapshot?.items.filter((i) => i.kind !== "timer" && i.status.kind === "due" && !i.status.snoozed && i.ring?.held == null).length ?? 0,
   );
   const timersRingingCount = $derived(snapshot?.items.filter((i) => i.kind === "timer" && i.status.kind === "due" && !i.status.snoozed && i.ring?.held == null).length ?? 0);
+  $effect(() => {
+    document.documentElement.dataset.timerOverdue = String(timersRingingCount > 0);
+    return () => { delete document.documentElement.dataset.timerOverdue; };
+  });
   const mutedUntil = $derived(
     snapshot?.settings.muteUntil != null && snapshot.settings.muteUntil > app.now ? snapshot.settings.muteUntil : null,
   );
@@ -244,9 +248,9 @@
 <ItemForm bind:open={formOpen} item={editing} {prefill} initialKind={tab === "timers" ? "timer" : "once"} />
 
 <style>
-  .app { display: flex; flex-direction: column; height: 100dvh; max-width: 960px; margin-inline: auto; }
-  header { display: flex; align-items: center; gap: 0.25rem; padding: env(safe-area-inset-top) 0.65rem 0 1rem; min-height: max(44px, 2.55rem); }
-  header .icon-btn { width: max(44px, 2.55rem); height: max(44px, 2.55rem); }
+  .app { display: flex; flex-direction: column; height: 100dvh; max-width: var(--app-width); margin-inline: auto; }
+  header { display: flex; align-items: center; gap: 0.25rem; padding: env(safe-area-inset-top) calc(var(--page-gutter, 1rem) - 0.35rem) 0 var(--page-gutter, 1rem); min-height: max(var(--hit), 2.55rem); }
+  header .icon-btn { width: max(var(--hit), 2.55rem); height: max(var(--hit), 2.55rem); }
   h1 { margin: 0; font-size: 1.75rem; font-weight: 700; line-height: 1; letter-spacing: -0.025em; }
   .settings-header h1 { font-size: 1.6rem; }
   .settings-button { color: var(--fg); }
@@ -254,11 +258,11 @@
   .mute-status { display: inline-flex; align-items: center; gap: 0.35rem; min-height: 36px; padding: 0.3rem 0.55rem; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--overdue-bg); color: var(--overdue); cursor: pointer; font-size: 0.8rem; max-width: 50%; }
   .mute-status span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .tools-active { color: var(--accent); background: var(--bg-sunken); }
-  .tabs { position: relative; display: flex; padding: 0 0.75rem; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
-  .tabs button { flex: 1; position: relative; min-height: 44px; padding: 0.45rem 0.25rem; border: none; background: transparent; color: var(--fg-muted); cursor: pointer; font-size: 1rem; font-weight: 600; transition: color var(--dur) var(--ease-out), background-color var(--dur-fast) ease-out; }
+  .tabs { position: relative; display: flex; padding: 0 var(--page-gutter, 0.75rem); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+  .tabs button { flex: 1; position: relative; min-height: var(--hit); padding: 0.45rem 0.25rem; border: none; background: transparent; color: var(--fg-muted); cursor: pointer; font-size: 1rem; font-weight: 600; transition: color var(--dur) var(--ease-out), background-color var(--dur-fast) ease-out; }
   .tabs button[aria-selected="true"] { color: var(--accent); font-weight: 700; }
   /* One underline travels between tabs rather than three blinking on and off. */
-  .indicator { position: absolute; left: 0.75rem; bottom: 0; width: calc((100% - 1.5rem) / 3); height: 0.25rem; padding-inline: 0.25rem; background-clip: content-box; border-radius: 4px 4px 0 0; background-color: var(--accent); transform: translateX(calc(var(--tab-index) * 100%)); transition: transform var(--dur-slow) var(--ease-out); pointer-events: none; }
+  .indicator { position: absolute; left: var(--page-gutter, 0.75rem); bottom: 0; width: calc((100% - 2 * var(--page-gutter, 0.75rem)) / 3); height: 0.25rem; padding-inline: 0.25rem; background-clip: content-box; border-radius: 4px 4px 0 0; background-color: var(--accent); transform: translateX(calc(var(--tab-index) * 100%)); transition: transform var(--dur-slow) var(--ease-out); pointer-events: none; }
   @media (hover: hover) { .tabs button:hover { background: var(--bg-sunken); } }
   .tabs button:active { background: var(--bg-sunken); }
   .badge { position: absolute; right: 0.7rem; top: 50%; transform: translateY(-50%); display: inline-grid; place-items: center; min-width: 1.15rem; height: 1.15rem; padding: 0 0.25rem; border-radius: 4px; background: var(--alarm); color: var(--alarm-fg); font-size: 0.75rem; font-weight: 700; }
@@ -267,33 +271,32 @@
     .badge { position: static; transform: none; min-width: 0.9rem; height: 0.9rem; font-size: 0.65rem; padding-inline: 0.15rem; margin-left: 0.25rem; vertical-align: middle; }
   }
   @media (min-width: 760px) and (max-aspect-ratio: 3/4) { .settings-button :global(svg) { width: 1.75rem; height: 1.75rem; } }
-  .toolbar { display: grid; gap: 0.55rem; padding: 0.75rem 0.75rem 0; }
+  .toolbar { display: grid; gap: 0.55rem; padding: 0.75rem var(--page-gutter, 0.75rem) 0; }
   .search-row { display: flex; gap: 0.5rem; }
   .search { display: flex; flex: 1; min-width: 0; align-items: center; gap: 0.5rem; padding: 0 0.7rem; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--bg-raised); color: var(--fg-muted); }
   .search:focus-within { outline: 2px solid var(--focus); outline-offset: 2px; }
-  .search input { width: 100%; min-width: 0; min-height: 44px; padding: 0; border: none; outline: none; background: transparent; color: var(--fg); }
+  .search input { width: 100%; min-width: 0; min-height: var(--hit); padding: 0; border: none; outline: none; background: transparent; color: var(--fg); }
   .tags { display: flex; gap: 0.4rem; overflow-x: auto; padding: 0.15rem 0 0.3rem; }
   .chip { display: inline-flex; align-items: center; gap: 0.35rem; min-height: 36px; padding: 0.3rem 0.7rem; border-radius: var(--radius-sm); border: 1px solid var(--border); background: var(--bg-raised); white-space: nowrap; cursor: pointer; }
   .chip { transition: background-color var(--dur-fast) ease-out, color var(--dur-fast) ease-out, border-color var(--dur-fast) ease-out, transform var(--dur-fast) var(--ease-out); }
   .chip:active { transform: scale(0.96); }
   .chip[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); font-weight: 700; }
-  .capture { padding: 0.75rem 0.75rem 0; }
-  main { flex: 1; min-height: 0; overflow-y: auto; overflow-x: clip; padding: 0.5rem 0.625rem max(0.4rem, env(safe-area-inset-bottom)); }
+  .capture { padding: 0.75rem var(--page-gutter, 0.75rem) 0; }
+  main { flex: 1; min-height: 0; overflow-y: auto; overflow-x: clip; padding: 0.5rem var(--page-gutter, 0.625rem) max(0.4rem, env(safe-area-inset-bottom)); }
   .reminder-panel { padding-bottom: 5.5rem; }
   .settings-main { border-top: 1px solid var(--border); }
-  @media (min-width: 760px) and (max-aspect-ratio: 3/4) { .app { max-width: none; } }
   .loading { text-align: center; padding: 3rem 1rem; }
   .empty-results { text-align: center; padding: 3rem 1rem; }
   .empty-results h2 { margin: 0; font-size: 1.6rem; }
   .empty-results p { margin: 0.5rem 0 1.25rem; }
-  .fab { position: fixed; right: max(1rem, calc((100vw - 960px) / 2 + 1rem)); bottom: max(1rem, env(safe-area-inset-bottom)); display: flex; align-items: center; justify-content: center; min-height: 48px; min-width: 48px; padding: 0.5rem 1rem 0.5rem 0.75rem; border-radius: var(--radius); border: none; background: var(--accent); color: var(--accent-fg); font-weight: 700; box-shadow: var(--shadow); cursor: pointer; transition: padding var(--dur-slow) var(--ease-out), transform var(--dur-fast) var(--ease-out), background-color var(--dur-fast) ease-out; }
+  .fab { position: fixed; right: max(1rem, calc((100vw - var(--app-width)) / 2 + 1rem)); bottom: max(1rem, env(safe-area-inset-bottom)); display: flex; align-items: center; justify-content: center; min-height: 48px; min-width: 48px; padding: 0.5rem 1rem 0.5rem 0.75rem; border-radius: var(--radius); border: none; background: var(--accent); color: var(--accent-fg); font-weight: 700; box-shadow: var(--shadow); cursor: pointer; transition: padding var(--dur-slow) var(--ease-out), transform var(--dur-fast) var(--ease-out), background-color var(--dur-fast) ease-out; }
   .fab-label { display: inline-block; max-width: 10rem; margin-left: 0.5rem; overflow: hidden; white-space: nowrap; transition: max-width var(--dur-slow) var(--ease-out), margin var(--dur-slow) var(--ease-out), opacity var(--dur) ease-out; }
   .fab.compact { padding-inline: 0.75rem; }
   .fab.compact .fab-label { max-width: 0; margin-left: 0; opacity: 0; }
   @media (hover: hover) { .fab:hover { background: color-mix(in srgb, var(--accent) 88%, var(--fg)); } }
   .fab:active { transform: scale(0.96); }
-  .error, .notice { position: fixed; z-index: 20; left: max(0.75rem, calc((100vw - 960px) / 2 + 0.75rem)); bottom: max(1rem, env(safe-area-inset-bottom)); display: flex; align-items: center; gap: 0.6rem; max-width: min(90vw, 880px); padding: 0.5rem 0.8rem; border-radius: var(--radius); box-shadow: var(--shadow); }
-  .error { right: max(0.75rem, calc((100vw - 960px) / 2 + 0.75rem)); background: var(--alarm); color: var(--alarm-fg); }
+  .error, .notice { position: fixed; z-index: 20; left: max(0.75rem, calc((100vw - var(--app-width)) / 2 + 0.75rem)); bottom: max(1rem, env(safe-area-inset-bottom)); display: flex; align-items: center; gap: 0.6rem; max-width: min(90vw, calc(var(--app-width) - 2rem)); padding: 0.5rem 0.8rem; border-radius: var(--radius); box-shadow: var(--shadow); }
+  .error { right: max(0.75rem, calc((100vw - var(--app-width)) / 2 + 0.75rem)); background: var(--alarm); color: var(--alarm-fg); }
   .error span { flex: 1; }
   .error .icon-btn { color: inherit; }
   .notice { background: var(--fg); color: var(--bg); }

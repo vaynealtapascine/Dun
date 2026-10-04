@@ -172,7 +172,7 @@
     align-items: baseline;
     gap: 0.4rem;
     min-width: 0;
-    min-height: 44px;
+    min-height: var(--hit);
     padding: 0;
     border: none;
     border-radius: var(--radius-sm);
@@ -196,7 +196,7 @@
   }
   @media (hover: hover) { .title:hover { text-decoration: underline; text-underline-offset: 0.16em; } }
   .more { flex: none; margin-top: -0.3rem; margin-right: -0.35rem; }
-  .more :global(> .icon-btn) { width: 44px; height: 44px; }
+  .more :global(> .icon-btn) { width: var(--hit); height: var(--hit); }
   .alarm-header .title { font-size: 1.65rem; }
   .due .more :global(> .icon-btn) { color: inherit; }
   @media (hover: hover) { .ringing .more :global(> .icon-btn:hover) { background: color-mix(in srgb, var(--alarm-fg) 12%, transparent); } }
