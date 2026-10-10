@@ -10,6 +10,7 @@
   import HotkeyInput from "../lib/components/HotkeyInput.svelte";
   import PhoneSettings from "./PhoneSettings.svelte";
   import Pairing from "./Pairing.svelte";
+  import JoinPc from "./JoinPc.svelte";
   import AppConnections from "./AppConnections.svelte";
   import Icon from "../lib/components/Icon.svelte";
   import TagDot from "../lib/components/TagDot.svelte";
@@ -26,6 +27,7 @@
   let sync = $state<SyncStatus | null>(null);
   let syncError = $state<string | null>(null);
   let pairingOpen = $state(false);
+  let joinOpen = $state(false);
 
   const DEFAULT_HOTKEY = "CommandOrControl+Alt+N";
 
@@ -295,7 +297,7 @@
     <section class="card">
       <h3>Sync <span class="scope">this device</span></h3>
       <label class="switch">
-        <span>Sync with my phone over the local network</span>
+        <span>Sync with my other devices over the local network</span>
         <input
           type="checkbox"
           checked={sync?.enabled ?? false}
@@ -319,8 +321,8 @@
         {#if sync.publicNetworks.length > 0}
           <p class="hint warn">
             Windows has {sync.publicNetworks.join(" and ")} set to Public, and blocks incoming connections there. In
-            Windows network settings, change {sync.publicNetworks.length > 1 ? "them" : "it"} to Private, or your phone
-            won't reach this PC.
+            Windows network settings, change {sync.publicNetworks.length > 1 ? "them" : "it"} to Private, or your other
+            devices won't reach this PC.
           </p>
         {/if}
         {#if sync.peers.length > 0}
@@ -328,6 +330,7 @@
             {#each sync.peers as peer (peer.deviceId)}
               <div class="peer">
                 <span class="name">{peer.name}</span>
+                <span class="kind">{peer.isPc ? "PC" : "Phone"}</span>
                 <span class="muted">{peer.lastSeenAt ? `last synced ${when(peer.lastSeenAt, app.now)}` : "not synced yet"}</span>
                 <button class="btn btn-quiet small" onclick={() => forget(peer.deviceId, peer.name)}>Forget</button>
               </div>
@@ -335,8 +338,15 @@
           </div>
         {/if}
         <div class="buttons">
-          <button class="btn btn-primary" onclick={() => (pairingOpen = true)}>Pair a phone…</button>
+          <button class="btn btn-primary" onclick={() => (pairingOpen = true)}>Pair a device…</button>
+          <button class="btn" onclick={() => (joinOpen = true)}>Join another PC…</button>
         </div>
+        {#if sync.peers.some((p) => p.isPc)}
+          <p class="hint muted">
+            PCs pass everything on to each other, so a new PC only needs pairing with one that's already set up. Only a
+            PC someone is using rings; when nobody is at any of them, your phone takes over.
+          </p>
+        {/if}
       {/if}
     </section>
 
@@ -358,6 +368,7 @@
     </section>
 
     <Pairing bind:open={pairingOpen} status={sync} />
+    <JoinPc bind:open={joinOpen} />
     {/if}
 
     <p class="about muted">Dun {version}</p>
@@ -431,6 +442,12 @@
   }
   .peer .name {
     font-weight: 600;
+  }
+  .peer .kind {
+    font-size: 0.75rem;
+    padding: 0.05rem 0.4rem;
+    border-radius: var(--radius-sm);
+    background: var(--bg-sunken);
   }
   .peer .muted {
     flex: 1;

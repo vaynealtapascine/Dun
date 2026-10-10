@@ -1,6 +1,7 @@
 //! Sync data model and merge rules. Transport lives in the `dun-sync` crate.
 
 pub mod merge;
+pub mod mesh;
 pub mod peers;
 pub mod protocol;
 pub mod rows;

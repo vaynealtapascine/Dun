@@ -10,7 +10,7 @@ Dun shares a Svelte interface between Windows and Android Tauri shells. This pla
 
 ## Users
 
-Dun serves both its creator's daily personal use and wider distribution to individual users. The current supported context is a Windows PC, with an optional paired Android phone.
+Dun serves both its creator's daily personal use and wider distribution to individual users. The current supported context is one or more Windows PCs, with an optional paired Android phone.
 
 The primary job is to capture something that needs doing, set when it matters, and keep being reminded until it is handled, including when moving between the PC and phone. No narrower demographic or professional audience has been established.
 
@@ -22,7 +22,7 @@ Success means the reminder reaches the user wherever they are and keeps promptin
 
 ## Positioning
 
-Dun combines repeated alerts until **Done** with direct PC–phone sync and device-presence handoff. The PC is the hub; an optional Android peer shares the list. The PC rings while attended, and the phone takes over when the PC is locked or idle. A delayed PC fallback favors an alert over silence when phone coverage is unconfirmed.
+Dun combines repeated alerts until **Done** with direct PC–phone sync and device-presence handoff. Every PC is a node that syncs with the others it is paired with; an optional Android phone shares the list through any of them. Only attended PCs ring, and the phone takes over when every PC is locked or idle. A delayed PC fallback favors an alert over silence when phone coverage is unconfirmed.
 
 The repository cites Due for iOS as an inspiration. Dun currently implements Windows and Android support.
 

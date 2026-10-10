@@ -1,8 +1,9 @@
 # Sync protocol
 
-Two devices, no cloud, no server on the internet. The PC listens on the LAN;
-the phone connects to it. Everything is HTTPS/1.1 on **port 47823** with a
-self-signed certificate the phone pins by fingerprint.
+No cloud, no server on the internet. Every PC listens on the LAN; a phone
+connects to one of them, and PCs paired with each other connect both ways.
+Everything is HTTPS/1.1 on **port 47823** with a self-signed certificate the
+client pins by fingerprint.
 
 Wire types live in `crates/dun-core/src/sync/protocol.rs`; what an exchange
 *means* is `sync/session.rs`; TLS, pairing and addresses are `crates/dun-sync`.
@@ -20,6 +21,19 @@ minutes, five tries, one success.
 The PC stores `sha256(token)` and compares in constant time, so a stolen
 database can't be replayed. The phone stores the token and the PC's certificate
 fingerprint.
+
+A PC joining another PC (**Join another PC…**, pasting the invite) adds a way
+back to the same request:
+
+```
+→ {"code":"904018","deviceId":"…","name":"LAPTOP-7Q2",
+   "back":{"token":"<64 hex>","fingerprint":"<sha256>","addrs":["192.168.1.11"],"port":47823}}
+```
+
+Each PC then keeps both halves: the hash of the token it issued, and the
+token, fingerprint and addresses it needs to sync with the other. A `back`
+without a 64-character fingerprint is dropped, so the pairing degrades to one
+way rather than trusting an unpinned certificate.
 
 The dialog also shows the invite as a QR code and as text:
 
@@ -64,8 +78,10 @@ everything: what the phone changed, where it got to, what it is about to ring.
 The PC does all of it in one transaction: drift guard, merge, record the
 handoff acknowledgements, evaluate at `pcNow`, answer.
 
-**Cursors.** Each side keeps `pulled_upto` (how far it has read the peer) and
-`pushed_upto` (how far the peer has acknowledged its own rows). A page is
+**Cursors.** Each side keeps `pulled_upto` (how far it has stored the peer's
+rows) and `pushed_upto` (how far the peer has acknowledged its own rows). The
+server moves them on too (`Peer::note_served`) with the same meaning, so two
+PCs that sync each other in both directions share one pair of cursors. A page is
 **1000 rows**; while `pull.more` is set the foreground app syncs again straight
 away, and a receiver takes one page and leaves the rest to the next check-in.
 
@@ -74,6 +90,11 @@ id. They would be no-ops after merge, but they double the traffic of every
 sync, and a row that comes back is written again locally only if it changes
 something (`seq` moves only on real change) — so an echo cannot start a
 ping-pong either way.
+
+**Echoes in a mesh.** Rows written by a third device are not left out, which
+is how they reach PCs that aren't paired with their author. When one comes
+back round a cycle of PCs it changes nothing, `seq` stays put, and it goes no
+further.
 
 **Drift guard.** A push stamped more than **24 hours** from the PC's clock is
 refused with `clockDrift` rather than merged into the future. Between 30 s and
@@ -85,6 +106,42 @@ response when the requesting phone's `appVer` is older, compared number by
 number so 0.10.0 beats 0.9.0. The phone checks the SHA-256 before handing the
 file to Android's installer, and nothing downloads or installs without the
 user asking.
+
+## Between PCs
+
+A PC's request also says whether someone is at it, which is what marks it as a
+PC, and carries what it knows of the mesh; the response answers in kind. A
+phone's requests and responses never carry these fields.
+
+```jsonc
+// request, besides the fields above
+"attended": false,
+"presence": [{"deviceId":"…","attendedAt":1789500000000}],
+"dueItems": [{"item":"…","occurrence":…,"at":1789499990000}]
+
+// response, besides the fields above
+"presence": [...],
+"acks": [{"item":"…","occurrence":…,"at":…}]
+```
+
+- **Presence** is the last moment each PC itself saw someone at it. A PC lists
+  itself while attended, plus every other PC it heard about in the last
+  **35 s**, and never the PC it is talking to. Relayed entries keep their
+  original time, so a PC that was left drops out everywhere once the 35 s pass,
+  rather than being kept alive by PCs echoing it to each other.
+- **Acks** are the phone's handoff acknowledgements, passed on with the time
+  the first PC heard them (`at`). For each item the latest occurrence, then
+  the latest ack of it, wins.
+- **`attended`** in any response, to a phone too, means someone is at this PC
+  or at another PC heard from in the last 35 s.
+
+PCs sync with each other straight away after a local change or when someone
+arrives or leaves, and every **10 s** otherwise; one that doesn't answer is
+left for 30 s.
+
+Phones stay clients. A phone paired with several PCs checks in with the one
+that answered most recently, and after a failure tries a different one next
+time.
 
 ## Merge rules
 
@@ -103,8 +160,12 @@ History rows are append-only and unioned by id.
 
 ## Handoff
 
+Only a PC someone is at rings. An unattended PC stays quiet while another PC
+has reported someone at it within the last 35 s, however long that goes on.
+
 Before every alert it is about to raise **or suppress**, the phone lists that
-occurrence in `dueItems`. The PC records an acknowledgement per item.
+occurrence in `dueItems`. The PC records an acknowledgement per item and
+passes it on to the other PCs.
 
 An ack **covers** a ring when all of these hold:
 
@@ -114,13 +175,15 @@ An ack **covers** a ring when all of these hold:
   (`phone_grace_s`).
 
 With that, an unattended PC shows one silent toast and waits. Without it, the
-PC stays quiet until **120 s** after the item was due (`fail_loud_after_s`) and
-then rings properly — Dun would rather be annoying than silent. Acks resuming
+PC stays quiet until **120 s** after the item was due, or after the last
+attended PC was left if that is later (`fail_loud_after_s`), and then rings
+properly — Dun would rather be annoying than silent. Acks resuming
 put it back to deferred, and the moment someone touches the PC every deferred
 item rings at once.
 
 The phone's side of the same rule: stay quiet only while the PC says
-`attended` **and** lists that occurrence in `ringingSoon` (which looks 5 s
+`attended` (someone is at it or at another PC) **and** lists that occurrence
+in `ringingSoon` (which looks 5 s
 ahead). Anything else — including not reaching the PC at all — means the phone
 rings.
 
@@ -137,13 +200,14 @@ rings.
 | `clockDrift` | 400 | Pushed rows more than a day from the PC's clock |
 | `badRequest` | 400 | Malformed request |
 
-## Reaching the PC
+## Reaching a PC
 
 The phone tries its `last_ok_addr` first, then the rest of the PC's addresses
 staggered 300 ms apart, with a 1.5 s connect timeout and 3.5 s for the whole
 attempt (4 s hard budget in the receiver, well inside Android's 10 s). Every
 response refreshes the address list, so a PC that moves between Wi-Fi, Ethernet
-and Tailscale is followed automatically.
+and Tailscale is followed automatically. A PC syncing with another PC reaches
+it the same way.
 
 When a check-in fails with unpushed changes, a WorkManager job retries until it
 gets through.

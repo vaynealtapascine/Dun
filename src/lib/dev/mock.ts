@@ -142,7 +142,8 @@ export function installMockBackend() {
     addrs: ["192.168.1.10", "100.64.0.2"],
     fingerprint: "ab".repeat(32),
     peers: [
-      { deviceId: "phone-1", name: "Pixel 8", pairedAt: now - 3 * 86_400_000, lastSeenAt: now - 4 * MIN },
+      { deviceId: "phone-1", name: "Pixel 8", isPc: false, pairedAt: now - 3 * 86_400_000, lastSeenAt: now - 4 * MIN },
+      { deviceId: "pc-2", name: "LAPTOP-7Q2", isPc: true, pairedAt: now - 86_400_000, lastSeenAt: now - 8_000 },
     ],
     pairing: null,
     publicNetworks: [],
@@ -332,6 +333,13 @@ export function installMockBackend() {
       case "pairing_close":
         sync.pairing = null;
         return null;
+      case "pairing_join":
+        if (!String(a.invite).startsWith("dun://pair?")) throw new Error("That doesn't look like a Dun pairing code");
+        sync.peers = [
+          ...sync.peers,
+          { deviceId: "pc-3", name: "OFFICE-PC", isPc: true, pairedAt: Date.now(), lastSeenAt: Date.now() },
+        ];
+        return "OFFICE-PC";
       case "forget_peer":
         sync.peers = sync.peers.filter((p) => p.deviceId !== a.deviceId);
         return null;

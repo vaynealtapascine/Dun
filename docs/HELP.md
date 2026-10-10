@@ -62,30 +62,38 @@ the device is back and says so — "missed at 4:05 PM", or "missed 3 times since
 are newly missed, the two newest ring on their own and the rest are collapsed
 into one summary you can snooze in a single tap.
 
-## PC and phone together
+## PCs and phone together
 
-Pair them and both show one list, syncing directly over your network — nothing
-goes to a server on the internet.
+Pair them and they all show one list, syncing directly over your network —
+nothing goes to a server on the internet.
 
 1. On the PC: **Settings → Sync**, turn it on (Windows asks once for permission
-   to accept connections), then **Pair a phone…**
+   to accept connections), then **Pair a device…**
 2. On the phone: **Settings → Sync with your PC**, and either scan the QR code
    or paste the link shown under "Can't scan?".
 
 The code is good for five minutes and works once.
 
+**More than one PC.** Turn sync on on the second PC too, choose **Join another
+PC…**, and paste the link from the first PC's **Pair a device…** dialog (under
+"Can't scan?"). Either PC can then reach the other, and every PC passes
+everything on, so a third PC only needs pairing with one that's already set up.
+The phone only needs pairing with one PC.
+
 **Which one rings?** Whichever is more likely to reach you:
 
-- You're at the PC → the PC rings, and the phone stays quiet.
-- You're away, locked, or idle for more than five minutes → the phone rings.
+- You're at a PC → that PC rings. PCs nobody is at, and the phone, stay quiet.
+- You're at two PCs at once → both ring.
+- You're away from every PC (locked, or idle for more than five minutes) → the
+  phone rings.
 - The phone can't be reached, or hasn't confirmed it is covering the reminder →
-  the PC rings anyway, two minutes after the item was due. Dun would rather be
-  annoying than silent.
+  the PCs ring anyway, two minutes after the item was due, or two minutes after
+  you left the last PC. Dun would rather be annoying than silent.
 
-Done on the phone stops the PC within seconds. Done on the PC clears the phone
-by its next nag.
+Done anywhere stops the PCs within seconds. Done on a PC clears the phone by its
+next nag.
 
-### If the phone never gets through
+### If a device never gets through
 
 - **Windows firewall.** Dun adds its own rule, but only for networks Windows
   considers *private*. If Settings says your network is set to Public, open

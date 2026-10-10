@@ -13,7 +13,7 @@
   let copied = $state(false);
 
   // Whoever pairs shows up in `status.peers`; one more than when this dialog
-  // opened means the phone got through. Must be state, or the count it's
+  // opened means the device got through. Must be state, or the count it's
   // compared against never updates.
   const pairedCount = $derived(status?.peers.length ?? 0);
   let countAtOpen = $state<number | null>(null);
@@ -52,10 +52,10 @@
   }
 </script>
 
-<Modal bind:open title="Pair your phone">
+<Modal bind:open title="Pair a device">
   {#if justPaired}
     <div class="done">
-      <p class="big">Paired with {status?.peers.at(-1)?.name ?? "your phone"}.</p>
+      <p class="big">Paired with {status?.peers.at(-1)?.name ?? "your device"}.</p>
       <p class="muted">Reminders, timers and settings will keep in step whenever both are on the same network.</p>
     </div>
   {:else if pairing}
@@ -63,6 +63,10 @@
       <li>Open Dun on your phone and tap <strong>Pair with a PC</strong>.</li>
       <li>Scan this code, or type the six digits.</li>
     </ol>
+    <p class="muted another">
+      Another PC? In its <strong>Settings → Sync</strong>, choose <strong>Join another PC</strong> and paste the link
+      under “Can't scan?”.
+    </p>
 
     <div class="qr" class:expired>
       <!-- Generated locally by Dun, not user content. -->
@@ -85,7 +89,7 @@
 
     <details>
       <summary>Can't scan?</summary>
-      <p class="muted">Paste this into the phone's pairing screen:</p>
+      <p class="muted">Paste this into the phone's pairing screen, or another PC's Join dialog:</p>
       <div class="link">
         <code>{pairing.uri}</code>
         <button class="btn" onclick={copyLink}>{copied ? "Copied" : "Copy"}</button>
@@ -138,6 +142,10 @@
     font-weight: 700;
     letter-spacing: 0.12em;
     font-variant-numeric: tabular-nums;
+  }
+  .another {
+    margin: 0;
+    font-size: 0.85rem;
   }
   .timing,
   .addrs {

@@ -92,6 +92,8 @@ impl Backend for TestPc {
             addrs: vec!["127.0.0.1".into()],
             skew_warning: None,
             update: None,
+            acks: vec![],
+            presence: vec![],
         })
     }
 }
@@ -105,6 +107,8 @@ fn request() -> SyncRequest {
         due_items: vec![],
         app_ver: "test".into(),
         schema_ver: 1,
+        attended: None,
+        presence: vec![],
     }
 }
 
@@ -134,6 +138,7 @@ async fn pair_ok(running: &Running) -> String {
             code: running.pc.code(),
             device_id: "phone".into(),
             name: "Pixel".into(),
+            back: None,
         },
     )
     .await
@@ -181,6 +186,7 @@ async fn a_wrong_code_is_refused_and_the_right_one_works_only_once() {
             code: "000000".into(),
             device_id: "phone".into(),
             name: "Pixel".into(),
+            back: None,
         },
     )
     .await
@@ -192,6 +198,7 @@ async fn a_wrong_code_is_refused_and_the_right_one_works_only_once() {
         code,
         device_id: "phone".into(),
         name: "Pixel".into(),
+        back: None,
     };
     assert!(client::pair(
         &running.identity.fingerprint(),
@@ -225,6 +232,7 @@ async fn pairing_is_closed_unless_the_dialog_is_open() {
             code: "123456".into(),
             device_id: "phone".into(),
             name: "Pixel".into(),
+            back: None,
         },
     )
     .await

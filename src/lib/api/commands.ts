@@ -65,6 +65,8 @@ export const api = {
     invoke<void>("sync_set_enabled", { enabled, skipFirewall }),
   pairingOpen: () => invoke<PairingView>("pairing_open"),
   pairingClose: () => invoke<void>("pairing_close"),
+  /** Pairs with another PC from its invite; resolves to that PC's name. */
+  pairingJoin: (invite: string) => invoke<string>("pairing_join", { invite }),
   forgetPeer: (deviceId: string) => invoke<void>("forget_peer", { deviceId }),
 };
 

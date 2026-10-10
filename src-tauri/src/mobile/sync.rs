@@ -63,12 +63,10 @@ fn has_unpushed(engine: &Engine, peer: &Peer) -> bool {
     engine.store().seq() > peer.pushed_upto
 }
 
-/// The paired PC, if this phone has one.
+/// The paired PC to check in with, if this phone has one. With several, any
+/// of them will do: PCs pass everything on to each other.
 pub fn paired_pc(peers: &Peers) -> Option<Peer> {
-    peers
-        .iter()
-        .find(|p| p.token.is_some() && p.fingerprint.is_some())
-        .cloned()
+    peers.best_pc().cloned()
 }
 
 /// Announces `due`, pushes local changes, merges whatever comes back, and
@@ -142,11 +140,18 @@ pub fn check_in(
     let response = match response {
         Ok(response) => response,
         Err(e) => {
+            let _ = crate::mobile::core::with_engine(data_dir, |engine| {
+                let mut peers = engine.peers();
+                if let Some(stored) = peers.get_mut(&peer.device_id) {
+                    stored.last_failed_at = Some(now);
+                }
+                let _ = engine.save_peers(&peers);
+            });
             return CheckIn {
                 pending_push: true,
                 note: format!("no PC: {e}"),
                 ..Default::default()
-            }
+            };
         }
     };
 

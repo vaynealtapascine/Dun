@@ -1,16 +1,25 @@
-//! Sync on the PC: the server's lifecycle, pairing, and the bridge between
-//! an HTTPS request and the engine.
+//! Sync on the PC: the server's lifecycle, pairing, the bridge between an
+//! HTTPS request and the engine, and the loop that keeps this PC in step with
+//! the other PCs it is paired with.
+//!
+//! Every PC listens; a PC paired with another PC also syncs with it as a
+//! client, so either can start an exchange and rows reach PCs that are only
+//! paired through a third. Phones only ever connect in.
 
-use std::collections::BTreeMap;
+use std::collections::HashMap;
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex};
+use std::time::{Duration, Instant};
 
-use dun_core::scheduler::Ack;
+use dun_core::sync::mesh::Mesh;
 use dun_core::sync::peers::Peer;
-use dun_core::sync::protocol::{PairRequest, PairResponse, SyncRequest, SyncResponse, PORT};
+use dun_core::sync::protocol::{
+    PairBack, PairRequest, PairResponse, SyncRequest, SyncResponse, PORT,
+};
 use dun_core::sync::session::{self, ServerView};
 use dun_core::time::Timestamp;
 use dun_sync::cert::Identity;
+use dun_sync::client::SyncClient;
 use dun_sync::pairing::{self, PairError, Pairing, PairingInvite};
 use dun_sync::server::{Backend, Refusal, Server};
 
@@ -23,14 +32,23 @@ use crate::app_core::AppCore;
 /// Device-local setting: whether the server should be listening.
 const ENABLED_KEY: &str = "syncEnabled";
 
+/// How often this PC syncs with each paired PC when nothing has changed, so
+/// presence stays fresh (see `PRESENCE_FRESH_MS`).
+const PC_SYNC_EVERY: Duration = Duration::from_secs(10);
+/// How long to leave a PC that didn't answer before trying it again.
+const PC_RETRY_AFTER: Duration = Duration::from_secs(30);
+/// Pages taken from one PC in one go before giving the others a turn.
+const MAX_PAGES: usize = 20;
+
 pub struct SyncHub<R: Runtime> {
     app: AppHandle<R>,
     core: Arc<AppCore>,
     identity: Identity,
     server: Mutex<Option<Server>>,
     pairing: Mutex<Option<Pairing>>,
-    /// Handoff acknowledgements from the phone, read by the scheduler loop.
-    acks: Arc<Mutex<BTreeMap<String, Ack>>>,
+    /// Handoff acknowledgements and other PCs' presence, read by the
+    /// scheduler loop.
+    mesh: Arc<Mutex<Mesh>>,
     attended: AtomicBool,
     /// Mirrors how many peers are stored, so the scheduler can ask without
     /// taking the engine lock it already holds.
@@ -44,6 +62,8 @@ pub struct SyncHub<R: Runtime> {
 pub struct PeerView {
     pub device_id: String,
     pub name: String,
+    /// A PC this one syncs with in both directions, rather than a phone.
+    pub is_pc: bool,
     pub paired_at: Timestamp,
     pub last_seen_at: Option<Timestamp>,
 }
@@ -85,7 +105,7 @@ impl<R: Runtime> SyncHub<R> {
             identity,
             server: Mutex::new(None),
             pairing: Mutex::new(None),
-            acks: Arc::new(Mutex::new(BTreeMap::new())),
+            mesh: Arc::new(Mutex::new(Mesh::default())),
             attended: AtomicBool::new(true),
             paired_count: AtomicUsize::new(0),
             updates: Updates::default(),
@@ -94,8 +114,8 @@ impl<R: Runtime> SyncHub<R> {
         Ok(hub)
     }
 
-    pub fn acks(&self) -> Arc<Mutex<BTreeMap<String, Ack>>> {
-        self.acks.clone()
+    pub fn mesh(&self) -> Arc<Mutex<Mesh>> {
+        self.mesh.clone()
     }
 
     pub fn set_attended(&self, attended: bool) {
@@ -194,6 +214,10 @@ impl<R: Runtime> SyncHub<R> {
             engine.save_peers(&peers).map_err(|e| e.to_string())?;
         }
         drop(engine);
+        self.mesh
+            .lock()
+            .unwrap_or_else(|p| p.into_inner())
+            .forget(device_id);
         self.refresh_paired_count();
         self.notify();
         Ok(())
@@ -213,6 +237,7 @@ impl<R: Runtime> SyncHub<R> {
                 .map(|p| PeerView {
                     device_id: p.device_id.clone(),
                     name: p.name.clone(),
+                    is_pc: is_pc(p),
                     paired_at: p.paired_at,
                     last_seen_at: p.last_seen_at,
                 })
@@ -261,6 +286,244 @@ impl<R: Runtime> SyncHub<R> {
             .app
             .emit(crate::commands::STATE_CHANGED, self.core.snapshot_json());
     }
+
+    /// Joins another PC from its pairing invite. This PC sends a token of its
+    /// own along, so from then on either PC can start a sync.
+    pub fn join(self: &Arc<Self>, invite: &str) -> Result<String, String> {
+        let invite =
+            PairingInvite::parse(invite).ok_or("That doesn't look like a Dun pairing code")?;
+        if !self.enabled() {
+            return Err("Turn on sync first, so the other PC can reach this one too".into());
+        }
+        let device_id = self.core.engine().device_id().to_string();
+        if invite.pc_device_id == device_id {
+            return Err("That's this PC's own pairing code".into());
+        }
+        self.start()?;
+
+        let back_token = pairing::new_token();
+        let mut request = invite.request(&device_id, &pc_name());
+        request.back = Some(PairBack {
+            token: back_token.clone(),
+            fingerprint: self.identity.fingerprint(),
+            addrs: local_addrs(),
+            port: PORT,
+        });
+
+        let runtime = client_runtime().map_err(|e| e.to_string())?;
+        let mut last_error = "no addresses to try".to_string();
+        let mut paired = None;
+        for addr in &invite.addrs {
+            let attempt = runtime.block_on(dun_sync::client::pair(
+                &invite.fingerprint,
+                addr,
+                invite.port,
+                &request,
+            ));
+            match attempt {
+                Ok(response) => {
+                    paired = Some((addr.clone(), response));
+                    break;
+                }
+                Err(e) => last_error = e.to_string(),
+            }
+        }
+        let (addr, response) = paired.ok_or(last_error)?;
+
+        let now = self.core.now();
+        let mut engine = self.core.engine();
+        let mut peers = engine.peers();
+        let mut peer = Peer::new(&response.pc_device_id, &response.pc_name, now);
+        peer.token = Some(response.token);
+        peer.token_hash = Some(pairing::token_hash(&back_token));
+        peer.fingerprint = Some(invite.fingerprint);
+        peer.addrs = invite.addrs;
+        peer.port = invite.port;
+        peer.last_ok_addr = Some(addr);
+        peers.upsert(peer);
+        engine.save_peers(&peers).map_err(|e| e.to_string())?;
+        drop(engine);
+
+        self.refresh_paired_count();
+        self.notify();
+        Ok(response.pc_name)
+    }
+
+    /// Starts the loop that syncs with every paired PC.
+    pub fn spawn_pc_sync(self: &Arc<Self>) {
+        let hub = self.clone();
+        let spawned = std::thread::Builder::new()
+            .name("dun-pc-sync".into())
+            .spawn(move || hub.run_pc_sync());
+        if let Err(e) = spawned {
+            eprintln!("sync: couldn't start syncing with other PCs: {e}");
+        }
+    }
+
+    fn run_pc_sync(&self) {
+        let runtime = match client_runtime() {
+            Ok(runtime) => runtime,
+            Err(e) => {
+                eprintln!("sync: no runtime for syncing with other PCs: {e}");
+                return;
+            }
+        };
+
+        #[derive(Default)]
+        struct Round {
+            next_at: Option<Instant>,
+            /// The local `seq` at the last successful sync. Compared with
+            /// the store rather than the peer's cursor, which can stay just
+            /// behind it for good when the newest rows came from that peer.
+            synced_seq: i64,
+            sent_attended: Option<bool>,
+            failing: bool,
+        }
+        let mut rounds: HashMap<String, Round> = HashMap::new();
+
+        loop {
+            std::thread::sleep(Duration::from_secs(1));
+            if !self.listening() {
+                continue;
+            }
+            let attended = self.attended.load(Ordering::Relaxed);
+            let (pcs, seq) = {
+                let engine = self.core.engine();
+                let pcs: Vec<Peer> = engine
+                    .peers()
+                    .iter()
+                    .filter(|p| is_pc(p))
+                    .cloned()
+                    .collect();
+                (pcs, engine.store().seq())
+            };
+            rounds.retain(|id, _| pcs.iter().any(|p| &p.device_id == id));
+
+            for peer in pcs {
+                let round = rounds.entry(peer.device_id.clone()).or_default();
+                let now = Instant::now();
+                let scheduled = round.next_at.is_none_or(|at| now >= at);
+                // Changes, and someone arriving or leaving, go out straight
+                // away, unless the PC has stopped answering.
+                let urgent = !round.failing
+                    && (seq > round.synced_seq || round.sent_attended != Some(attended));
+                if !(scheduled || urgent) {
+                    continue;
+                }
+
+                match self.sync_with_pc(&runtime, &peer.device_id, attended) {
+                    Ok(()) => {
+                        if round.failing {
+                            eprintln!("sync: {} is reachable again", peer.name);
+                        }
+                        round.failing = false;
+                        round.synced_seq = seq;
+                        round.sent_attended = Some(attended);
+                        round.next_at = Some(now + PC_SYNC_EVERY);
+                    }
+                    Err(e) => {
+                        if !round.failing {
+                            eprintln!("sync: couldn't sync with {}: {e}", peer.name);
+                        }
+                        round.failing = true;
+                        round.next_at = Some(now + PC_RETRY_AFTER);
+                    }
+                }
+            }
+        }
+    }
+
+    /// One full exchange with another PC, page after page until it has
+    /// nothing more. The engine lock is never held across the network.
+    fn sync_with_pc(
+        &self,
+        runtime: &tokio::runtime::Runtime,
+        device_id: &str,
+        attended: bool,
+    ) -> Result<(), String> {
+        for _ in 0..MAX_PAGES {
+            // Lock order everywhere: engine first, then mesh.
+            let (peer, request) = {
+                let engine = self.core.engine();
+                let peer = engine
+                    .peers()
+                    .get(device_id)
+                    .cloned()
+                    .ok_or("no longer paired")?;
+                let mesh = self.mesh.lock().unwrap_or_else(|p| p.into_inner());
+                let request = session::build_pc_request(
+                    &engine,
+                    &mesh,
+                    attended,
+                    device_id,
+                    peer.pulled_upto,
+                    peer.pushed_upto,
+                    self.core.now(),
+                )
+                .map_err(|e| e.to_string())?;
+                (peer, request)
+            };
+            let (Some(token), Some(fingerprint)) = (peer.token.clone(), peer.fingerprint.clone())
+            else {
+                return Err("paired one way only".into());
+            };
+
+            let mut addrs = peer.addrs.clone();
+            if let Some(last) = peer.last_ok_addr.clone() {
+                addrs.retain(|a| *a != last);
+                addrs.insert(0, last);
+            }
+            let client = SyncClient::new(&fingerprint, token, addrs, peer.port)
+                .map_err(|e| e.to_string())?;
+            let response = runtime
+                .block_on(client.sync(&request))
+                .map_err(|e| e.to_string())?;
+
+            let now = self.core.now();
+            let mut engine = self.core.engine();
+            let cursors = session::apply_response(&mut engine, &request, &response, now)
+                .map_err(|e| e.to_string())?;
+            session::apply_mesh(
+                &engine,
+                &mut self.mesh.lock().unwrap_or_else(|p| p.into_inner()),
+                &response,
+                now,
+            );
+            let mut peers = engine.peers();
+            if let Some(stored) = peers.get_mut(device_id) {
+                // An exchange the other way may have moved these on while
+                // this request was in flight.
+                stored.pulled_upto = stored.pulled_upto.max(cursors.pulled_upto);
+                stored.pushed_upto = stored.pushed_upto.max(cursors.pushed_upto);
+                stored.last_seen_at = Some(now);
+                stored.last_ok_addr = client.last_ok_addr();
+                if !response.addrs.is_empty() {
+                    stored.addrs = response.addrs.clone();
+                }
+            }
+            let _ = engine.save_peers(&peers);
+            drop(engine);
+
+            if !response.pull.registers.is_empty() || !response.pull.history.is_empty() {
+                self.after_merge();
+            }
+            if !cursors.more {
+                return Ok(());
+            }
+        }
+        Ok(())
+    }
+}
+
+/// A PC this one can sync with, as opposed to a phone that only connects in.
+fn is_pc(peer: &Peer) -> bool {
+    peer.token.is_some() && peer.fingerprint.is_some()
+}
+
+fn client_runtime() -> std::io::Result<tokio::runtime::Runtime> {
+    tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .build()
 }
 
 impl<R: Runtime> Backend for SyncHub<R> {
@@ -274,7 +537,7 @@ impl<R: Runtime> Backend for SyncHub<R> {
         let pc_device_id = self.core.engine().device_id().to_string();
         let (response, paired) = pairing::accept(pairing, &request, now, &pc_device_id, &pc_name())
             .map_err(|e| Refusal::new(403, e.body()))?;
-        // One code, one phone: close the dialog as soon as it's used.
+        // One code, one device: close the dialog as soon as it's used.
         *open = None;
         drop(open);
 
@@ -283,6 +546,13 @@ impl<R: Runtime> Backend for SyncHub<R> {
         let mut peer = Peer::new(&paired.device_id, &paired.name, now);
         peer.token_hash = Some(paired.token_hash);
         peer.last_seen_at = Some(now);
+        // Another PC: keep what it sent, so this PC can sync with it in turn.
+        if let Some(back) = paired.back {
+            peer.token = Some(back.token);
+            peer.fingerprint = Some(back.fingerprint);
+            peer.addrs = back.addrs;
+            peer.port = back.port;
+        }
         peers.upsert(peer);
         engine.save_peers(&peers).map_err(|e| {
             Refusal::new(
@@ -312,21 +582,19 @@ impl<R: Runtime> Backend for SyncHub<R> {
             tz: &tz,
             update: self.offered().map(|a| a.offer),
         };
-        let mut acks = self.acks.lock().unwrap_or_else(|p| p.into_inner());
-        let response = session::handle_sync(&mut engine, &request, now, &view, &mut acks)
+        let mut mesh = self.mesh.lock().unwrap_or_else(|p| p.into_inner());
+        let response = session::handle_sync(&mut engine, &request, now, &view, &mut mesh)
             .map_err(|e| Refusal::new(400, e.body()))?;
-        drop(acks);
+        drop(mesh);
 
         let mut peers = engine.peers();
         if let Some(peer) = peers.get_mut(&peer_id) {
-            peer.pulled_upto = response.pull.new_pulled_upto.max(peer.pulled_upto);
-            peer.pushed_upto = request.push.max_seq.max(peer.pushed_upto);
-            peer.last_seen_at = Some(now);
+            peer.note_served(&request, now);
         }
         let _ = engine.save_peers(&peers);
         drop(engine);
 
-        // A phone's Done should stop this PC nagging within seconds.
+        // A Done elsewhere should stop this PC nagging within seconds.
         self.after_merge();
         Ok(response)
     }

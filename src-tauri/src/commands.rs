@@ -480,7 +480,7 @@ pub fn sync_status<R: Runtime>(_app: AppHandle<R>, hub: Hub<'_, R>) -> SyncStatu
     hub.status()
 }
 
-/// Starts or stops listening for the phone.
+/// Starts or stops listening for other devices.
 #[tauri::command]
 pub fn sync_set_enabled<R: Runtime>(
     _app: AppHandle<R>,
@@ -500,6 +500,20 @@ pub fn pairing_open<R: Runtime>(_app: AppHandle<R>, hub: Hub<'_, R>) -> CmdResul
 #[tauri::command]
 pub fn pairing_close<R: Runtime>(_app: AppHandle<R>, hub: Hub<'_, R>) {
     hub.close_pairing();
+}
+
+/// Pairs with another PC from its pairing invite, so the two sync both ways.
+/// Blocking network work, so it runs off the main thread.
+#[tauri::command]
+pub async fn pairing_join<R: Runtime>(
+    _app: AppHandle<R>,
+    hub: Hub<'_, R>,
+    invite: String,
+) -> CmdResult<String> {
+    let hub = Arc::clone(&hub);
+    tauri::async_runtime::spawn_blocking(move || hub.join(&invite))
+        .await
+        .map_err(|e| e.to_string())?
 }
 
 #[tauri::command]

@@ -236,6 +236,7 @@ fn handoff_round_trip_between_engines() {
             Role::Hub {
                 attended: false,
                 acks: &acks,
+                peer_attended_at: None,
             },
         )
         .unwrap();
@@ -256,6 +257,7 @@ fn handoff_round_trip_between_engines() {
             Role::Hub {
                 attended: true,
                 acks: &acks,
+                peer_attended_at: None,
             },
         )
         .unwrap();

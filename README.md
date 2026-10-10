@@ -8,7 +8,7 @@ Inspired by Due for iOS.
 
 - Runs in the Windows tray and starts at login. Timers and reminders survive reboots.
 - Snooze from the notification (Done · +1m · +5m · +15m on Windows).
-- An Android build shares the same list with the PC over your LAN or Tailscale, with no cloud. The PC rings while you're at it; otherwise the phone does.
+- Several PCs and an Android phone share the same list over your LAN or Tailscale, with no cloud. Whichever PC you're at rings; when you're at none of them, the phone does.
 
 > Status: in development, and usable. Everything above works on Windows and on
 > Android, including pairing and two-way sync.

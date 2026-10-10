@@ -134,6 +134,8 @@ export type LocalSettings = {
 export type PeerView = {
   deviceId: string;
   name: string;
+  /** Another PC, which syncs both ways; otherwise a phone. */
+  isPc: boolean;
   pairedAt: Ms;
   lastSeenAt: Ms | null;
 };

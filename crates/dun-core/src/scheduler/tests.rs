@@ -532,7 +532,11 @@ fn a_few_missed_rings_alert_individually() {
 // ---- handoff ----
 
 fn hub(attended: bool, acks: &BTreeMap<String, Ack>) -> Role<'_> {
-    Role::Hub { attended, acks }
+    Role::Hub {
+        attended,
+        acks,
+        peer_attended_at: None,
+    }
 }
 
 #[test]
@@ -664,6 +668,67 @@ fn attended_pc_or_disabled_handoff_rings_normally() {
         alerts(&h.eval_as(hub(false, &no_acks))),
         [("a", AlertLevel::Full)]
     );
+}
+
+fn hub_with_peer(attended: bool, acks: &BTreeMap<String, Ack>, at: Timestamp) -> Role<'_> {
+    Role::Hub {
+        attended,
+        acks,
+        peer_attended_at: Some(at),
+    }
+}
+
+#[test]
+fn an_unattended_pc_stays_quiet_while_another_pc_is_attended() {
+    let mut h = Harness::at(date(2026, 9, 16).at(9, 0, 0, 0));
+    let due = h.now;
+    h.create("a", reminder("Pay rent", due));
+    let no_acks = BTreeMap::new();
+
+    // Someone is at the other PC, so that one rings and this one waits,
+    // well past the point where it would otherwise fail loud.
+    for _ in 0..10 {
+        let e = h.eval_as(hub_with_peer(false, &no_acks, h.now));
+        assert_eq!(chimes(&e), 0);
+        assert!(alerts(&e)
+            .iter()
+            .all(|(_, level)| *level == AlertLevel::Silent));
+        h.advance(30 * SECOND);
+    }
+
+    // The other PC was left. The phone gets the usual time to take over,
+    // counted from then rather than from when the item was due.
+    let left_at = h.now;
+    h.advance(PRESENCE_FRESH_MS + 60 * SECOND);
+    assert!(alerts(&h.eval_as(hub_with_peer(false, &no_acks, left_at))).is_empty());
+    h.now = left_at.plus(PRESENCE_FRESH_MS + 120 * SECOND);
+    assert_eq!(
+        alerts(&h.eval_as(hub_with_peer(false, &no_acks, left_at))),
+        [("a", AlertLevel::Full)],
+        "nobody anywhere: ring anyway"
+    );
+}
+
+#[test]
+fn every_attended_pc_rings_whatever_the_others_are_doing() {
+    let mut h = Harness::at(date(2026, 9, 16).at(9, 0, 0, 0));
+    h.create("a", reminder("x", h.now));
+    let no_acks = BTreeMap::new();
+    assert_eq!(
+        alerts(&h.eval_as(hub_with_peer(true, &no_acks, h.now))),
+        [("a", AlertLevel::Full)]
+    );
+}
+
+#[test]
+fn a_stale_report_from_another_pc_changes_nothing() {
+    let mut h = Harness::at(date(2026, 9, 16).at(9, 0, 0, 0));
+    let due = h.now;
+    h.create("a", reminder("x", due));
+    let no_acks = BTreeMap::new();
+    let yesterday = due.minus(24 * 60 * MINUTE);
+    let e = h.eval_as(hub_with_peer(false, &no_acks, yesterday));
+    assert_eq!(wake(&e), Some(due.plus(120 * SECOND)));
 }
 
 #[test]

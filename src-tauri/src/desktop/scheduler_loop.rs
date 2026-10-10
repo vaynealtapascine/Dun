@@ -75,16 +75,17 @@ fn run<R: Runtime>(
         let attended = super::attended::is_attended(local.idle_threshold_s);
         sync.set_attended(attended);
 
-        // Lock order everywhere: engine first, then acks (see desktop::sync).
+        // Lock order everywhere: engine first, then mesh (see desktop::sync).
         let effects = {
             let mut engine = core.engine();
             let handoff = engine.state().settings.handoff.enabled;
-            let acks = sync.acks();
-            let acks = acks.lock().unwrap_or_else(|p| p.into_inner());
+            let mesh = sync.mesh();
+            let mesh = mesh.lock().unwrap_or_else(|p| p.into_inner());
             let role = if handoff && !sync.peers_empty() {
                 Role::Hub {
                     attended,
-                    acks: &acks,
+                    acks: &mesh.acks,
+                    peer_attended_at: mesh.peer_attended_at(),
                 }
             } else {
                 Role::Solo

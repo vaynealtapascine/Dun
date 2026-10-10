@@ -11,9 +11,10 @@
 //! 1. **Quiet hours** (unless the item is exempt): hold until they end.
 //! 2. **Mute**: show once silently, hold until mute ends.
 //! 3. **Role**:
-//!    - *Hub* (PC with a paired phone), unattended: defer to the phone while
-//!      it confirms it is covering the ring; otherwise defer until
-//!      `fail_loud_after`, then ring anyway.
+//!    - *Hub* (PC with paired devices), unattended: stay quiet while another
+//!      PC is attended, since that one rings; otherwise defer to the phone
+//!      while it confirms it is covering the ring, or until `fail_loud_after`
+//!      (counted from when the last PC was left), then ring anyway.
 //!    - *Phone*: stay quiet while the PC is attended and already ringing this
 //!      occurrence; otherwise ring.
 //!    - *Solo*: ring.
@@ -45,6 +46,10 @@ pub const SUMMARY_KEEP_INDIVIDUAL: usize = 2;
 /// Clock disagreement tolerated when matching a phone's acknowledgement.
 pub const ACK_SKEW_MS: i64 = 30 * SECOND;
 
+/// How long a PC's "someone is here" stays believable without being renewed.
+/// PCs sync every few seconds, so this is several missed rounds.
+pub const PRESENCE_FRESH_MS: i64 = 35 * SECOND;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub enum Hold {
@@ -52,7 +57,7 @@ pub enum Hold {
     Quiet,
     /// Waiting for mute to end.
     Mute,
-    /// PC unattended; the phone is (or may be) handling this ring.
+    /// PC unattended; another PC or the phone is (or may be) handling this ring.
     Handoff,
 }
 
@@ -100,10 +105,12 @@ pub struct PcView {
 pub enum Role<'a> {
     /// No paired phone: ring normally.
     Solo,
-    /// The PC with a paired phone.
+    /// A PC with paired devices.
     Hub {
         attended: bool,
         acks: &'a BTreeMap<String, Ack>,
+        /// The last moment another PC was known to be attended.
+        peer_attended_at: Option<Timestamp>,
     },
     /// The phone. `pc` is `None` when the PC couldn't be reached.
     Phone { pc: Option<&'a PcView> },
@@ -280,10 +287,20 @@ impl Scheduler {
                     Decision::HoldMute(settings.mute_until.unwrap_or(now))
                 } else {
                     match role {
-                        Role::Hub { acks, .. } if deferring => {
+                        Role::Hub {
+                            acks,
+                            peer_attended_at,
+                            ..
+                        } if deferring => {
                             let h = settings.handoff;
                             let grace = i64::from(h.phone_grace_s) * SECOND;
-                            let fail_at = rs.rings_at.plus(i64::from(h.fail_loud_after_s) * SECOND);
+                            // Only attended PCs ring. Once the last one is left,
+                            // the phone gets the usual time to take over.
+                            let peer_until = peer_attended_at.map(|at| at.plus(PRESENCE_FRESH_MS));
+                            let fail_at = rs
+                                .rings_at
+                                .max(peer_until.unwrap_or(Timestamp::MIN))
+                                .plus(i64::from(h.fail_loud_after_s) * SECOND);
                             let covered_until = acks
                                 .get(&item.id)
                                 .filter(|a| {
@@ -297,8 +314,10 @@ impl Scheduler {
                                         a.at.plus(interval_ms + grace)
                                     }
                                 });
-                            match covered_until {
-                                Some(until) if now < until => Decision::Defer(until),
+                            match (peer_until, covered_until) {
+                                (Some(until), _) | (_, Some(until)) if now < until => {
+                                    Decision::Defer(until)
+                                }
                                 _ if now < fail_at => Decision::Defer(fail_at),
                                 _ => Decision::Full,
                             }

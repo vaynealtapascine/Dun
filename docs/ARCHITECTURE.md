@@ -2,8 +2,9 @@
 
 Dun is one Svelte UI and one Rust core, wrapped twice: a Tauri desktop app on
 Windows and a Tauri Android app that also runs from broadcast receivers with no
-Activity in sight. The PC is the hub; the phone is a peer that syncs with it
-directly over the LAN.
+Activity in sight. Every PC is a node that listens and also syncs with the PCs
+it is paired with; the phone is a client that syncs with any one PC directly
+over the LAN.
 
 ```
  Svelte 5 (src/)                      one UI, two shells
@@ -41,8 +42,8 @@ the shells carry effects out. That is what makes ring cadence, missed-ring
 collapsing, quiet hours, mute and handoff testable with a fake clock and no
 platform at all (`crates/dun-core/src/scheduler/tests.rs`).
 
-`Role` decides who is expected to ring: `Solo`, `Hub` (a PC with a paired
-phone) or `Phone`.
+`Role` decides who is expected to ring: `Solo`, `Hub` (a PC with paired
+devices, told whether another PC is attended) or `Phone`.
 
 ## Storage: registers, not rows
 
@@ -83,7 +84,7 @@ missed-ring path.
 
 Each wake also polls whether someone is there (`attended.rs`: session lock state
 from WTS plus `GetLastInputInfo`), which is what the Hub role turns into a
-decision to ring or to let the phone do it.
+decision to ring or to let another PC or the phone do it.
 
 Windows notifications (`toast/`, `toasts.rs`) are raw WinRT: an HKCU
 `AppUserModelId`, a `CLSID\LocalServer32` entry and a registered COM activator,
@@ -129,11 +130,23 @@ SHA-256 certificate pinning (`pin.rs`), pairing codes and tokens
 that races the PC's known addresses (`client.rs`).
 
 What a sync *means* lives in `dun-core/src/sync/session.rs`, so both sides are
-tested against two real engines with no sockets at all
-(`crates/dun-sync/tests/two_engines.rs`).
+tested against real engines with no sockets at all, including three PCs where
+only two pairs are connected; `crates/dun-sync/tests/two_engines.rs` repeats
+the important cases over TLS.
+
+PCs form a mesh. A PC paired with another PC holds both halves of the pairing
+(the token it checks and the token it sends), and `desktop/sync.rs` runs a
+loop that syncs with each of them: straight away when something changed
+locally or someone arrived or left, every 10 s otherwise. Rows pass on through
+whichever PCs are paired, because echo suppression only leaves out rows the
+receiving device wrote itself, and `seq` moves only on a real change, so a
+cycle of PCs settles instead of passing the same row round forever. Presence
+and handoff acknowledgements travel the same way (`sync/mesh.rs`) but are not
+stored.
 
 The server owns its own Tokio runtime; it is started from Tauri's setup thread,
-where no runtime is running.
+where no runtime is running. The PC loop has a runtime of its own on its own
+thread, and like the phone it never holds the engine lock across the network.
 
 ## Time
 

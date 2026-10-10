@@ -153,6 +153,7 @@ pub fn run() {
                 }
             }
             app.manage(sync.clone());
+            sync.spawn_pc_sync();
 
             let audio = desktop::audio::Audio::start(dir.join("sounds"));
             app.manage(audio.clone());
@@ -207,6 +208,7 @@ pub fn run() {
             commands::sync_set_enabled,
             commands::pairing_open,
             commands::pairing_close,
+            commands::pairing_join,
             commands::forget_peer,
             commands::integration_status,
             commands::integration_set_enabled,

@@ -70,7 +70,11 @@ pub fn handle_event(
         let due: Vec<DueItem> = engine
             .due_for_alert(now, &tz)
             .into_iter()
-            .map(|(item, occurrence)| DueItem { item, occurrence })
+            .map(|(item, occurrence)| DueItem {
+                item,
+                occurrence,
+                at: None,
+            })
             .collect();
         let peer = sync::paired_pc(&engine.peers());
         let needs_sync = peer

@@ -1,9 +1,14 @@
-//! The wire protocol between the phone (client) and the PC (server).
+//! The wire protocol between a device (client) and a PC (server).
 //!
 //! `POST /v1/pair` runs once, while the Pairing dialog is open, and trades a
 //! short code for a token. `POST /v1/sync` then carries everything else: the
-//! phone pushes what it changed, pulls what it hasn't seen, tells the PC which
-//! occurrences it is about to alert, and learns whether the PC is attended.
+//! client pushes what it changed, pulls what it hasn't seen, tells the PC which
+//! occurrences it is about to alert, and learns whether anyone is at a PC.
+//!
+//! Every PC is a server, and a PC paired with another PC is also its client,
+//! so PCs form a mesh: rows pass through whichever PCs are paired, and
+//! presence and handoff acknowledgements travel with them (see `sync::mesh`).
+//! Phones are clients only.
 //!
 //! Both sides are the same version of Dun in practice, but every response
 //! carries the PC's clock so the phone can warn about drift, and unknown
@@ -35,6 +40,20 @@ pub struct PairRequest {
     pub device_id: String,
     /// Shown in the PC's device list, e.g. "Pixel 8".
     pub name: String,
+    /// Sent by a PC joining another PC, so the pairing works both ways: the
+    /// PC that showed the code can then sync with the one that typed it.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub back: Option<PairBack>,
+}
+
+/// How to reach the device that is pairing, and the token to use when doing so.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PairBack {
+    pub token: String,
+    pub fingerprint: String,
+    pub addrs: Vec<String>,
+    pub port: u16,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -53,6 +72,18 @@ pub struct PairResponse {
 pub struct DueItem {
     pub item: String,
     pub occurrence: Timestamp,
+    /// When a PC first heard the acknowledgement, if it is being passed on
+    /// between PCs. A phone leaves it out and the receiving PC uses its clock.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub at: Option<Timestamp>,
+}
+
+/// The last moment a PC was known to have someone at it.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Presence {
+    pub device_id: String,
+    pub attended_at: Timestamp,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
@@ -87,6 +118,13 @@ pub struct SyncRequest {
     pub due_items: Vec<DueItem>,
     pub app_ver: String,
     pub schema_ver: i64,
+    /// Whether someone is at the client. Only a PC sends it, and it is what
+    /// marks the request as coming from a PC rather than a phone.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub attended: Option<bool>,
+    /// PCs the client knows to be attended, itself included.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub presence: Vec<Presence>,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
@@ -110,7 +148,8 @@ pub struct SyncResponse {
     pub acked_upto: i64,
     #[serde(default)]
     pub pull: Pull,
-    /// Someone is at the PC, so the phone can stay quiet.
+    /// Someone is at this PC or another one it has heard from recently, so the
+    /// phone can stay quiet.
     pub attended: bool,
     /// What the PC is ringing (or about to).
     #[serde(default)]
@@ -124,6 +163,12 @@ pub struct SyncResponse {
     /// A newer Android build this PC is holding, when the phone is behind.
     #[serde(default)]
     pub update: Option<UpdateOffer>,
+    /// Handoff acknowledgements this PC holds, for a PC client to adopt.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub acks: Vec<DueItem>,
+    /// PCs this one knows to be attended, for a PC client to adopt.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub presence: Vec<Presence>,
 }
 
 /// An Android package the PC will serve, offered to a phone running something
@@ -201,15 +246,21 @@ mod tests {
             due_items: vec![DueItem {
                 item: "a".into(),
                 occurrence: Timestamp(1_789_500_060_000),
+                at: None,
             }],
             app_ver: "0.1.0".into(),
             schema_ver: 1,
+            attended: None,
+            presence: vec![],
         };
         let json = serde_json::to_value(&request).unwrap();
         assert_eq!(json["deviceId"], "phone");
         assert_eq!(json["pulledUpto"], 42);
         assert_eq!(json["push"]["maxSeq"], 7);
         assert_eq!(json["dueItems"][0]["occurrence"], 1_789_500_060_000i64);
+        // A phone's request looks exactly as it did before PCs could pair.
+        assert!(json["dueItems"][0].get("at").is_none());
+        assert!(json.get("attended").is_none() && json.get("presence").is_none());
         assert_eq!(
             serde_json::from_value::<SyncRequest>(json).unwrap(),
             request
@@ -225,6 +276,7 @@ mod tests {
         .unwrap();
         assert!(request.push.is_empty());
         assert!(request.due_items.is_empty());
+        assert_eq!(request.attended, None);
 
         let response: SyncResponse =
             serde_json::from_str(r#"{"pcNow":2,"ackedUpto":0,"attended":true,"unknownField":5}"#)
@@ -232,6 +284,11 @@ mod tests {
         assert!(response.attended);
         assert_eq!(response.pull, Pull::default());
         assert_eq!(response.skew_warning, None);
+        assert!(response.acks.is_empty() && response.presence.is_empty());
+
+        let pair: PairRequest =
+            serde_json::from_str(r#"{"code":"123456","deviceId":"phone","name":"Pixel"}"#).unwrap();
+        assert_eq!(pair.back, None);
     }
 }
 

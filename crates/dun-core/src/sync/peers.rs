@@ -39,6 +39,10 @@ pub struct Peer {
     pub last_ok_addr: Option<String>,
     #[serde(default)]
     pub last_seen_at: Option<Timestamp>,
+    /// Phone side: the last time this PC didn't answer, so a phone paired
+    /// with several PCs tries another one next.
+    #[serde(default)]
+    pub last_failed_at: Option<Timestamp>,
 }
 
 impl Peer {
@@ -60,7 +64,21 @@ impl Peer {
             pushed_upto: 0,
             last_ok_addr: None,
             last_seen_at: None,
+            last_failed_at: None,
         }
+    }
+}
+
+impl Peer {
+    /// Moves the cursors on after serving this peer's sync request, to the
+    /// same meaning they have when this device is the client, so a PC that
+    /// syncs both ways picks up where either direction left off: everything
+    /// it pushed is now merged here, and it says it has stored ours up to
+    /// its `pulled_upto`.
+    pub fn note_served(&mut self, request: &crate::sync::protocol::SyncRequest, now: Timestamp) {
+        self.pulled_upto = self.pulled_upto.max(request.push.max_seq);
+        self.pushed_upto = self.pushed_upto.max(request.pulled_upto);
+        self.last_seen_at = Some(now);
     }
 }
 
@@ -99,6 +117,26 @@ impl Peers {
         self.0
             .iter()
             .find(|p| p.token_hash.as_deref().is_some_and(|h| matches(token, h)))
+    }
+
+    /// The PC a phone should check in with: one that answered last time,
+    /// most recently heard from first. When every PC failed last time, the
+    /// one that failed longest ago, so the phone works its way round them.
+    pub fn best_pc(&self) -> Option<&Peer> {
+        self.0
+            .iter()
+            .filter(|p| p.token.is_some() && p.fingerprint.is_some())
+            .max_by_key(|p| {
+                let failed = p.last_failed_at.is_some_and(|f| Some(f) >= p.last_seen_at);
+                (
+                    !failed,
+                    if failed {
+                        p.last_failed_at.map(|f| -f.0)
+                    } else {
+                        p.last_seen_at.map(|s| s.0)
+                    },
+                )
+            })
     }
 
     pub fn is_empty(&self) -> bool {
@@ -151,6 +189,36 @@ mod tests {
         assert!(peers.remove("phone"));
         assert!(!peers.remove("phone"));
         assert!(peers.is_empty());
+    }
+
+    fn pc(id: &str, seen: Option<i64>, failed: Option<i64>) -> Peer {
+        let mut peer = Peer::new(id, id, T);
+        peer.token = Some("token".into());
+        peer.fingerprint = Some("fp".into());
+        peer.last_seen_at = seen.map(|ms| T.plus(ms));
+        peer.last_failed_at = failed.map(|ms| T.plus(ms));
+        peer
+    }
+
+    #[test]
+    fn a_phone_checks_in_with_the_pc_it_heard_from_last_and_moves_on_when_it_fails() {
+        let best = |peers: &Peers| peers.best_pc().map(|p| p.device_id.clone());
+        let mut peers = Peers::default();
+        assert_eq!(best(&peers), None);
+
+        peers.upsert(Peer::new("phone-only", "Not a PC", T));
+        assert_eq!(best(&peers), None, "a record without a token is no PC");
+
+        peers.upsert(pc("desk", Some(10), None));
+        peers.upsert(pc("laptop", Some(20), None));
+        assert_eq!(best(&peers).as_deref(), Some("laptop"));
+
+        peers.upsert(pc("laptop", Some(20), Some(30)));
+        assert_eq!(best(&peers).as_deref(), Some("desk"));
+
+        // Both failing: try the one that failed longest ago.
+        peers.upsert(pc("desk", Some(10), Some(40)));
+        assert_eq!(best(&peers).as_deref(), Some("laptop"));
     }
 
     #[test]

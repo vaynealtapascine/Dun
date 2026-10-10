@@ -1,14 +1,16 @@
 //! Two real engines syncing over TLS: the whole stack except the Tauri glue.
 
-use std::collections::BTreeMap;
 use std::sync::{Arc, Mutex};
 
 use dun_core::actions::ItemDraft;
 use dun_core::engine::Engine;
 use dun_core::model::Schedule;
 use dun_core::scheduler::{Ack, Effect, Role};
+use dun_core::sync::mesh::Mesh;
 use dun_core::sync::peers::{Peer, Peers};
-use dun_core::sync::protocol::{DueItem, PairRequest, PairResponse, SyncRequest, SyncResponse};
+use dun_core::sync::protocol::{
+    DueItem, PairBack, PairRequest, PairResponse, SyncRequest, SyncResponse,
+};
 use dun_core::sync::session::{self, Cursors, ServerView};
 use dun_core::time::{resolve, TimeZone, Timestamp, MINUTE, SECOND};
 use dun_sync::cert::Identity;
@@ -24,18 +26,22 @@ struct Pc {
     engine: Mutex<Engine>,
     peers: Mutex<Peers>,
     pairing: Mutex<Option<Pairing>>,
-    acks: Mutex<BTreeMap<String, Ack>>,
+    mesh: Mutex<Mesh>,
     now: Mutex<Timestamp>,
     attended: Mutex<bool>,
 }
 
 impl Pc {
     fn new(now: Timestamp) -> Arc<Pc> {
+        Pc::named("pc", now)
+    }
+
+    fn named(id: &str, now: Timestamp) -> Arc<Pc> {
         Arc::new(Pc {
-            engine: Mutex::new(Engine::open_in_memory_as("pc").unwrap()),
+            engine: Mutex::new(Engine::open_in_memory_as(id).unwrap()),
             peers: Mutex::new(Peers::default()),
             pairing: Mutex::new(Some(Pairing::open(now))),
-            acks: Mutex::new(BTreeMap::new()),
+            mesh: Mutex::new(Mesh::default()),
             now: Mutex::new(now),
             attended: Mutex::new(false),
         })
@@ -61,41 +67,52 @@ impl Backend for Pc {
         let now = *self.now.lock().unwrap();
         let mut open = self.pairing.lock().unwrap();
         let pairing = open.as_mut().ok_or_else(Refusal::unauthorized)?;
-        let (response, paired) = pairing::accept(pairing, &request, now, "pc", "Desk PC")
+        let id = self.engine.lock().unwrap().device_id().to_string();
+        let (response, paired) = pairing::accept(pairing, &request, now, &id, "Desk PC")
             .map_err(|e| Refusal::new(403, e.body()))?;
         *open = None;
 
         let mut peer = Peer::new(&paired.device_id, &paired.name, now);
         peer.token_hash = Some(paired.token_hash);
+        if let Some(back) = paired.back {
+            peer.token = Some(back.token);
+            peer.fingerprint = Some(back.fingerprint);
+            peer.addrs = back.addrs;
+            peer.port = back.port;
+        }
         self.peers.lock().unwrap().upsert(peer);
         Ok(response)
     }
 
     fn sync(&self, token: &str, request: SyncRequest) -> Result<SyncResponse, Refusal> {
         let now = *self.now.lock().unwrap();
-        if self
+        let Some(peer_id) = self
             .peers
             .lock()
             .unwrap()
             .by_token(token, pairing::token_matches)
-            .is_none()
-        {
+            .map(|p| p.device_id.clone())
+        else {
             return Err(Refusal::unauthorized());
-        }
+        };
         let view = ServerView {
             attended: *self.attended.lock().unwrap(),
             addrs: vec!["127.0.0.1".into()],
             tz: &UTC,
             update: None,
         };
-        session::handle_sync(
+        let response = session::handle_sync(
             &mut self.engine.lock().unwrap(),
             &request,
             now,
             &view,
-            &mut self.acks.lock().unwrap(),
+            &mut self.mesh.lock().unwrap(),
         )
-        .map_err(|e| Refusal::new(400, e.body()))
+        .map_err(|e| Refusal::new(400, e.body()))?;
+        if let Some(peer) = self.peers.lock().unwrap().get_mut(&peer_id) {
+            peer.note_served(&request, now);
+        }
+        Ok(response)
     }
 }
 
@@ -160,6 +177,7 @@ async fn paired(now: Timestamp) -> (Arc<Pc>, Phone, Server) {
             code: pc.code(),
             device_id: "phone".into(),
             name: "Pixel".into(),
+            back: None,
         },
     )
     .await
@@ -275,6 +293,7 @@ async fn the_phone_covers_a_ring_while_the_pc_is_unattended() {
             vec![DueItem {
                 item: id.clone(),
                 occurrence: t0,
+                at: None,
             }],
         )
         .await;
@@ -283,13 +302,14 @@ async fn the_phone_covers_a_ring_while_the_pc_is_unattended() {
         response.ringing_soon,
         [DueItem {
             item: id.clone(),
-            occurrence: t0
+            occurrence: t0,
+            at: None,
         }]
     );
 
     // The check-in landed as a handoff acknowledgement, stamped with the PC's
     // clock rather than the phone's.
-    let acks = pc.acks.lock().unwrap().clone();
+    let acks = pc.mesh.lock().unwrap().acks.clone();
     assert_eq!(
         acks.get(&id),
         Some(&Ack {
@@ -311,6 +331,7 @@ async fn the_phone_covers_a_ring_while_the_pc_is_unattended() {
             Role::Hub {
                 attended: false,
                 acks: &acks,
+                peer_attended_at: None,
             },
         )
         .unwrap();
@@ -321,4 +342,122 @@ async fn the_phone_covers_a_ring_while_the_pc_is_unattended() {
         !full,
         "a covering phone should keep the PC quiet, got {effects:?}"
     );
+}
+
+impl Pc {
+    /// One sync with another PC as its client, as the desktop's PC loop does.
+    async fn sync_with(&self, other: &str, now: Timestamp) -> SyncResponse {
+        let peer = self.peers.lock().unwrap().get(other).cloned().unwrap();
+        let client = SyncClient::new(
+            peer.fingerprint.as_deref().unwrap(),
+            peer.token.clone().unwrap(),
+            peer.addrs.clone(),
+            peer.port,
+        )
+        .unwrap();
+        let attended = *self.attended.lock().unwrap();
+        let request = session::build_pc_request(
+            &self.engine.lock().unwrap(),
+            &self.mesh.lock().unwrap(),
+            attended,
+            other,
+            peer.pulled_upto,
+            peer.pushed_upto,
+            now,
+        )
+        .unwrap();
+        let response = client.sync(&request).await.expect("sync should succeed");
+        let mut engine = self.engine.lock().unwrap();
+        let cursors = session::apply_response(&mut engine, &request, &response, now).unwrap();
+        session::apply_mesh(&engine, &mut self.mesh.lock().unwrap(), &response, now);
+        let mut peers = self.peers.lock().unwrap();
+        let stored = peers.get_mut(other).unwrap();
+        stored.pulled_upto = stored.pulled_upto.max(cursors.pulled_upto);
+        stored.pushed_upto = stored.pushed_upto.max(cursors.pushed_upto);
+        response
+    }
+}
+
+#[tokio::test]
+async fn two_pcs_pair_once_and_then_either_can_start_a_sync() {
+    let t0 = resolve(date(2026, 9, 16).at(9, 0, 0, 0), &UTC);
+    let desk = Pc::named("desk", t0);
+    let desk_id = Identity::generate().unwrap();
+    let desk_server = Server::start(desk.clone(), &desk_id, 0).unwrap();
+    let laptop = Pc::named("laptop", t0);
+    let laptop_id = Identity::generate().unwrap();
+    let laptop_server = Server::start(laptop.clone(), &laptop_id, 0).unwrap();
+
+    // The laptop joins the desk's invite, leaving a way back.
+    let back_token = pairing::new_token();
+    let mut request = pairing::PairingInvite {
+        pc_device_id: "desk".into(),
+        pc_name: "Desk PC".into(),
+        port: desk_server.port(),
+        addrs: vec!["127.0.0.1".into()],
+        fingerprint: desk_id.fingerprint(),
+        code: desk.code(),
+    }
+    .request("laptop", "Laptop");
+    request.back = Some(PairBack {
+        token: back_token.clone(),
+        fingerprint: laptop_id.fingerprint(),
+        addrs: vec!["127.0.0.1".into()],
+        port: laptop_server.port(),
+    });
+    let response = client::pair(
+        &desk_id.fingerprint(),
+        "127.0.0.1",
+        desk_server.port(),
+        &request,
+    )
+    .await
+    .unwrap();
+    let mut desk_on_laptop = Peer::new("desk", "Desk PC", t0);
+    desk_on_laptop.token = Some(response.token);
+    desk_on_laptop.token_hash = Some(pairing::token_hash(&back_token));
+    desk_on_laptop.fingerprint = Some(desk_id.fingerprint());
+    desk_on_laptop.addrs = vec!["127.0.0.1".into()];
+    desk_on_laptop.port = desk_server.port();
+    laptop.peers.lock().unwrap().upsert(desk_on_laptop);
+
+    let on_desk = desk
+        .engine
+        .lock()
+        .unwrap()
+        .create_item(t0, reminder("From the desk", t0.plus(MINUTE)))
+        .unwrap();
+    let on_laptop = laptop
+        .engine
+        .lock()
+        .unwrap()
+        .create_item(t0, reminder("From the laptop", t0.plus(MINUTE)))
+        .unwrap();
+
+    // The desk starts this one, which it could not do with a phone.
+    *desk.attended.lock().unwrap() = true;
+    desk.sync_with("laptop", t0.plus(SECOND)).await;
+    assert!(laptop
+        .engine
+        .lock()
+        .unwrap()
+        .state()
+        .items
+        .contains_key(&on_desk));
+    assert!(desk
+        .engine
+        .lock()
+        .unwrap()
+        .state()
+        .items
+        .contains_key(&on_laptop));
+    assert_eq!(
+        laptop.mesh.lock().unwrap().peer_attended_at(),
+        Some(t0.plus(SECOND)),
+        "the laptop knows someone is at the desk"
+    );
+
+    // And the other way round, with nothing left to send.
+    let quiet = laptop.sync_with("desk", t0.plus(2 * SECOND)).await;
+    assert!(quiet.pull.registers.is_empty() && quiet.pull.history.is_empty());
 }

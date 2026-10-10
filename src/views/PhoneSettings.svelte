@@ -165,7 +165,7 @@
     {/if}
   {:else}
     <p class="hint muted">
-      On the PC open <strong>Settings → Sync → Pair a phone</strong>, then paste the link shown under “Can't scan?”.
+      On the PC open <strong>Settings → Sync → Pair a device</strong>, then paste the link shown under “Can't scan?”.
     </p>
     <label class="field">
       <span>Pairing link</span>

@@ -3,8 +3,12 @@
 //! The code is only accepted while the Pairing dialog is open, for five
 //! minutes, five tries, and once. The token is random and the PC stores only
 //! its hash, so a stolen database can't be used to sync.
+//!
+//! A PC joining another PC mints a token of its own and sends it along with
+//! its certificate and addresses ([`PairBack`]), so after one pairing either
+//! PC can start a sync with the other.
 
-use dun_core::sync::protocol::{error, ErrorBody, PairRequest, PairResponse, PORT};
+use dun_core::sync::protocol::{error, ErrorBody, PairBack, PairRequest, PairResponse, PORT};
 use dun_core::time::Timestamp;
 use sha2::{Digest, Sha256};
 
@@ -201,17 +205,20 @@ impl PairingInvite {
             code: self.code.clone(),
             device_id: device_id.to_string(),
             name: name.to_string(),
+            back: None,
         }
     }
 }
 
-/// The PC's side of a successful pairing: what to remember about the phone.
+/// The PC's side of a successful pairing: what to remember about the device.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PairedPeer {
     pub device_id: String,
     pub name: String,
     pub token_hash: String,
     pub paired_at: Timestamp,
+    /// How to sync with it in turn, when it is a PC.
+    pub back: Option<PairBack>,
 }
 
 /// Completes pairing: checks the code, mints a token, and returns what each
@@ -230,6 +237,10 @@ pub fn accept(
         name: request.name.clone(),
         token_hash: token_hash(&token),
         paired_at: now,
+        back: request
+            .back
+            .clone()
+            .filter(|b| b.fingerprint.len() == 64 && !b.token.is_empty()),
     };
     Ok((
         PairResponse {
@@ -321,12 +332,44 @@ mod tests {
             code: pairing.code().to_string(),
             device_id: "phone".into(),
             name: "Pixel 8".into(),
+            back: None,
         };
         let (response, peer) = accept(&mut pairing, &request, T, "pc", "Desk PC").unwrap();
         assert_eq!(peer.device_id, "phone");
         assert_eq!(response.pc_name, "Desk PC");
         assert!(token_matches(&response.token, &peer.token_hash));
         assert!(!peer.token_hash.contains(&response.token));
+        assert_eq!(peer.back, None, "a phone can't be synced with");
+    }
+
+    #[test]
+    fn a_pc_joining_leaves_a_way_back() {
+        let mut pairing = Pairing::open(T);
+        let back = PairBack {
+            token: new_token(),
+            fingerprint: "b".repeat(64),
+            addrs: vec!["192.168.1.11".into()],
+            port: PORT,
+        };
+        let mut request = PairingInvite {
+            pc_device_id: "pc".into(),
+            pc_name: "Desk PC".into(),
+            port: PORT,
+            addrs: vec!["192.168.1.10".into()],
+            fingerprint: "a".repeat(64),
+            code: pairing.code().to_string(),
+        }
+        .request("laptop", "Laptop");
+        request.back = Some(back.clone());
+        let (_, peer) = accept(&mut pairing, &request, T, "pc", "Desk PC").unwrap();
+        assert_eq!(peer.back, Some(back));
+
+        // Without a certificate to pin, there is no safe way back.
+        let mut pairing = Pairing::open(T);
+        request.code = pairing.code().to_string();
+        request.back.as_mut().unwrap().fingerprint = "short".into();
+        let (_, peer) = accept(&mut pairing, &request, T, "pc", "Desk PC").unwrap();
+        assert_eq!(peer.back, None);
     }
 
     #[test]
