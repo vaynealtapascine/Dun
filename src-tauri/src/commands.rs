@@ -3,7 +3,7 @@
 
 use std::sync::Arc;
 
-use dun_core::actions::{ItemDraft, PresetDraft};
+use dun_core::actions::{CountdownDraft, ItemDraft, PresetDraft};
 use dun_core::engine::Engine;
 use dun_core::model::item::setting_key;
 use dun_core::model::{HandoffSettings, Nag};
@@ -217,6 +217,27 @@ pub fn save_tag<R: Runtime>(
 #[tauri::command]
 pub fn delete_tag<R: Runtime>(app: AppHandle<R>, core: Core<'_>, id: String) -> CmdResult<()> {
     mutate(&app, &core, |e, now, _| e.delete_tag(now, &id))
+}
+
+#[tauri::command]
+pub fn save_countdown<R: Runtime>(
+    app: AppHandle<R>,
+    core: Core<'_>,
+    id: Option<String>,
+    draft: CountdownDraft,
+) -> CmdResult<String> {
+    mutate(&app, &core, |e, now, _| {
+        e.save_countdown(now, id.as_deref(), draft)
+    })
+}
+
+#[tauri::command]
+pub fn delete_countdown<R: Runtime>(
+    app: AppHandle<R>,
+    core: Core<'_>,
+    id: String,
+) -> CmdResult<()> {
+    mutate(&app, &core, |e, now, _| e.delete_countdown(now, &id))
 }
 
 fn parse<T: DeserializeOwned>(value: serde_json::Value) -> CmdResult<T> {

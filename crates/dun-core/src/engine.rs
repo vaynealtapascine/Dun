@@ -5,7 +5,7 @@
 
 use std::path::Path;
 
-use crate::actions::{self, ActionError, Change, ItemDraft, PresetDraft};
+use crate::actions::{self, ActionError, Change, CountdownDraft, ItemDraft, PresetDraft};
 use crate::backup::{self, Backup, BackupError, ImportMode, ImportReport};
 use crate::scheduler::{Effect, Role, Scheduler};
 use crate::state::State;
@@ -103,7 +103,7 @@ impl Engine {
         let outcome = self.store.merge(now, regs, history)?;
         let mut settings_changed = false;
         for (entity, id) in &outcome.changed {
-            if *entity == Entity::Setting {
+            if *entity == Entity::Setting && id == field::SETTINGS_ID {
                 settings_changed = true;
                 continue;
             }
@@ -280,6 +280,25 @@ impl Engine {
 
     pub fn delete_tag(&mut self, now: Timestamp, id: &str) -> Result<()> {
         let change = actions::delete_tag(&self.state, id)?;
+        self.apply(now, change).map(|_| ())
+    }
+
+    // ---- countdowns ----
+
+    pub fn save_countdown(
+        &mut self,
+        now: Timestamp,
+        id: Option<&str>,
+        draft: CountdownDraft,
+    ) -> Result<String> {
+        let id = id.map_or_else(crate::ids::new_id, str::to_owned);
+        let change = actions::save_countdown(&self.state, &id, draft)?;
+        self.apply(now, change)?;
+        Ok(id)
+    }
+
+    pub fn delete_countdown(&mut self, now: Timestamp, id: &str) -> Result<()> {
+        let change = actions::delete_countdown(&self.state, id)?;
         self.apply(now, change).map(|_| ())
     }
 

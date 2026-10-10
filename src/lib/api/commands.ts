@@ -3,6 +3,7 @@ import type {
   ChimeOption,
   ImportReport,
   ChimeRef,
+  CountdownDraft,
   HistoryRow,
   ItemDraft,
   LocalSettings,
@@ -39,6 +40,9 @@ export const api = {
   saveTag: (id: string | null, name: string, color: string, order: number) =>
     invoke<string>("save_tag", { id, name, color, order }),
   deleteTag: (id: string) => invoke<void>("delete_tag", { id }),
+
+  saveCountdown: (id: string | null, draft: CountdownDraft) => invoke<string>("save_countdown", { id, draft }),
+  deleteCountdown: (id: string) => invoke<void>("delete_countdown", { id }),
 
   setSetting: <K extends keyof Settings>(key: K, value: Settings[K]) => invoke<void>("set_setting", { key, value }),
   muteFor: (minutes: number) => invoke<void>("mute", { minutes, untilTomorrow: false }),

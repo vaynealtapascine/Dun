@@ -22,6 +22,8 @@
     history: "M3.5 12A8.5 8.5 0 1 0 6 6M3 3v4h4M12 8v4l3 2",
     edit: "M4 20h4L19 9l-4-4L4 16v4ZM13.5 6.5l4 4",
     moon: "M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5Z",
+    pin: "M9 3h6l-1 7 3.5 3.5h-11L10 10 9 3ZM12 13.5V21",
+    calendar: "M4 6h16v14H4zM4 10h16M8 3v4M16 3v4",
   } as const;
 
   export type IconName = keyof typeof PATHS;

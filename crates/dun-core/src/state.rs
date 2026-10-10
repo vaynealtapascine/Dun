@@ -1,4 +1,5 @@
-//! In-memory projection of registers into items, tags, presets and settings.
+//! In-memory projection of registers into items, tags, presets, countdowns
+//! and settings.
 //!
 //! A register whose value doesn't parse (a newer peer's format, corruption)
 //! leaves that field at its default and is counted in
@@ -10,7 +11,8 @@ use serde::de::DeserializeOwned;
 use serde::Serialize;
 
 use crate::model::item::setting_key;
-use crate::model::{Item, Preset, Settings, Tag};
+use crate::model::{Countdown, Item, Preset, Settings, Tag};
+use crate::sync::rows::countdown_of;
 use crate::sync::{field, Entity, Reg};
 
 #[derive(Debug, Clone, Default, PartialEq, Serialize)]
@@ -19,6 +21,7 @@ pub struct State {
     pub items: BTreeMap<String, Item>,
     pub tags: BTreeMap<String, Tag>,
     pub presets: BTreeMap<String, Preset>,
+    pub countdowns: BTreeMap<String, Countdown>,
     pub settings: Settings,
     /// Registers skipped because their value couldn't be read.
     pub unreadable: usize,
@@ -66,7 +69,16 @@ impl State {
                 });
                 apply_preset(preset, r)
             }
-            Entity::Setting => apply_setting(&mut self.settings, r),
+            Entity::Setting => match r.countdown() {
+                Some(id) => {
+                    let countdown = self
+                        .countdowns
+                        .entry(id.to_owned())
+                        .or_insert_with(|| Countdown::new(id));
+                    apply_countdown(countdown, r)
+                }
+                None => apply_setting(&mut self.settings, r),
+            },
         };
         if !ok {
             self.unreadable += 1;
@@ -86,7 +98,12 @@ impl State {
             Entity::Preset => {
                 self.presets.remove(id);
             }
-            Entity::Setting => self.settings = Settings::default(),
+            Entity::Setting => match countdown_of(entity, id) {
+                Some(countdown) => {
+                    self.countdowns.remove(countdown);
+                }
+                None => self.settings = Settings::default(),
+            },
         }
         for r in regs {
             self.apply(r);
@@ -148,6 +165,21 @@ fn apply_preset(p: &mut Preset, r: &Reg) -> bool {
         field::TAG => set(&mut p.tag, r),
         field::ORDER => set(&mut p.order, r),
         field::DELETED => set(&mut p.deleted, r),
+        _ => true,
+    }
+}
+
+fn apply_countdown(c: &mut Countdown, r: &Reg) -> bool {
+    match r.field.as_str() {
+        field::TITLE => set(&mut c.title, r),
+        field::NOTES => set(&mut c.notes, r),
+        field::DATE => set(&mut c.date, r),
+        field::TIME => set(&mut c.time, r),
+        field::REPEAT => set(&mut c.repeat, r),
+        field::DIRECTION => set(&mut c.direction, r),
+        field::DISPLAY => set(&mut c.display, r),
+        field::PINNED => set(&mut c.pinned, r),
+        field::DELETED => set(&mut c.deleted, r),
         _ => true,
     }
 }
@@ -240,6 +272,40 @@ mod tests {
         assert_eq!(s.settings.mute_until, Some(Timestamp(5_000)));
         assert!(s.settings.quiet_hours.enabled);
         assert_eq!(s.unreadable, 0);
+    }
+
+    #[test]
+    fn countdowns_project_from_setting_ids_apart_from_settings() {
+        let id = field::countdown_id("c");
+        let regs = vec![
+            reg(Entity::Setting, &id, field::TITLE, json!("Mum's birthday")),
+            reg(Entity::Setting, &id, field::DATE, json!("1961-03-14")),
+            reg(Entity::Setting, &id, field::REPEAT, json!("yearly")),
+            reg(
+                Entity::Setting,
+                &id,
+                field::DISPLAY,
+                json!({"size": "large", "icon": "🎂"}),
+            ),
+        ];
+        let mut s = State::from_registers(&regs);
+        let c = &s.countdowns["c"];
+        assert_eq!(c.title, "Mum's birthday");
+        assert_eq!(c.date, Some(jiff::civil::date(1961, 3, 14)));
+        assert_eq!(c.repeat, crate::model::CountdownRepeat::Yearly);
+        assert_eq!(c.display.size, crate::model::CountdownSize::Large);
+        assert_eq!(c.display.icon.as_deref(), Some("🎂"));
+        assert!(c.display.show_date, "missing display fields keep defaults");
+        assert_eq!(s.settings, Settings::default());
+
+        s.settings.mute_until = Some(Timestamp(5));
+        s.replace_entity(Entity::Setting, &id, &regs[..1]);
+        assert_eq!(s.countdowns["c"].date, None);
+        assert_eq!(
+            s.settings.mute_until,
+            Some(Timestamp(5)),
+            "replacing a countdown leaves settings alone"
+        );
     }
 
     #[test]

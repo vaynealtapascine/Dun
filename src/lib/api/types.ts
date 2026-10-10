@@ -80,6 +80,41 @@ export type Preset = {
   deleted: boolean;
 };
 
+export type CountdownRepeat = "none" | "weekly" | "monthly" | "yearly";
+export type CountDirection = "auto" | "until" | "since";
+export type CountUnit = "years" | "months" | "weeks" | "days" | "hours" | "minutes" | "seconds";
+export type CountdownSize = "large" | "medium" | "compact";
+export type CountdownFill = "solid" | "soft" | "outline";
+
+export type CountdownDisplay = {
+  largest: CountUnit;
+  smallest: CountUnit;
+  longUnits: boolean;
+  size: CountdownSize;
+  icon: string | null;
+  color: string | null;
+  fill: CountdownFill;
+  showDate: boolean;
+  showOrdinal: boolean;
+  showProgress: boolean;
+  countFirstDay: boolean;
+};
+
+export type CountdownDraft = {
+  title: string;
+  notes: string;
+  /** "YYYY-MM-DD" */
+  date: string;
+  /** "HH:MM:SS"; counted from midnight when null. */
+  time: string | null;
+  repeat: CountdownRepeat;
+  direction: CountDirection;
+  display: CountdownDisplay;
+  pinned: boolean;
+};
+
+export type Countdown = CountdownDraft & { id: string; deleted: boolean };
+
 export type QuietHours = { enabled: boolean; start: string; end: string };
 
 export type HandoffSettings = { enabled: boolean; failLoudAfterS: number; phoneGraceS: number };
@@ -101,6 +136,7 @@ export type Snapshot = {
   items: ItemView[];
   tags: Tag[];
   presets: Preset[];
+  countdowns: Countdown[];
   settings: Settings;
   summary: string[];
 };

@@ -4,9 +4,9 @@
 
 use std::collections::{BTreeMap, BTreeSet};
 
-use dun_core::actions::ItemDraft;
+use dun_core::actions::{CountdownDraft, ItemDraft};
 use dun_core::engine::Engine;
-use dun_core::model::{Schedule, TimerState};
+use dun_core::model::{CountDirection, CountdownDisplay, CountdownRepeat, Schedule, TimerState};
 use dun_core::scheduler::{ringing_soon, Ack, AlertLevel, Effect, PcView, Role};
 use dun_core::time::{resolve, TimeZone, Timestamp, MINUTE, SECOND};
 use jiff::civil::date;
@@ -321,6 +321,56 @@ fn timers_presets_and_settings_sync() {
     assert_eq!(phone.engine.state().settings.mute_until, None);
     let ids: BTreeSet<_> = phone.engine.state().items.keys().cloned().collect();
     assert_eq!(ids.len(), 1);
+}
+
+#[test]
+fn countdowns_sync_without_touching_settings() {
+    let t0 = resolve(date(2026, 9, 16).at(9, 0, 0, 0), &UTC);
+    let mut pc = device("pc");
+    let mut phone = device("phone");
+
+    pc.engine.mute_for(t0, 15).unwrap();
+    let id = pc
+        .engine
+        .save_countdown(
+            t0,
+            None,
+            CountdownDraft {
+                title: "Moved in".into(),
+                notes: String::new(),
+                date: date(2024, 5, 1),
+                time: None,
+                repeat: CountdownRepeat::Yearly,
+                direction: CountDirection::Since,
+                display: CountdownDisplay::default(),
+                pinned: false,
+            },
+        )
+        .unwrap();
+    both_ways(&mut pc, &mut phone, t0);
+    let c = &phone.engine.state().countdowns[&id];
+    assert_eq!(
+        (c.title.as_str(), c.date, c.repeat, c.direction),
+        (
+            "Moved in",
+            Some(date(2024, 5, 1)),
+            CountdownRepeat::Yearly,
+            CountDirection::Since
+        )
+    );
+    assert_eq!(
+        phone.engine.state().settings.mute_until,
+        Some(t0.plus(15 * MINUTE))
+    );
+
+    phone.engine.delete_countdown(t0.plus(MINUTE), &id).unwrap();
+    both_ways(&mut pc, &mut phone, t0.plus(MINUTE));
+    assert!(pc.engine.state().countdowns[&id].deleted);
+    assert_eq!(
+        pc.engine.state().settings.mute_until,
+        Some(t0.plus(15 * MINUTE)),
+        "a countdown change doesn't reset settings"
+    );
 }
 
 #[test]

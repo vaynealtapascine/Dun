@@ -7,7 +7,7 @@
 
   let rows = $state<HistoryRow[]>([]);
   let error = $state<string | null>(null);
-  let { query = "" }: { query?: string } = $props();
+  let query = $state("");
   let mode = $state<"history" | "archive">("history");
   const archived = $derived((app.snapshot?.archived ?? []).filter((i) => i.title.toLowerCase().includes(query.toLowerCase())));
 
@@ -43,6 +43,11 @@
 </script>
 
 {#if error}<p class="error">{error}</p>{/if}
+
+<label class="search">
+  <Icon name="search" size={18} /><span class="sr-only">Search history</span>
+  <input type="search" placeholder="Search history" bind:value={query} />
+</label>
 
 <div class="segmented" role="group" aria-label="History view">
   <button aria-pressed={mode === "history"} onclick={() => (mode = "history")}>Completed</button>
@@ -101,6 +106,34 @@
 {/if}
 
 <style>
+  .search {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.6rem;
+    padding: 0 0.7rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--bg-raised);
+    color: var(--fg-muted);
+  }
+  .search:focus-within {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+  }
+  .search input {
+    width: 100%;
+    min-width: 0;
+    min-height: var(--hit);
+    padding: 0;
+    border: none;
+    outline: none;
+    background: transparent;
+    color: var(--fg);
+  }
+  .segmented {
+    margin-bottom: 0.6rem;
+  }
   section {
     display: grid;
     gap: 0.4rem;

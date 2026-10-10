@@ -158,6 +158,15 @@ because "newest wins" is the wrong answer for them:
 
 History rows are append-only and unioned by id.
 
+Countdowns are registers on the `setting` entity with the id
+`countdown:<id>` (fields `title`, `notes`, `date`, `time`, `repeat`,
+`direction`, `display`, `pinned`, `deleted`), all last writer wins. They don't
+get an entity of their own because builds before 1.4 reject a sync carrying an
+entity they don't know, but store and pass on setting ids other than `global`.
+So a mixed-version mesh keeps syncing, and the older device relays countdowns
+it can't show. `display` is one register holding the whole look, so a restyle
+on two devices settles on one of them rather than a mix.
+
 ## Handoff
 
 Only a PC someone is at rings. An unattended PC stays quiet while another PC

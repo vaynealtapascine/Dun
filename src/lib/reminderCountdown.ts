@@ -45,7 +45,7 @@ function daysInMonth(year: number, month: number): number {
 }
 
 /** Preserve local clock time and clamp dates such as Jan 31 to February's last day. */
-function addMonths(date: Date, months: number): Date {
+export function addMonths(date: Date, months: number): Date {
   const monthIndex = date.getMonth() + months;
   const year = date.getFullYear() + Math.floor(monthIndex / 12);
   const month = ((monthIndex % 12) + 12) % 12;
@@ -61,7 +61,7 @@ function calendarDay(date: Date): number {
   return civil.getTime() / DAY_MS;
 }
 
-function addDays(date: Date, days: number): Date {
+export function addDays(date: Date, days: number): Date {
   const shifted = new Date(date.getTime());
   shifted.setDate(date.getDate() + days);
   return shifted;

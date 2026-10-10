@@ -149,16 +149,42 @@ reminders use. Put the APK in the PC's `updates` folder (see
 syncing. Tapping it downloads the file and hands it to Android, which asks
 before it installs anything.
 
+## Countdowns
+
+The **Countdowns** tab counts the time until a date, or since one: a trip, a
+birthday, a deadline, how long since you quit something. Countdowns never ring;
+they just keep count, and they sync to your other devices like everything else.
+
+Tap **+** to add one, or tap a countdown to change it. The preview at the top of
+the sheet shows each change as you make it.
+
+- **Repeats** every week, month or year. A month that is too short uses its
+  last day, and Feb 29 falls on Feb 28 in other years.
+- **Count**: **Automatic** counts down until the date and up once it has
+  passed. A repeat counts down to the next one. **Down to it** and **Up from it**
+  pick a direction; on a repeat, **Up from it** counts from the latest one.
+- **Count the date itself as day 1**, for streaks.
+- **Detail** sets the largest and smallest units shown, anywhere from years to
+  seconds. Larger units you leave out are folded in, so "Days" alone reads
+  "412 days". Without a set time, a date counts from midnight; units below a
+  day only matter with a time or when you want it ticking.
+- **Size** (large, card or compact), **icon** (pick one or type any emoji),
+  **color** (a swatch or any color), **fill** (solid, soft or outline), and
+  short or long unit labels.
+- For repeats, an ordinal (**66th**) and a progress bar to the next one.
+- **Pin to the top** to keep one first. Otherwise, upcoming dates come first,
+  soonest first, then past dates, the most recent first.
+
 ## History, undo and backups
 
-The **History** tab lists what you've finished. Undo puts an item back as if it
+**Settings → History** lists what you've finished. Undo puts an item back as if it
 had never been done; Restart runs a timer again from the top.
 
 Swipe an item left and tap **Archive**, or swipe all the way across to archive
 it in one go. On desktop you can drag a row with the mouse or swipe sideways
 with two fingers on a touchpad, or open its **…** actions (right-click).
 Archiving stops its alerts and syncs to the other device. Use
-**Undo** immediately, or **History → Archived → Restore** later. Restoring an
+**Undo** immediately, or **Settings → History → Archived → Restore** later. Restoring an
 overdue item can make it ring again. Previously deleted items also appear here.
 
 Timer and preset names are optional: a blank name becomes **5m timer**, for

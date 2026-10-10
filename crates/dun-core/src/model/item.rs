@@ -1,7 +1,7 @@
 //! Items, tags, presets and synced settings as the rest of the app sees them,
 //! projected from registers.
 
-use jiff::civil::Time;
+use jiff::civil::{Date, Time};
 use serde::{Deserialize, Serialize};
 
 use crate::occurrence::Inputs;
@@ -110,6 +110,138 @@ pub struct Tag {
     pub color: String,
     pub order: i64,
     pub deleted: bool,
+}
+
+/// A date to count the time until or since, like a birthday or the day
+/// something started. It never rings; the UI does all the counting.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Countdown {
+    pub id: String,
+    pub title: String,
+    pub notes: String,
+    /// A civil date, so it means the same day in every time zone. `None`
+    /// until the register arrives (or if a newer peer wrote something else).
+    pub date: Option<Date>,
+    /// Counted from midnight when unset.
+    pub time: Option<Time>,
+    pub repeat: CountdownRepeat,
+    pub direction: CountDirection,
+    pub display: CountdownDisplay,
+    pub pinned: bool,
+    pub deleted: bool,
+}
+
+impl Countdown {
+    pub fn new(id: impl Into<String>) -> Self {
+        Countdown {
+            id: id.into(),
+            title: String::new(),
+            notes: String::new(),
+            date: None,
+            time: None,
+            repeat: CountdownRepeat::None,
+            direction: CountDirection::Auto,
+            display: CountdownDisplay::default(),
+            pinned: false,
+            deleted: false,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum CountdownRepeat {
+    #[default]
+    None,
+    Weekly,
+    Monthly,
+    Yearly,
+}
+
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum CountDirection {
+    /// Down to a date ahead, up from one behind; a repeat counts to the next.
+    #[default]
+    Auto,
+    /// Down to the next occurrence.
+    Until,
+    /// Up from the latest occurrence.
+    Since,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum CountUnit {
+    Years,
+    Months,
+    Weeks,
+    Days,
+    Hours,
+    Minutes,
+    Seconds,
+}
+
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum CountdownSize {
+    Large,
+    #[default]
+    Medium,
+    Compact,
+}
+
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum CountdownFill {
+    #[default]
+    Solid,
+    Soft,
+    Outline,
+}
+
+/// How a countdown looks. One register, so the whole look changes together;
+/// every field has a default so a look written by another version still reads.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(default, rename_all = "camelCase")]
+pub struct CountdownDisplay {
+    /// Largest and smallest units shown, e.g. years down to days.
+    pub largest: CountUnit,
+    pub smallest: CountUnit,
+    /// "3 years 2 months" rather than "3y 2mo".
+    pub long_units: bool,
+    pub size: CountdownSize,
+    /// An emoji or short text shown beside the title.
+    pub icon: Option<String>,
+    /// CSS color of the banner; `None` follows the theme.
+    pub color: Option<String>,
+    pub fill: CountdownFill,
+    pub show_date: bool,
+    /// For repeats: which occurrence this is, e.g. "65th".
+    pub show_ordinal: bool,
+    /// For repeats: how far through the current cycle.
+    pub show_progress: bool,
+    /// Counting up, the date itself is day 1 rather than day 0.
+    pub count_first_day: bool,
+}
+
+impl Default for CountdownDisplay {
+    fn default() -> Self {
+        CountdownDisplay {
+            largest: CountUnit::Days,
+            smallest: CountUnit::Days,
+            long_units: true,
+            size: CountdownSize::Medium,
+            icon: None,
+            color: None,
+            fill: CountdownFill::Solid,
+            show_date: true,
+            show_ordinal: true,
+            show_progress: false,
+            count_first_day: false,
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]

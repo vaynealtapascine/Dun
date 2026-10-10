@@ -18,6 +18,8 @@
   const TAG_COLORS = ["#e0483e", "#f08c2e", "#e8b930", "#3cb371", "#2fa4c9", "#3a86ff", "#8a63d2", "#d05ea0", "#8d8d93"];
   const NAG_INTERVALS = [1, 2, 3, 5, 10, 15, 30, 60];
 
+  let { onhistory }: { onhistory?: () => void } = $props();
+
   const settings = $derived(app.snapshot?.settings);
   const local = $derived(app.local);
   let chimes = $state<ChimeOption[]>([]);
@@ -175,6 +177,14 @@
         <button class="btn" onclick={() => app.run(() => api.muteFor(60))}>1 hour</button>
         <button class="btn" onclick={() => app.run(() => api.muteUntilTomorrow())}>Until tomorrow</button>
         {#if muted}<button class="btn btn-primary" onclick={() => app.run(() => api.unmute())}>Unmute</button>{/if}
+      </div>
+    </section>
+
+    <section class="card">
+      <h3>History</h3>
+      <p class="hint muted">What you've finished, with Undo, and archived items you can restore.</p>
+      <div class="buttons">
+        <button class="btn" onclick={() => onhistory?.()}><Icon name="history" size={16} /> Open history</button>
       </div>
     </section>
 

@@ -4,7 +4,7 @@
 //! alarms and notifications so what's on screen and what will ring can't drift
 //! apart. Pushing to the PC happens just after, off the UI thread.
 
-use dun_core::actions::{ItemDraft, PresetDraft};
+use dun_core::actions::{CountdownDraft, ItemDraft, PresetDraft};
 use dun_core::engine::{Engine, EngineError};
 use dun_core::model::item::setting_key;
 use dun_core::snapshot;
@@ -214,6 +214,22 @@ pub fn save_tag<R: Runtime>(
 #[tauri::command]
 pub fn delete_tag<R: Runtime>(app: AppHandle<R>, id: String) -> CmdResult<()> {
     mutate(&app, |e, now, _| e.delete_tag(now, &id))
+}
+
+#[tauri::command]
+pub fn save_countdown<R: Runtime>(
+    app: AppHandle<R>,
+    id: Option<String>,
+    draft: CountdownDraft,
+) -> CmdResult<String> {
+    mutate(&app, |e, now, _| {
+        e.save_countdown(now, id.as_deref(), draft)
+    })
+}
+
+#[tauri::command]
+pub fn delete_countdown<R: Runtime>(app: AppHandle<R>, id: String) -> CmdResult<()> {
+    mutate(&app, |e, now, _| e.delete_countdown(now, &id))
 }
 
 #[tauri::command]

@@ -56,8 +56,25 @@ pub mod field {
     pub const ORDER: &str = "order";
     pub const DURATION_MS: &str = "durationMs";
 
+    pub const DATE: &str = "date";
+    pub const TIME: &str = "time";
+    pub const REPEAT: &str = "repeat";
+    pub const DIRECTION: &str = "direction";
+    pub const DISPLAY: &str = "display";
+    pub const PINNED: &str = "pinned";
+
     /// All settings live on one entity id.
     pub const SETTINGS_ID: &str = "global";
+
+    /// Countdowns ride on the `setting` entity, as `countdown:<id>`. Builds
+    /// before 1.4 refuse a sync carrying an entity they don't know, but they
+    /// store and pass on setting ids other than [`SETTINGS_ID`] untouched.
+    pub const COUNTDOWN_PREFIX: &str = "countdown:";
+
+    /// The register id for countdown `id`.
+    pub fn countdown_id(id: &str) -> String {
+        format!("{COUNTDOWN_PREFIX}{id}")
+    }
 }
 
 /// One field of one entity, with the stamp of the write that set it.
@@ -82,6 +99,19 @@ impl Reg {
 
     pub fn key(&self) -> (Entity, &str, &str) {
         (self.entity, &self.id, &self.field)
+    }
+
+    /// The countdown this register belongs to, if any.
+    pub fn countdown(&self) -> Option<&str> {
+        countdown_of(self.entity, &self.id)
+    }
+}
+
+/// The countdown id behind an entity key, if it is one.
+pub fn countdown_of(entity: Entity, id: &str) -> Option<&str> {
+    match entity {
+        Entity::Setting => id.strip_prefix(field::COUNTDOWN_PREFIX),
+        _ => None,
     }
 }
 

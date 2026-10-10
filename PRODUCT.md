@@ -29,7 +29,7 @@ The repository cites Due for iOS as an inspiration. Dun currently implements Win
 ## Operating Context
 
 - Capture a reminder or timer through natural-language quick add, review the interpreted time or duration, and submit it. **More** opens the full form. A configurable Windows hotkey opens a separate quick-add window.
-- Review **Reminders**, **Timers**, and **History**; search or filter by tag. Reminders support one-off and recurring schedules, including repeats counted from the schedule or from completion. Timers support presets, pause, resume, and restart.
+- Review **Timers**, **Reminders**, and **Countdowns**; search or filter by tag. **History** (completions and archived items) lives in Settings. Countdowns count the time until or since a date, never ring, and are customizable in direction, repeat, units shown, size, icon, and color. Reminders support one-off and recurring schedules, including repeats counted from the schedule or from completion. Timers support presets, pause, resume, and restart.
 - Use **Done** or **Snooze** from the list or notification. Dismissing a notification does not complete an item; repeat nagging can bring it back.
 - Recover through completion **Undo**, **Archive**, and **Restore**. Archive stops alerts; restoring an overdue item may make it ring again.
 - On Windows, closing the window hides it to the tray. The tray provides background operation and an explicit **Quit** action.

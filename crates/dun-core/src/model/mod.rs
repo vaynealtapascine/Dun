@@ -3,5 +3,9 @@
 pub mod item;
 pub mod schedule;
 
-pub use item::{ChimeRef, Created, HandoffSettings, Item, ItemKind, Preset, Settings, Tag};
+pub use item::{
+    ChimeRef, CountDirection, CountUnit, Countdown, CountdownDisplay, CountdownFill,
+    CountdownRepeat, CountdownSize, Created, HandoffSettings, Item, ItemKind, Preset, Settings,
+    Tag,
+};
 pub use schedule::{Completion, Nag, RepeatMode, Schedule, Snooze, TimerState};

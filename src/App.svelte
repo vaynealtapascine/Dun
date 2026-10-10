@@ -1,7 +1,7 @@
 <script lang="ts">
   import { tick } from "svelte";
   import { listen } from "@tauri-apps/api/event";
-  import type { ItemDraft, ItemView } from "./lib/api/types";
+  import type { Countdown, ItemDraft, ItemView } from "./lib/api/types";
   import { api } from "./lib/api/commands";
   import { filterItems } from "./lib/grouping";
   import { when } from "./lib/format";
@@ -14,32 +14,38 @@
   import Icon from "./lib/components/Icon.svelte";
   import QuickAdd from "./lib/components/QuickAdd.svelte";
   import TagDot from "./lib/components/TagDot.svelte";
+  import CountdownForm from "./views/CountdownForm.svelte";
+  import Countdowns from "./views/Countdowns.svelte";
   import History from "./views/History.svelte";
   import ItemForm from "./views/ItemForm.svelte";
   import Reminders from "./views/Reminders.svelte";
   import Settings from "./views/Settings.svelte";
   import Timers from "./views/Timers.svelte";
 
-  type Tab = "reminders" | "timers" | "history";
+  type Tab = "reminders" | "timers" | "countdowns";
 
-  const TABS: Tab[] = ["timers", "reminders", "history"];
+  const TABS: Tab[] = ["timers", "reminders", "countdowns"];
 
   let tab = $state<Tab>("timers");
   /** Which way the last tab change went, so the new panel arrives from that side. */
   let direction = $state(0);
   let mainEl = $state<HTMLElement>();
   /** Each tab keeps its own place in the list. */
-  const scrollTops: Record<Tab, number> = { timers: 0, reminders: 0, history: 0 };
+  const scrollTops: Record<Tab, number> = { timers: 0, reminders: 0, countdowns: 0 };
   /** The add button tucks its label away while the list scrolls down. */
   let fabCompact = $state(false);
   let lastScroll = 0;
   let showSettings = $state(false);
+  /** History opens from Settings, and Back returns there. */
+  let showHistory = $state(false);
   let showTools = $state(false);
   let query = $state("");
   let tagFilter = $state<string | null>(null);
   let formOpen = $state(false);
   let editing = $state<ItemView | null>(null);
   let prefill = $state<Partial<ItemDraft> | null>(null);
+  let countdownOpen = $state(false);
+  let editingCountdown = $state<Countdown | null>(null);
   let quickAdd = $state<QuickAdd>();
   let searchInput = $state<HTMLInputElement>();
 
@@ -47,7 +53,7 @@
     if (document.querySelector("dialog[open]")) return;
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
       e.preventDefault();
-      if (!showSettings && tab !== "history") {
+      if (!showSettings && tab !== "countdowns") {
         tick().then(() => quickAdd?.focus());
       }
     }
@@ -56,7 +62,11 @@
       showTools = true;
       tick().then(() => searchInput?.focus());
     }
-    if (e.key === "Escape") { query = ""; tagFilter = null; showSettings = false; showTools = false; }
+    if (e.key === "Escape") {
+      query = ""; tagFilter = null; showTools = false;
+      if (showHistory) showHistory = false;
+      else showSettings = false;
+    }
   }
 
   $effect(() => {
@@ -133,6 +143,11 @@
     formOpen = true;
   }
 
+  function editCountdown(c: Countdown | null) {
+    editingCountdown = c;
+    countdownOpen = true;
+  }
+
   function add(draft: Partial<ItemDraft> | null = null) {
     editing = null;
     prefill = draft;
@@ -144,8 +159,8 @@
 <div class="app">
   <header class:settings-header={showSettings}>
     {#if showSettings}
-      <button class="icon-btn" aria-label="Back" onclick={() => (showSettings = false)}><Icon name="close" /></button>
-      <h1>Settings</h1>
+      <button class="icon-btn" aria-label="Back" onclick={() => (showHistory ? (showHistory = false) : (showSettings = false))}><Icon name="close" /></button>
+      <h1>{showHistory ? "History" : "Settings"}</h1>
       <span class="spacer"></span>
     {:else}
       <h1>Dun</h1>
@@ -164,7 +179,11 @@
   </header>
 
   {#if showSettings}
-    <main class="settings-main" in:enterFrom={{ x: 24 }}><Settings /></main>
+    {#if showHistory}
+      <main class="settings-main" in:enterFrom={{ x: 24 }}><History /></main>
+    {:else}
+      <main class="settings-main" in:enterFrom={{ x: 24 }}><Settings onhistory={() => (showHistory = true)} /></main>
+    {/if}
   {:else}
     <div class="tabs" role="tablist" tabindex="-1" aria-label="Items" onkeydown={(e) => {
       if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(e.key)) return;
@@ -175,7 +194,7 @@
     }}>
       <button id="tab-timers" role="tab" tabindex={tab === "timers" ? 0 : -1} aria-controls="items-panel" aria-selected={tab === "timers"} onclick={() => selectTab("timers")}>Timers {#if timersRingingCount > 0 && tab !== "timers"}<span class="badge" in:badgeIn>{timersRingingCount}</span>{/if}</button>
       <button id="tab-reminders" role="tab" tabindex={tab === "reminders" ? 0 : -1} aria-controls="items-panel" aria-selected={tab === "reminders"} onclick={() => selectTab("reminders")}>Reminders {#if ringingCount > 0 && tab !== "reminders"}<span class="badge" in:badgeIn>{ringingCount}</span>{/if}</button>
-      <button id="tab-history" role="tab" tabindex={tab === "history" ? 0 : -1} aria-controls="items-panel" aria-selected={tab === "history"} onclick={() => selectTab("history")}>History</button>
+      <button id="tab-countdowns" role="tab" tabindex={tab === "countdowns" ? 0 : -1} aria-controls="items-panel" aria-selected={tab === "countdowns"} onclick={() => selectTab("countdowns")}>Countdowns</button>
       <span class="indicator" aria-hidden="true" style:--tab-index={TABS.indexOf(tab)}></span>
     </div>
 
@@ -187,7 +206,7 @@
             <input bind:this={searchInput} type="search" placeholder="Search {tab}" bind:value={query} />
           </label>
         </div>
-        {#if (snapshot?.tags.length ?? 0) > 0}
+        {#if tab !== "countdowns" && (snapshot?.tags.length ?? 0) > 0}
           <div class="tags" role="group" aria-label="Filter by tag" use:wheelScrollsX>
             <button class="chip" aria-pressed={tagFilter === null} onclick={() => (tagFilter = null)}>All</button>
             {#each snapshot?.tags ?? [] as t (t.id)}
@@ -197,18 +216,18 @@
         {/if}
       </div>
     {/if}
-    {#if tab !== "history"}
+    {#if tab !== "countdowns"}
       <div class="capture">
         <QuickAdd bind:this={quickAdd} onmore={add} onadded={(title) => app.notify(`Added “${title}”`)} />
       </div>
     {/if}
 
-    <main class:reminder-panel={tab === "reminders"} bind:this={mainEl} {onscroll}>
+    <main class:reminder-panel={tab !== "timers"} bind:this={mainEl} {onscroll}>
       {#key tab}
       <div id="items-panel" role="tabpanel" aria-labelledby={"tab-" + tab} tabindex="-1" in:enterFrom={{ x: direction * 24 }}>
       {#if !snapshot}
         <p class="muted loading" role="status">Loading timers and reminders…</p>
-      {:else if tab !== "history" && (query || tagFilter) && !visible.some((i) => tab === "timers" ? i.kind === "timer" : i.kind !== "timer" && i.status.kind !== "idle")}
+      {:else if tab !== "countdowns" && (query || tagFilter) && !visible.some((i) => tab === "timers" ? i.kind === "timer" : i.kind !== "timer" && i.status.kind !== "idle")}
         <div class="empty-results">
           <h2>No matching {tab}</h2>
           <p class="muted">Try another search or clear your filters.</p>
@@ -219,7 +238,7 @@
       {:else if tab === "timers"}
         <Timers items={visible} onedit={edit} />
       {:else}
-        <History {query} />
+        <Countdowns {query} onedit={editCountdown} />
       {/if}
       </div>
       {/key}
@@ -228,6 +247,10 @@
     {#if tab === "reminders"}
       <button class="fab" class:compact={fabCompact} aria-label="Add reminder" onclick={() => add()} transition:fly={{ y: 24, duration: ms(200) }}>
         <Icon name="plus" size={24} /><span class="fab-label">Add reminder</span>
+      </button>
+    {:else if tab === "countdowns"}
+      <button class="fab" class:compact={fabCompact} aria-label="Add countdown" onclick={() => editCountdown(null)} transition:fly={{ y: 24, duration: ms(200) }}>
+        <Icon name="plus" size={24} /><span class="fab-label">Add countdown</span>
       </button>
     {/if}
   {/if}
@@ -246,6 +269,7 @@
   {/if}
 </div>
 <ItemForm bind:open={formOpen} item={editing} {prefill} initialKind={tab === "timers" ? "timer" : "once"} />
+<CountdownForm bind:open={countdownOpen} countdown={editingCountdown} />
 
 <style>
   .app { display: flex; flex-direction: column; height: 100dvh; max-width: var(--app-width); margin-inline: auto; }

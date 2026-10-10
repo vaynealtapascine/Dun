@@ -4,7 +4,9 @@
 
 import { mockIPC } from "@tauri-apps/api/mocks";
 import { emit } from "@tauri-apps/api/event";
-import type { HistoryRow, ItemDraft, ItemView, LocalSettings, PresetDraft, Snapshot, StatusView, SyncStatus } from "../api/types";
+import { DEFAULT_DISPLAY } from "../countdown";
+import { toDateInput } from "../dates";
+import type { CountdownDraft, HistoryRow, ItemDraft, ItemView, LocalSettings, PresetDraft, Snapshot, StatusView, SyncStatus } from "../api/types";
 
 const MIN = 60_000;
 
@@ -63,6 +65,33 @@ export function installMockBackend() {
       handoff: { enabled: true, failLoudAfterS: 120, phoneGraceS: 120 },
     },
     summary: [],
+    countdowns: [
+      {
+        id: "trip", title: "Japan trip", notes: "Flights booked, ryokan in Kyoto on the 3rd night", date: toDateInput(now + 52 * 86_400_000), time: null,
+        repeat: "none", direction: "auto", pinned: true, deleted: false,
+        display: { ...DEFAULT_DISPLAY, size: "large", icon: "✈️", color: "#3a86ff", largest: "weeks", smallest: "days" },
+      },
+      {
+        id: "mum", title: "Mum's birthday", notes: "", date: `1961-${toDateInput(now + 9 * 86_400_000).slice(5)}`, time: null,
+        repeat: "yearly", direction: "auto", pinned: false, deleted: false,
+        display: { ...DEFAULT_DISPLAY, icon: "🎂", color: "#d05ea0", fill: "soft", showProgress: true },
+      },
+      {
+        id: "quit", title: "Smoke-free", notes: "", date: toDateInput(now - 412 * 86_400_000), time: "07:30:00",
+        repeat: "none", direction: "since", pinned: false, deleted: false,
+        display: { ...DEFAULT_DISPLAY, icon: "🚭", color: "#3cb371", largest: "years", smallest: "seconds", longUnits: false, countFirstDay: true },
+      },
+      {
+        id: "launch", title: "Release 2.0", notes: "", date: toDateInput(now + 3 * 86_400_000), time: "17:00:00",
+        repeat: "none", direction: "auto", pinned: false, deleted: false,
+        display: { ...DEFAULT_DISPLAY, size: "compact", fill: "outline", largest: "days", smallest: "minutes", longUnits: false },
+      },
+      {
+        id: "payday", title: "Payday", notes: "", date: "2026-01-28", time: null,
+        repeat: "monthly", direction: "auto", pinned: false, deleted: false,
+        display: { ...DEFAULT_DISPLAY, size: "compact", icon: "💰", showProgress: true },
+      },
+    ],
     items: [
       base("rent", "Pay rent", due(now - 3 * MIN), { tag: "home", ring: { alerts: 3, nextAlertAt: now + MIN, held: null } }),
       base(
@@ -436,6 +465,19 @@ export function installMockBackend() {
       }
       case "delete_preset":
         snapshot.presets = snapshot.presets.filter((p) => p.id !== a.id);
+        publish();
+        return null;
+      case "save_countdown": {
+        const draft = a.draft as CountdownDraft;
+        if (!draft.title.trim()) throw new Error("the title can't be empty");
+        const id = (a.id as string | null) ?? nextId();
+        const countdown = { ...copy(draft), id, title: draft.title.trim(), deleted: false };
+        snapshot.countdowns = [...snapshot.countdowns.filter((c) => c.id !== id), countdown];
+        publish();
+        return id;
+      }
+      case "delete_countdown":
+        snapshot.countdowns = snapshot.countdowns.filter((c) => c.id !== a.id);
         publish();
         return null;
       case "set_setting":

@@ -110,7 +110,7 @@ pub fn import(
             let in_backup: BTreeSet<(Entity, &str)> = backup
                 .registers
                 .iter()
-                .filter(|r| r.entity != Entity::Setting)
+                .filter(|r| is_deletable(r))
                 .map(|r| (r.entity, r.id.as_str()))
                 .collect();
 
@@ -118,7 +118,7 @@ pub fn import(
             let mut writes = Vec::new();
 
             let mut seen = BTreeSet::new();
-            for r in current.iter().filter(|r| r.entity != Entity::Setting) {
+            for r in current.iter().filter(|r| is_deletable(r)) {
                 let key = (r.entity, r.id.as_str());
                 if !in_backup.contains(&key) && seen.insert(key) {
                     writes.push(NewWrite::new(r.entity, r.id.clone(), field::DELETED, true));
@@ -160,6 +160,13 @@ pub fn import(
     // Stamps on old history rows are in the past, so merging them is safe.
     report.history_added = store.merge(now, &[], &backup.history)?.history_added;
     Ok(report)
+}
+
+/// Whether Replace removes this register's entity when the backup lacks it.
+/// Settings are only ever overwritten; countdowns, which share their entity,
+/// come and go like items.
+fn is_deletable(r: &Reg) -> bool {
+    r.entity != Entity::Setting || r.countdown().is_some()
 }
 
 #[cfg(test)]

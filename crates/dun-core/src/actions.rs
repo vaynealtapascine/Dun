@@ -8,7 +8,8 @@
 use serde::{Deserialize, Serialize};
 
 use crate::model::{
-    ChimeRef, Completion, Created, Item, ItemKind, Nag, Schedule, Snooze, TimerState,
+    ChimeRef, Completion, CountDirection, Countdown, CountdownDisplay, CountdownRepeat, Created,
+    Item, ItemKind, Nag, Schedule, Snooze, TimerState,
 };
 use crate::occurrence::{status, Status};
 use crate::recurrence::RecurrenceError;
@@ -61,6 +62,8 @@ pub enum ActionError {
     AlreadyUndone,
     #[error("that item isn't a timer")]
     NotATimer,
+    #[error("{0}")]
+    BadCountdown(&'static str),
 }
 
 pub type Result<T> = std::result::Result<T, ActionError>;
@@ -658,6 +661,134 @@ pub fn delete_tag(state: &State, id: &str) -> Result<Change> {
     Ok(c)
 }
 
+// ---- countdowns ----
+
+/// The editable parts of a countdown.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CountdownDraft {
+    pub title: String,
+    #[serde(default)]
+    pub notes: String,
+    pub date: jiff::civil::Date,
+    #[serde(default)]
+    pub time: Option<jiff::civil::Time>,
+    #[serde(default)]
+    pub repeat: CountdownRepeat,
+    #[serde(default)]
+    pub direction: CountDirection,
+    #[serde(default)]
+    pub display: CountdownDisplay,
+    #[serde(default)]
+    pub pinned: bool,
+}
+
+/// Longest icon text, in characters: room for a few-codepoint emoji.
+const MAX_ICON_CHARS: usize = 16;
+
+fn check_display(d: &CountdownDisplay) -> Result<CountdownDisplay> {
+    if d.largest > d.smallest {
+        return Err(ActionError::BadCountdown(
+            "the largest unit must be at least the smallest",
+        ));
+    }
+    let mut d = d.clone();
+    d.icon = d
+        .icon
+        .map(|i| i.trim().to_owned())
+        .filter(|i| !i.is_empty());
+    if d.icon
+        .as_ref()
+        .is_some_and(|i| i.chars().count() > MAX_ICON_CHARS)
+    {
+        return Err(ActionError::BadCountdown("the icon is too long"));
+    }
+    if let Some(color) = &d.color {
+        let hex = color.strip_prefix('#').unwrap_or("");
+        if !matches!(hex.len(), 3 | 6) || !hex.chars().all(|c| c.is_ascii_hexdigit()) {
+            return Err(ActionError::BadCountdown("colors are written like #e0483e"));
+        }
+    }
+    Ok(d)
+}
+
+pub fn save_countdown(state: &State, id: &str, draft: CountdownDraft) -> Result<Change> {
+    let title = draft.title.trim();
+    if title.is_empty() {
+        return Err(ActionError::EmptyTitle);
+    }
+    let display = check_display(&draft.display)?;
+    let existing = state.countdowns.get(id);
+    let reg_id = field::countdown_id(id);
+    let mut c = Change::default();
+    let mut write = |name: &str, unchanged: Option<bool>, value: serde_json::Value| {
+        // `None`: a new countdown, which writes every field.
+        if unchanged != Some(true) {
+            c.writes
+                .push(NewWrite::new(Entity::Setting, reg_id.as_str(), name, value));
+        }
+    };
+    let unchanged = |f: &dyn Fn(&Countdown) -> bool| existing.map(f);
+    write(field::TITLE, unchanged(&|e| e.title == title), title.into());
+    write(
+        field::NOTES,
+        unchanged(&|e| e.notes == draft.notes),
+        to_json(&draft.notes),
+    );
+    write(
+        field::DATE,
+        unchanged(&|e| e.date == Some(draft.date)),
+        to_json(&draft.date),
+    );
+    write(
+        field::TIME,
+        unchanged(&|e| e.time == draft.time),
+        to_json(&draft.time),
+    );
+    write(
+        field::REPEAT,
+        unchanged(&|e| e.repeat == draft.repeat),
+        to_json(&draft.repeat),
+    );
+    write(
+        field::DIRECTION,
+        unchanged(&|e| e.direction == draft.direction),
+        to_json(&draft.direction),
+    );
+    write(
+        field::DISPLAY,
+        unchanged(&|e| e.display == display),
+        to_json(&display),
+    );
+    write(
+        field::PINNED,
+        unchanged(&|e| e.pinned == draft.pinned),
+        to_json(&draft.pinned),
+    );
+    if existing.is_some_and(|e| e.deleted) {
+        write(field::DELETED, Some(false), false.into());
+    }
+    Ok(c)
+}
+
+fn to_json(value: &impl Serialize) -> serde_json::Value {
+    serde_json::to_value(value).expect("register values are plain data")
+}
+
+pub fn delete_countdown(state: &State, id: &str) -> Result<Change> {
+    let countdown = state.countdowns.get(id).ok_or(ActionError::NotFound)?;
+    let mut c = Change::default();
+    if !countdown.deleted {
+        c.writes.push(NewWrite::new(
+            Entity::Setting,
+            field::countdown_id(id),
+            field::DELETED,
+            true,
+        ));
+    }
+    Ok(c)
+}
+
 // ---- settings ----
 
 pub fn set_setting(key: &str, value: impl Serialize) -> Change {
@@ -1087,6 +1218,85 @@ mod tests {
             start_preset(&s, "pc", now, "p", "t2"),
             Err(ActionError::NotFound)
         );
+    }
+
+    #[test]
+    fn countdowns_save_only_what_changed_and_delete() {
+        let mut s = State::default();
+        let draft = |title: &str, repeat| CountdownDraft {
+            title: title.into(),
+            notes: String::new(),
+            date: date(2026, 12, 25),
+            time: None,
+            repeat,
+            direction: CountDirection::Auto,
+            display: CountdownDisplay::default(),
+            pinned: false,
+        };
+        assert_eq!(
+            save_countdown(&s, "c", draft("  ", CountdownRepeat::None)),
+            Err(ActionError::EmptyTitle)
+        );
+        let c = save_countdown(&s, "c", draft(" Christmas ", CountdownRepeat::None)).unwrap();
+        assert_eq!(c.writes.len(), 8, "a new countdown writes every field");
+        apply(&mut s, &c, Timestamp(0));
+        assert_eq!(s.countdowns["c"].title, "Christmas");
+        assert!(
+            save_countdown(&s, "c", draft("Christmas", CountdownRepeat::None))
+                .unwrap()
+                .is_empty()
+        );
+        let c = save_countdown(&s, "c", draft("Christmas", CountdownRepeat::Yearly)).unwrap();
+        assert_eq!(c.writes.len(), 1);
+        apply(&mut s, &c, Timestamp(0));
+        assert_eq!(s.countdowns["c"].repeat, CountdownRepeat::Yearly);
+
+        let d = delete_countdown(&s, "c").unwrap();
+        apply(&mut s, &d, Timestamp(0));
+        assert!(s.countdowns["c"].deleted);
+        assert_eq!(delete_countdown(&s, "nope"), Err(ActionError::NotFound));
+        let back = save_countdown(&s, "c", draft("Christmas", CountdownRepeat::Yearly)).unwrap();
+        assert_eq!(back.writes.len(), 1, "saving restores a deleted countdown");
+    }
+
+    #[test]
+    fn countdown_display_is_checked_and_tidied() {
+        let s = State::default();
+        let with = |display: CountdownDisplay| CountdownDraft {
+            title: "x".into(),
+            notes: String::new(),
+            date: date(2026, 1, 1),
+            time: None,
+            repeat: CountdownRepeat::None,
+            direction: CountDirection::Since,
+            display,
+            pinned: true,
+        };
+        let base = CountdownDisplay::default();
+        let inverted = CountdownDisplay {
+            largest: crate::model::CountUnit::Seconds,
+            smallest: crate::model::CountUnit::Years,
+            ..base.clone()
+        };
+        assert!(matches!(
+            save_countdown(&s, "c", with(inverted)),
+            Err(ActionError::BadCountdown(_))
+        ));
+        for bad in ["red", "#12345", "#ggg"] {
+            let d = CountdownDisplay {
+                color: Some(bad.into()),
+                ..base.clone()
+            };
+            assert!(save_countdown(&s, "c", with(d)).is_err(), "{bad}");
+        }
+        let d = CountdownDisplay {
+            icon: Some("  ".into()),
+            color: Some("#E0483E".into()),
+            ..base.clone()
+        };
+        let c = save_countdown(&s, "c", with(d)).unwrap();
+        let display = c.writes.iter().find(|w| w.field == field::DISPLAY).unwrap();
+        assert_eq!(display.value["icon"], serde_json::Value::Null);
     }
 
     #[test]

@@ -1,9 +1,9 @@
 //! The read model the UI renders: every item with its live status, plus tags,
-//! presets and settings, as one serializable value.
+//! presets, countdowns and settings, as one serializable value.
 
 use serde::Serialize;
 
-use crate::model::{Item, Preset, Settings, Tag};
+use crate::model::{Countdown, Item, Preset, Settings, Tag};
 use crate::occurrence::{status, Status};
 use crate::scheduler::{Hold, Scheduler};
 use crate::state::State;
@@ -60,6 +60,7 @@ pub struct Snapshot<'a> {
     pub archived: Vec<ItemView<'a>>,
     pub tags: Vec<&'a Tag>,
     pub presets: Vec<&'a Preset>,
+    pub countdowns: Vec<&'a Countdown>,
     pub settings: &'a Settings,
     pub summary: &'a [String],
 }
@@ -116,6 +117,11 @@ pub fn build<'a>(
         archived,
         tags: state.tags.values().filter(|t| !t.deleted).collect(),
         presets: state.presets.values().filter(|p| !p.deleted).collect(),
+        countdowns: state
+            .countdowns
+            .values()
+            .filter(|c| !c.deleted && c.date.is_some())
+            .collect(),
         settings: &state.settings,
         summary: scheduler.summary(),
     }
