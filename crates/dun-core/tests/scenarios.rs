@@ -6,7 +6,9 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use dun_core::actions::{CountdownDraft, ItemDraft};
 use dun_core::engine::Engine;
-use dun_core::model::{CountDirection, CountdownDisplay, CountdownRepeat, Schedule, TimerState};
+use dun_core::model::{
+    CountDirection, CountUnit, CountdownDisplay, CountdownRepeat, Schedule, TimerState,
+};
 use dun_core::scheduler::{ringing_soon, Ack, AlertLevel, Effect, PcView, Role};
 use dun_core::time::{resolve, TimeZone, Timestamp, MINUTE, SECOND};
 use jiff::civil::date;
@@ -342,7 +344,11 @@ fn countdowns_sync_without_touching_settings() {
                 time: None,
                 repeat: CountdownRepeat::Yearly,
                 direction: CountDirection::Since,
-                display: CountdownDisplay::default(),
+                display: CountdownDisplay {
+                    units: Some(vec![CountUnit::Years, CountUnit::Months, CountUnit::Days]),
+                    show_total: true,
+                    ..CountdownDisplay::default()
+                },
                 pinned: false,
             },
         )
@@ -362,6 +368,11 @@ fn countdowns_sync_without_touching_settings() {
         phone.engine.state().settings.mute_until,
         Some(t0.plus(15 * MINUTE))
     );
+    assert_eq!(
+        c.display.units,
+        Some(vec![CountUnit::Years, CountUnit::Months, CountUnit::Days])
+    );
+    assert!(c.display.show_total);
 
     phone.engine.delete_countdown(t0.plus(MINUTE), &id).unwrap();
     both_ways(&mut pc, &mut phone, t0.plus(MINUTE));

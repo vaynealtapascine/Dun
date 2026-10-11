@@ -296,6 +296,14 @@ mod tests {
         assert_eq!(c.display.size, crate::model::CountdownSize::Large);
         assert_eq!(c.display.icon.as_deref(), Some("🎂"));
         assert!(c.display.show_date, "missing display fields keep defaults");
+        assert_eq!(
+            c.display.units, None,
+            "older displays retain their unit range"
+        );
+        assert!(
+            !c.display.show_total,
+            "older displays do not gain a total count"
+        );
         assert_eq!(s.settings, Settings::default());
 
         s.settings.mute_until = Some(Timestamp(5));

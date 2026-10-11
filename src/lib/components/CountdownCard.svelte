@@ -12,6 +12,10 @@
   const today = $derived(reading.isNow && !(reading.mode === "since" && d.countFirstDay));
   const showOrdinal = $derived(d.showOrdinal && countdown.repeat !== "none" && reading.index > 0);
   const progress = $derived(d.showProgress ? reading.progress : null);
+  const totalText = $derived(reading.total?.started ? readingText(reading.total.parts, d.longUnits) : "Not started yet");
+  const totalCaption = $derived(reading.total && d.showDate
+    ? `Total since ${reading.total.start.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}${countdown.time ? `, ${reading.total.start.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })}` : ""}`
+    : "Total duration");
 
   /** Dark or light ink, whichever reads better on the chosen banner color. */
   function inkOn(hex: string): string {
@@ -37,7 +41,7 @@
     return d.showDate ? `since ${dateText}` : "so far";
   });
 
-  const spoken = $derived(`${countdown.title}: ${today ? "today" : `${readingText(reading.parts, true)} ${caption}`}`);
+  const spoken = $derived(`${countdown.title}: ${today ? "today" : `${readingText(reading.parts, true)} ${caption}`}${reading.total ? `. ${totalCaption}: ${reading.total.started ? readingText(reading.total.parts, true) : "Not started yet"}` : ""}`);
 </script>
 
 <button
@@ -70,6 +74,12 @@
       {#if d.size === "compact"}<span class="unit tail">{reading.mode === "until" ? "left" : "ago"}</span>{/if}
     {/if}
   </span>
+  {#if reading.total}
+    <span class="total" aria-hidden="true">
+      <span class="total-caption">{totalCaption}</span>
+      <span class="total-reading">{totalText}</span>
+    </span>
+  {/if}
   {#if progress !== null}
     <span class="progress" aria-hidden="true"><span style:width="{progress * 100}%"></span></span>
   {/if}
@@ -85,6 +95,7 @@
     align-items: center;
     gap: 0.25rem 0.75rem;
     width: 100%;
+    min-width: 0;
     overflow: hidden;
     border: 1px solid transparent;
     border-radius: var(--radius);
@@ -113,11 +124,16 @@
   .notes { white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; }
   .icon { display: grid; place-items: center; line-height: 1; }
 
-  .reading { display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: baseline; gap: 0 0.5rem; font-variant-numeric: lining-nums tabular-nums; }
+  .reading { display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: baseline; min-width: 0; gap: 0 0.5rem; font-variant-numeric: lining-nums tabular-nums; }
   .part { display: inline-flex; align-items: baseline; gap: 0.2rem; white-space: nowrap; }
   .num { font-weight: 700; letter-spacing: -0.025em; line-height: 1; }
   .unit { font-size: 0.85rem; opacity: 0.8; }
   .unit.short { margin-left: -0.15rem; }
+  .total { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: baseline; min-width: 0; gap: 0.15rem 0.6rem; padding-top: 0.35rem; border-top: 1px solid color-mix(in srgb, currentColor 25%, transparent); }
+  .total-caption { font-size: 0.8rem; }
+  .total-reading { min-width: 0; font-size: 0.95rem; font-weight: 600; font-variant-numeric: lining-nums tabular-nums; }
+  .compact .total { padding-top: 0.25rem; }
+  .compact:has(.total) { padding-bottom: 0.65rem; }
 
   /* Sizes */
   .large { grid-template-columns: auto 1fr; padding: 1rem 1.1rem 1.1rem; gap: 0.5rem 0.9rem; }
@@ -139,8 +155,9 @@
   .medium.wide .num { font-size: 1.75rem; }
 
   .compact { padding: 0.45rem 0.8rem; min-height: var(--hit); }
-  .compact.wide .reading { flex-wrap: nowrap; }
-  .compact.wide .name { min-width: 3rem; }
+  .compact.wide { grid-template-columns: auto minmax(0, 1fr); }
+  .compact.wide:not(:has(.icon)) { grid-template-columns: minmax(0, 1fr); }
+  .compact.wide .reading { grid-column: 1 / -1; justify-content: flex-start; }
   .compact .icon { font-size: 1.2rem; }
   .compact .num { font-size: 1.1rem; }
   .compact .tail { margin-left: -0.2rem; }

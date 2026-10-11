@@ -206,9 +206,11 @@ pub enum CountdownFill {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(default, rename_all = "camelCase")]
 pub struct CountdownDisplay {
-    /// Largest and smallest units shown, e.g. years down to days.
+    /// Legacy range, also maintained for peers without individual unit support.
     pub largest: CountUnit,
     pub smallest: CountUnit,
+    /// Individually enabled units; `None` uses the legacy range.
+    pub units: Option<Vec<CountUnit>>,
     /// "3 years 2 months" rather than "3y 2mo".
     pub long_units: bool,
     pub size: CountdownSize,
@@ -222,6 +224,8 @@ pub struct CountdownDisplay {
     pub show_ordinal: bool,
     /// For repeats: how far through the current cycle.
     pub show_progress: bool,
+    /// For repeats: also show the full duration since the original date.
+    pub show_total: bool,
     /// Counting up, the date itself is day 1 rather than day 0.
     pub count_first_day: bool,
 }
@@ -231,6 +235,7 @@ impl Default for CountdownDisplay {
         CountdownDisplay {
             largest: CountUnit::Days,
             smallest: CountUnit::Days,
+            units: None,
             long_units: true,
             size: CountdownSize::Medium,
             icon: None,
@@ -239,6 +244,7 @@ impl Default for CountdownDisplay {
             show_date: true,
             show_ordinal: true,
             show_progress: false,
+            show_total: false,
             count_first_day: false,
         }
     }

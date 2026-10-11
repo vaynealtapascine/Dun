@@ -19,6 +19,7 @@ const UNIT_MS: Partial<Record<CountUnit, number>> = { hours: 3_600_000, minutes:
 export const DEFAULT_DISPLAY: CountdownDisplay = {
   largest: "days",
   smallest: "days",
+  units: null,
   longUnits: true,
   size: "medium",
   icon: null,
@@ -27,6 +28,7 @@ export const DEFAULT_DISPLAY: CountdownDisplay = {
   showDate: true,
   showOrdinal: true,
   showProgress: false,
+  showTotal: false,
   countFirstDay: false,
 };
 
@@ -36,6 +38,14 @@ export function emptyDraft(today: string): CountdownDraft {
 
 export function unitLabel(unit: CountUnit, value: number, long: boolean): string {
   return long ? LONG[unit][value === 1 ? 0 : 1] : SHORT[unit];
+}
+
+/** Read older saved ranges until the user chooses individual units. */
+export function displayUnits(display: CountdownDisplay): CountUnit[] {
+  const selected = UNITS.filter((unit) => display.units?.includes(unit));
+  if (selected.length) return selected;
+  const range = UNITS.slice(UNITS.indexOf(display.largest), UNITS.indexOf(display.smallest) + 1);
+  return range.length ? range : ["days"];
 }
 
 /** The civil date and time as a local instant. */
@@ -83,15 +93,20 @@ export type CountReading = {
   parts: CountPart[];
   /** How far through the current repeat, 0–1, when there is a cycle to be through. */
   progress: number | null;
+  /** Independent of the current occurrence, so an anniversary never resets it. */
+  total: { start: Date; parts: CountPart[]; started: boolean } | null;
 };
 
 /**
- * Splits the time between two instants into the units from `largest` down to
- * `smallest`. Calendar units step through local dates, so months and years
- * respect month lengths and leap days; smaller units use elapsed time.
+ * Splits a span into enabled units (or a legacy largest-to-smallest range).
+ * Skipped units flow into the next enabled unit, so years/months/days keeps
+ * the remaining days rather than consuming them as hidden weeks. Calendar
+ * units respect local month lengths and leap days; clocks use elapsed time.
  */
-export function splitSpan(from: Date, to: Date, largest: CountUnit, smallest: CountUnit): CountPart[] {
-  const units = UNITS.slice(UNITS.indexOf(largest), UNITS.indexOf(smallest) + 1);
+export function splitSpan(from: Date, to: Date, selected: CountUnit[] | CountUnit, smallest?: CountUnit): CountPart[] {
+  const units = Array.isArray(selected)
+    ? UNITS.filter((unit) => selected.includes(unit))
+    : UNITS.slice(UNITS.indexOf(selected), UNITS.indexOf(smallest ?? selected) + 1);
   const parts: CountPart[] = [];
   let cursor = from;
   if (units.includes("years") || units.includes("months")) {
@@ -124,7 +139,8 @@ export function splitSpan(from: Date, to: Date, largest: CountUnit, smallest: Co
 /** What a countdown reads at `now`. */
 export function readCountdown(c: Countdown, now: number): CountReading {
   const { display } = c;
-  const subDay = UNITS.indexOf(display.smallest) > UNITS.indexOf("days");
+  const units = displayUnits(display);
+  const subDay = units.some((unit) => UNIT_MS[unit] !== undefined);
   // Counting in whole days, an occurrence is the whole of its day: today is
   // "today", not "365 days until next year's". Finer units tick from its time
   // (midnight without one).
@@ -151,11 +167,11 @@ export function readCountdown(c: Countdown, now: number): CountReading {
 
   let parts: CountPart[];
   if (mode === "until") {
-    parts = splitSpan(new Date(Math.min(ref, counted.getTime())), counted, display.largest, display.smallest);
+    parts = splitSpan(new Date(Math.min(ref, counted.getTime())), counted, units);
   } else {
     // Counting the date itself as day 1 shifts the whole reading by one day.
     const end = display.countFirstDay ? addDays(new Date(ref), 1) : new Date(ref);
-    parts = splitSpan(counted, end < counted ? counted : end, display.largest, display.smallest);
+    parts = splitSpan(counted, end < counted ? counted : end, units);
   }
 
   let progress: number | null = null;
@@ -164,7 +180,14 @@ export function readCountdown(c: Countdown, now: number): CountReading {
     const to = occurrence(c, last + 1).getTime();
     progress = Math.min(1, Math.max(0, (now - from) / (to - from)));
   }
-  return { mode, target: occurrence(c, index), index, isNow, flipped, parts, progress };
+  let total: CountReading["total"] = null;
+  if (display.showTotal && c.repeat !== "none") {
+    const start = base(calc);
+    const started = ref >= start.getTime();
+    const end = started && display.countFirstDay ? addDays(new Date(ref), 1) : new Date(ref);
+    total = { start: base(c), started, parts: splitSpan(start, end < start ? start : end, units) };
+  }
+  return { mode, target: occurrence(c, index), index, isNow, flipped, parts, progress, total };
 }
 
 /** Drops empty leading units (and empty ones between), keeping at least the smallest. */

@@ -687,12 +687,20 @@ pub struct CountdownDraft {
 const MAX_ICON_CHARS: usize = 16;
 
 fn check_display(d: &CountdownDisplay) -> Result<CountdownDisplay> {
-    if d.largest > d.smallest {
+    let mut d = d.clone();
+    if let Some(units) = &mut d.units {
+        units.sort_unstable();
+        units.dedup();
+        let Some(largest) = units.first() else {
+            return Err(ActionError::BadCountdown("enable at least one unit"));
+        };
+        d.largest = *largest;
+        d.smallest = *units.last().unwrap();
+    } else if d.largest > d.smallest {
         return Err(ActionError::BadCountdown(
             "the largest unit must be at least the smallest",
         ));
     }
-    let mut d = d.clone();
     d.icon = d
         .icon
         .map(|i| i.trim().to_owned())
@@ -1297,6 +1305,30 @@ mod tests {
         let c = save_countdown(&s, "c", with(d)).unwrap();
         let display = c.writes.iter().find(|w| w.field == field::DISPLAY).unwrap();
         assert_eq!(display.value["icon"], serde_json::Value::Null);
+
+        let empty = CountdownDisplay {
+            units: Some(vec![]),
+            ..base.clone()
+        };
+        assert!(matches!(
+            save_countdown(&s, "c", with(empty)),
+            Err(ActionError::BadCountdown("enable at least one unit"))
+        ));
+        use crate::model::CountUnit::{Days, Months, Years};
+        let selected = CountdownDisplay {
+            units: Some(vec![Days, Years, Months, Days]),
+            show_total: true,
+            ..base
+        };
+        let c = save_countdown(&s, "c", with(selected)).unwrap();
+        let display = c.writes.iter().find(|w| w.field == field::DISPLAY).unwrap();
+        assert_eq!(
+            display.value["units"],
+            serde_json::json!(["years", "months", "days"])
+        );
+        assert_eq!(display.value["largest"], "years");
+        assert_eq!(display.value["smallest"], "days");
+        assert_eq!(display.value["showTotal"], true);
     }
 
     #[test]

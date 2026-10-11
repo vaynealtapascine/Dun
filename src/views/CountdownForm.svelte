@@ -2,7 +2,7 @@
   import { untrack } from "svelte";
   import type { Countdown, CountdownDisplay, CountdownDraft, CountUnit } from "../lib/api/types";
   import { api, errorText } from "../lib/api/commands";
-  import { emptyDraft, readCountdown, UNITS } from "../lib/countdown";
+  import { displayUnits, emptyDraft, readCountdown, UNITS } from "../lib/countdown";
   import { toCivilTime, toDateInput, toTimeInput } from "../lib/dates";
   import { app } from "../lib/stores/app.svelte";
   import CountdownCard from "../lib/components/CountdownCard.svelte";
@@ -14,12 +14,12 @@
   const COLORS = ["#e0483e", "#f08c2e", "#e8b930", "#3cb371", "#2fa4c9", "#3a86ff", "#8a63d2", "#d05ea0", "#8d8d93", "#162b37"];
   const ICONS = ["🎂", "🎉", "✈️", "🏖️", "🎄", "💍", "❤️", "🎓", "💼", "🏠", "🐶", "👶", "🏃", "💪", "🚭", "📅", "⏳", "🎮", "📚", "🩺", "💰", "🌱", "⭐", "🔥"];
   const UNIT_NAMES: Record<CountUnit, string> = { years: "Years", months: "Months", weeks: "Weeks", days: "Days", hours: "Hours", minutes: "Minutes", seconds: "Seconds" };
-  const PRECISION: { label: string; largest: CountUnit; smallest: CountUnit }[] = [
-    { label: "Days", largest: "days", smallest: "days" },
-    { label: "Weeks + days", largest: "weeks", smallest: "days" },
-    { label: "Years, months, days", largest: "years", smallest: "days" },
-    { label: "Days to seconds", largest: "days", smallest: "seconds" },
-    { label: "Everything", largest: "years", smallest: "seconds" },
+  const PRECISION: { label: string; units: CountUnit[] }[] = [
+    { label: "Days", units: ["days"] },
+    { label: "Weeks + days", units: ["weeks", "days"] },
+    { label: "Years, months, days", units: ["years", "months", "days"] },
+    { label: "Days to seconds", units: ["days", "hours", "minutes", "seconds"] },
+    { label: "Everything", units: UNITS },
   ];
 
   let draft = $state<CountdownDraft>(emptyDraft(toDateInput(Date.now())));
@@ -44,11 +44,13 @@
     draft.display = { ...draft.display, ...patch };
   }
 
-  function setLargest(unit: CountUnit) {
-    const smallest = UNITS.indexOf(draft.display.smallest) < UNITS.indexOf(unit) ? unit : draft.display.smallest;
-    setDisplay({ largest: unit, smallest });
+  function setUnits(selected: CountUnit[]) {
+    const units = UNITS.filter((unit) => selected.includes(unit));
+    if (!units.length) return;
+    setDisplay({ units, largest: units[0]!, smallest: units[units.length - 1]! });
   }
 
+  const units = $derived(displayUnits(draft.display));
   const validDate = $derived(/^\d{4}-\d{2}-\d{2}$/.test(draft.date));
   const preview = $derived(
     validDate ? { countdown: { ...draft, title: draft.title.trim() || "Countdown", id: "preview", deleted: false } as Countdown } : null,
@@ -85,7 +87,7 @@
 
   <div class="pair">
     <label class="field">
-      <span>Date</span>
+      <span>{repeats ? "Start date" : "Date"}</span>
       <input class="input" type="date" bind:value={draft.date} />
     </label>
     <label class="field">
@@ -94,10 +96,22 @@
         <option value="none">Doesn't repeat</option>
         <option value="weekly">Every week</option>
         <option value="monthly">Every month</option>
-        <option value="yearly">Every year</option>
+        <option value="yearly">Every year (anniversary)</option>
       </select>
     </label>
   </div>
+  {#if draft.repeat === "yearly"}
+    <p class="hint muted">Use the original start date. The anniversary repeats on this date each year.</p>
+  {/if}
+  {#if repeats}
+    <div class="field">
+      <label class="switch">
+        <span>Show total duration since the start date</span>
+        <input type="checkbox" checked={draft.display.showTotal ?? false} onchange={(e) => setDisplay({ showTotal: e.currentTarget.checked })} />
+      </label>
+      <p class="hint muted">Adds a separate count from the original date, using your enabled units. It keeps growing across repeats.</p>
+    </div>
+  {/if}
 
   <label class="switch">
     <span>At a set time</span>
@@ -150,24 +164,27 @@
         <button
           type="button"
           class="chip"
-          aria-pressed={draft.display.largest === p.largest && draft.display.smallest === p.smallest}
-          onclick={() => setDisplay({ largest: p.largest, smallest: p.smallest })}>{p.label}</button>
+          aria-pressed={units.length === p.units.length && p.units.every((unit) => units.includes(unit))}
+          onclick={() => setUnits(p.units)}>{p.label}</button>
       {/each}
     </div>
-    <div class="pair">
-      <label class="field">
-        <span>From</span>
-        <select class="input" value={draft.display.largest} onchange={(e) => setLargest(e.currentTarget.value as CountUnit)}>
-          {#each UNITS as u (u)}<option value={u}>{UNIT_NAMES[u]}</option>{/each}
-        </select>
-      </label>
-      <label class="field">
-        <span>Down to</span>
-        <select class="input" value={draft.display.smallest} onchange={(e) => setDisplay({ smallest: e.currentTarget.value as CountUnit })}>
-          {#each UNITS.slice(UNITS.indexOf(draft.display.largest)) as u (u)}<option value={u}>{UNIT_NAMES[u]}</option>{/each}
-        </select>
-      </label>
-    </div>
+    <fieldset class="unit-options" aria-describedby="countdown-unit-hint">
+      <legend>Enabled units</legend>
+      <div class="unit-grid">
+        {#each UNITS as unit (unit)}
+          <label class="unit-option">
+            <input
+              type="checkbox"
+              checked={units.includes(unit)}
+              disabled={units.length === 1 && units.includes(unit)}
+              onchange={(e) => setUnits(e.currentTarget.checked ? [...units, unit] : units.filter((u) => u !== unit))}
+            />
+            <span>{UNIT_NAMES[unit]}</span>
+          </label>
+        {/each}
+      </div>
+    </fieldset>
+    <p class="hint muted" id="countdown-unit-hint">Skipped units roll into the next enabled unit. Without weeks, days show the remainder after months. Keep at least one unit enabled.</p>
     <label class="switch">
       <span>Short unit labels (3y 2mo)</span>
       <input type="checkbox" checked={!draft.display.longUnits} onchange={(e) => setDisplay({ longUnits: !e.currentTarget.checked })} />
@@ -283,6 +300,27 @@
   .hint {
     margin: 0;
     font-size: 0.83rem;
+  }
+  .unit-options { margin: 0; padding: 0; border: 0; min-width: 0; }
+  .unit-options legend { padding: 0; margin-bottom: 0.35rem; font-size: 0.9rem; color: var(--fg-muted); }
+  .unit-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.35rem; }
+  .unit-option {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-height: var(--hit);
+    padding: 0.3rem 0.5rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--bg-raised);
+    cursor: pointer;
+  }
+  .unit-option:has(:checked) { border-color: var(--accent); background: var(--bg-sunken); }
+  .unit-option input { margin: 0; width: 1rem; height: 1rem; flex: none; accent-color: var(--accent); }
+  .unit-option:has(:disabled) { cursor: default; }
+  .unit-option input:disabled { opacity: 0.65; }
+  @media (max-width: 360px) {
+    .unit-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   }
   .chips {
     display: flex;

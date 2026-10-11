@@ -89,6 +89,8 @@ export type CountdownFill = "solid" | "soft" | "outline";
 export type CountdownDisplay = {
   largest: CountUnit;
   smallest: CountUnit;
+  /** Individually enabled units; absent/null uses the legacy range. */
+  units?: CountUnit[] | null;
   longUnits: boolean;
   size: CountdownSize;
   icon: string | null;
@@ -97,6 +99,8 @@ export type CountdownDisplay = {
   showDate: boolean;
   showOrdinal: boolean;
   showProgress: boolean;
+  /** Also count the full duration from the original date of a repeat. */
+  showTotal?: boolean;
   countFirstDay: boolean;
 };
 

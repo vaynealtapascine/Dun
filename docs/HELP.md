@@ -160,14 +160,21 @@ the sheet shows each change as you make it.
 
 - **Repeats** every week, month or year. A month that is too short uses its
   last day, and Feb 29 falls on Feb 28 in other years.
+- Choose **Every year (anniversary)** and enter the original **Start date**.
+  Enable **Show total duration since the start date** to see the full elapsed
+  duration alongside the anniversary count. The total uses your enabled units
+  and keeps growing across repeats; before the start date it says **Not started
+  yet**. This option also works for weekly and monthly repeats.
 - **Count**: **Automatic** counts down until the date and up once it has
   passed. A repeat counts down to the next one. **Down to it** and **Up from it**
   pick a direction; on a repeat, **Up from it** counts from the latest one.
 - **Count the date itself as day 1**, for streaks.
-- **Detail** sets the largest and smallest units shown, anywhere from years to
-  seconds. Larger units you leave out are folded in, so "Days" alone reads
-  "412 days". Without a set time, a date counts from midnight; units below a
-  day only matter with a time or when you want it ticking.
+- **Detail** lets you enable each unit separately, from years to seconds, or
+  choose a preset. Skipped units fold into the next enabled unit: years, months
+  and days without weeks shows the remaining days after whole months; "Days"
+  alone can read "412 days". Keep at least one unit enabled. Without a set time,
+  a date counts from midnight; units below a day only matter with a time or
+  when you want it ticking.
 - **Size** (large, card or compact), **icon** (pick one or type any emoji),
   **color** (a swatch or any color), **fill** (solid, soft or outline), and
   short or long unit labels.
