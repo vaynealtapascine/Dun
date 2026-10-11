@@ -31,6 +31,10 @@ if ($ndk) { $env:NDK_HOME = $ndk } else { Write-Warning "No NDK under $ndkRoot; 
 
 $env:GRADLE_USER_HOME = Join-Path $buildRoot 'gradle'
 $env:CARGO_TARGET_DIR = Join-Path $buildRoot 'target'
+$buildTmp = Join-Path $buildRoot 'tmp'
+New-Item -ItemType Directory -Path $buildTmp -Force | Out-Null
+$env:TMP = $buildTmp
+$env:TEMP = $buildTmp
 
 $pathAdds = @(
     (Join-Path $env:JAVA_HOME 'bin'),
@@ -44,4 +48,5 @@ Write-Host "ANDROID_HOME     = $env:ANDROID_HOME"
 Write-Host "NDK_HOME         = $env:NDK_HOME"
 Write-Host "GRADLE_USER_HOME = $env:GRADLE_USER_HOME"
 Write-Host "CARGO_TARGET_DIR = $env:CARGO_TARGET_DIR"
+Write-Host "TEMP            = $env:TEMP"
 $ErrorActionPreference = 'Continue'
