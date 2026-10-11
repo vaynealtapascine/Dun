@@ -26,6 +26,24 @@ performed from the remaining matrix. Use this checklist for subsequent sessions.
    focused Dun receiver/service logs in this one session. Record actual device findings
    here before claiming Android visual or delivery behavior verified.
 
+## Pending: v1.5.0 permission flow
+
+- On Android 12/12L with exact-alarm access off, launch Dun and verify the
+  package-specific Alarms & reminders page opens once. Declining must leave
+  the app usable and the checklist incomplete, with inexact fallback scheduling.
+- On Android 13+, test notification grant, denial, and repeated denial. Only
+  after the permission result should exact-alarm settings open, and only if
+  `canScheduleExactAlarms()` is false. Already granted access must not prompt.
+- Grant exact-alarm access and return to Dun: verify the checklist refreshes
+  and the existing permission-change receiver rearms persisted reminders.
+- Revoke access, reopen, and verify the app recovers without a SecurityException.
+  Check cold starts, warm starts, and activity recreation during the prompt.
+
+These are pending device checks, not claims of verified behavior. The startup
+flow uses AndroidX's permission-result callback rather than inferring an answer
+from activity pause/resume. See [Android alarm guidance](https://developer.android.com/develop/background-work/services/alarms)
+and [ActivityResultRegistry](https://developer.android.com/reference/androidx/activity/result/ActivityResultRegistry).
+
 ## Session: 2026-10-01
 
 Device: Samsung Galaxy A56 (SM-A566B), Android 16 / API 36, 1080 × 2340,

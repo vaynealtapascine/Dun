@@ -83,6 +83,9 @@
   class:closing
   aria-label={title}
   onclose={() => {
+    // A queued deep link can reopen this dialog before the previous close
+    // event is dispatched. That stale event must not dismiss the new form.
+    if (dialog?.open) return;
     open = false;
     shown = false;
   }}

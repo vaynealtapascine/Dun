@@ -1,11 +1,12 @@
 <script lang="ts">
-  import { tick } from "svelte";
+  import { tick, untrack } from "svelte";
+  import { invoke } from "@tauri-apps/api/core";
   import { listen } from "@tauri-apps/api/event";
   import type { Countdown, ItemDraft, ItemView } from "./lib/api/types";
   import { api } from "./lib/api/commands";
   import { filterItems } from "./lib/grouping";
   import { when } from "./lib/format";
-  import { isPhone } from "./lib/platform";
+  import { isPhone, isPreview } from "./lib/platform";
   import { startForegroundSync } from "./lib/phoneSync";
   import { enterFrom, ms, reducedMotion, reveal } from "./lib/motion";
   import { wheelScrollsX } from "./lib/gestures";
@@ -48,6 +49,49 @@
   let editingCountdown = $state<Countdown | null>(null);
   let quickAdd = $state<QuickAdd>();
   let searchInput = $state<HTMLInputElement>();
+  type DeepLink = { kind: "open" } | { kind: "item"; id: string }
+    | { kind: "new"; draft: ItemDraft } | { kind: "error"; message: string };
+  let linkVersion = $state(0);
+  let checkedLinkVersion = $state(-1);
+  let takingLink = $state(false);
+  let pendingLink = $state<DeepLink | null>(null);
+  let dialogOpen = $state(false);
+  const readyForLinks = $derived(app.snapshot !== null);
+
+  // Leave unsaved forms intact. The native queue retains cold-start links until
+  // the snapshot and event listener are ready, then delivers one at a time.
+  $effect(() => {
+    const version = linkVersion;
+    if (!isPreview && readyForLinks && !formOpen && !countdownOpen && !dialogOpen && !pendingLink && !takingLink && checkedLinkVersion !== version) untrack(async () => {
+      takingLink = true;
+      try {
+        const link = await invoke<DeepLink | null>("take_deep_link");
+        if (link?.kind === "item") app.setSnapshot(await api.snapshot());
+        pendingLink = link;
+      } catch (e) { app.error = String(e); }
+      finally { checkedLinkVersion = version; takingLink = false; }
+    });
+  });
+
+  $effect(() => {
+    const link = pendingLink;
+    if (link && !formOpen && !countdownOpen && !dialogOpen) untrack(() => {
+      pendingLink = null;
+      linkVersion++;
+      if (link.kind === "error") app.error = link.message;
+      else {
+        showSettings = false;
+        showHistory = false;
+        if (link.kind === "new") add(link.draft);
+        if (link.kind === "item") {
+          const id = link.id;
+          const item = app.snapshot?.items.find(i => i.id === id);
+          if (item) { selectTab(item.kind === "timer" ? "timers" : "reminders"); edit(item); }
+          else app.error = "This item is archived or is not available on this device yet.";
+        }
+      }
+    });
+  });
 
   function shortcuts(e: KeyboardEvent) {
     if (document.querySelector("dialog[open]")) return;
@@ -84,11 +128,17 @@
     });
     // "More" in the quick-add window continues here.
     const openForm = listen<Partial<ItemDraft>>("open-form", (e) => add(e.payload));
+    const deepLinks = listen("deep-link-pending", () => { linkVersion++; });
+    deepLinks.then(() => { linkVersion++; });
+    const dialogs = new MutationObserver(() => { dialogOpen = !!document.querySelector("dialog[open]"); });
+    dialogs.observe(document.body, { subtree: true, childList: true, attributes: true, attributeFilter: ["open"] });
     return () => {
       app.stop();
       stopSync?.();
       focus.then((f) => f());
       openForm.then((f) => f());
+      deepLinks.then((f) => f());
+      dialogs.disconnect();
     };
   });
 

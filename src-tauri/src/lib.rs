@@ -1,3 +1,4 @@
+mod deep_links;
 pub mod mobile;
 
 #[cfg(target_os = "android")]
@@ -85,6 +86,8 @@ pub fn run() {
         .plugin(desktop::hotkey::plugin())
         .plugin(tauri_plugin_dun_android::init())
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_deep_link::init())
+        .manage(deep_links::Pending::default())
         .manage(desktop::hotkey::HotkeyStatus::default())
         .setup(move |app| {
             let dir = app.path().app_data_dir()?;
@@ -170,10 +173,12 @@ pub fn run() {
                     desktop::tray::update(app, status, tray_core.now(), &tray_core.tz());
                 },
             );
+            deep_links::setup(app.handle())?;
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
             app_version,
+            deep_links::take_deep_link,
             open_source,
             commands::get_snapshot,
             commands::create_item,
@@ -226,8 +231,12 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dun_android::init())
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_deep_link::init())
+        .manage(deep_links::Pending::default())
+        .setup(|app| deep_links::setup(app.handle()))
         .invoke_handler(tauri::generate_handler![
             app_version,
+            deep_links::take_deep_link,
             open_source,
             mobile::commands::get_snapshot,
             mobile::commands::create_item,

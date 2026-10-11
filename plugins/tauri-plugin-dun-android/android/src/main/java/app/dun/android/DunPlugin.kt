@@ -13,7 +13,9 @@ import android.provider.Settings
 import android.content.res.Configuration
 import android.view.View
 import android.webkit.WebView
-import androidx.core.app.ActivityCompat
+import androidx.activity.ComponentActivity
+import androidx.activity.result.ActivityResultLauncher
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
@@ -29,6 +31,9 @@ import java.util.TimeZone
 @TauriPlugin
 class DunPlugin(private val activity: Activity) : Plugin(activity) {
 
+    private var notificationPermission: ActivityResultLauncher<String>? = null
+    private var askedForExactAlarms = false
+
     override fun load(webView: WebView) {
         Channels.ensure(activity)
         fitSystemBars(webView)
@@ -36,7 +41,43 @@ class DunPlugin(private val activity: Activity) : Plugin(activity) {
             ContextCompat.checkSelfPermission(activity, Manifest.permission.POST_NOTIFICATIONS) !=
             PackageManager.PERMISSION_GRANTED
         ) {
-            ActivityCompat.requestPermissions(activity, arrayOf(Manifest.permission.POST_NOTIFICATIONS), 7001)
+            // Register without a LifecycleOwner because plugins load after STARTED.
+            // The result callback also runs for denial or an already-denied prompt;
+            // onPause/onResume cannot reliably tell whether a prompt was answered.
+            notificationPermission = (activity as ComponentActivity).activityResultRegistry.register(
+                "dun-notification-permission", ActivityResultContracts.RequestPermission()
+            ) { requestExactAlarms() }
+            notificationPermission?.launch(Manifest.permission.POST_NOTIFICATIONS)
+        } else {
+            requestExactAlarms()
+        }
+    }
+
+    override fun onDestroy(activity: androidx.appcompat.app.AppCompatActivity) {
+        notificationPermission?.unregister()
+        notificationPermission = null
+    }
+
+    /**
+     * "Alarms & reminders" is special access: there is no runtime prompt, only
+     * a settings page with a switch. Without it alarms fall back to inexact
+     * delivery and Doze can hold a timer for many minutes, so take the user
+     * there once per launch until it's on.
+     */
+    private fun requestExactAlarms() {
+        if (askedForExactAlarms || Build.VERSION.SDK_INT < Build.VERSION_CODES.S) return
+        askedForExactAlarms = true
+        val am = activity.getSystemService(AlarmManager::class.java)
+        if (am.canScheduleExactAlarms()) return
+        try {
+            activity.startActivity(
+                Intent(
+                    Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM,
+                    Uri.parse("package:${activity.packageName}")
+                )
+            )
+        } catch (e: Exception) {
+            android.util.Log.w("DunPlugin", "couldn't open the exact alarm setting", e)
         }
     }
 

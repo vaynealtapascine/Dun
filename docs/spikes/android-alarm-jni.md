@@ -14,7 +14,7 @@ Code:
 - `llvm-nm -D libdun_lib.so` lists `T Java_app_dun_android_DunNative_handleEvent` next to wry's `Java_app_dun_Rust_*`.
 - `llvm-objdump -p`: LOAD segments `align 2**14` (16 KB). `zipalign -c -P 16 4` passes on the APK.
 - The merged manifest (`aapt2 dump xmltree`) contains:
-  - Permissions: POST_NOTIFICATIONS, USE_EXACT_ALARM, SCHEDULE_EXACT_ALARM (maxSdk 32), RECEIVE_BOOT_COMPLETED, REQUEST_IGNORE_BATTERY_OPTIMIZATIONS, ACCESS_NETWORK_STATE, VIBRATE.
+  - Permissions: POST_NOTIFICATIONS, USE_EXACT_ALARM, SCHEDULE_EXACT_ALARM (no maximum SDK cap, retaining the manual request path on Android 12+), RECEIVE_BOOT_COMPLETED, REQUEST_IGNORE_BATTERY_OPTIMIZATIONS, ACCESS_NETWORK_STATE, VIBRATE.
   - Both receivers.
 - Rust unit tests (desktop) for the contract and spike logic cover:
   - nag every minute until Done

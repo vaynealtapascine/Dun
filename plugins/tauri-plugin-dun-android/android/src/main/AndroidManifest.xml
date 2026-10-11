@@ -2,12 +2,13 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
-    <!-- Alarm-style app, sideloaded: USE_EXACT_ALARM is granted at install and
-         cannot be revoked. SCHEDULE_EXACT_ALARM covers Android 12L and older. -->
+    <!-- USE_EXACT_ALARM grants alarm-clock access on Android 13+.
+         Keep SCHEDULE_EXACT_ALARM declared on Android 12+ as well so the
+         user-granted special-access path remains available when
+         canScheduleExactAlarms() reports false. Never infer access from
+         either declaration alone. -->
     <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
-    <uses-permission
-        android:name="android.permission.SCHEDULE_EXACT_ALARM"
-        android:maxSdkVersion="32" />
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />

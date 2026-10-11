@@ -157,6 +157,27 @@ on-device; desktop context menus, keyboard navigation, and snooze dialogs in
 the browser preview. The frontend's 98 tests, Svelte checks, Rust workspace
 tests, formatting, and Clippy passed.
 
+## API and deep-link regression checks
+
+- `cargo test -p dun --lib` covers link decoding/rejection, bounded queuing,
+  authenticated HTTP reads and actions, completion retries, stale snoozes,
+  archive/restore, creation deduplication, and key rotation.
+- `node --test scripts/integrations/*.test.mjs` checks the client and adapters,
+  including URI encoding and refusing HTTP redirects with credentials.
+- On an installed Windows build, open `dun://timer?title=Tea&durationSeconds=300`
+  both with Dun closed and while it is in the tray. Exactly one populated form
+  should appear. Cancel must not create a timer; Save must create one.
+- Repeat on Android using an ACTION_VIEW intent for the same URI. Verify both
+  a cold launch and delivery to the already running activity.
+- While editing an unsaved item (or another modal), send a second link. The
+  current form must remain intact; the next form opens after it closes.
+- Open `dun://item?id=<id>` for live, archived, missing, and synced-but-not-yet-local
+  items. Only live local items open for editing; other cases show an error.
+- Send malformed links and try links with App connections disabled. Links must
+  never perform unattended mutations or expose credentials.
+
+These OS-launch checks require the newly built/installed app, not the browser preview.
+
 ## Known environment traps
 
 Things that cost an hour once and shouldn't cost another:

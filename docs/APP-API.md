@@ -1,6 +1,8 @@
 # App connections
 
-Dun's desktop app accepts reminder and timer creation from other apps on the same PC.
+Dun's desktop app accepts authenticated API requests from other apps on the same PC.
+Windows and Android also accept `dun://` links to open Dun, open an item, or prepare
+a reminder/timer for the user to save.
 Enable **Settings → App connections → Allow apps to send to Dun**. Dun must stay running
 in its tray. Items use Dun's normal storage, nagging, quiet hours and phone sync.
 
@@ -14,6 +16,14 @@ through their own server. Disable connections or generate a new key in Settings 
 | `GET /v1/health` | Authenticated readiness check: `{ "ok": true, "apiVersion": 1 }` |
 | `POST /v1/reminders` | Create a reminder using `dueAt` |
 | `POST /v1/timers` | Create and immediately start a timer using `durationSeconds` |
+| `GET /v1/items` | List live items, including completed items |
+| `GET /v1/items?includeArchived=true` | Include archived items |
+| `GET /v1/items/{id}` | Read one item, including archived items |
+| `POST /v1/items/{id}/actions` | Complete, snooze, archive, restore, or control a timer |
+
+The connection key grants read and write access to **all items**, including items created
+inside Dun or synced from another device. Give it only to trusted apps. Phone sync does
+not expose this HTTP API on Android; it remains a desktop loopback service.
 
 ## Request and response
 
@@ -50,10 +60,105 @@ time in `externalId` when sending recurring reminders or scheduling another aler
 task. A completed item remains independently editable in Dun. There is no automatic
 completion or cancellation back to the sending app.
 
-Authentication failures return 401, browser Origin requests 403, validation failures 422,
+Authentication failures return 401, browser Origin requests 403, missing items 404, validation failures 422,
 and storage errors 500, with `{ "error": "..." }`. Malformed JSON/oversized bodies use
 the HTTP framework's rejection response. Sending apps should retry network/5xx errors
 with the **same** external ID, and correct 4xx errors before retrying.
+
+## Reading and controlling items
+
+Listing returns `{ "items": [...] }`, ordered by ID. A single-item read and a successful
+action return the item directly. Items use Dun's read model (see `src/lib/api/types.ts`):
+`id`, `title`, `notes`, `schedule`, `timer`, `completion`, `deleted`, `kind`, and `status`,
+plus nagging, tag, and sound settings. All numeric times are UTC **milliseconds since the
+Unix epoch**. Creation's `dueAt` remains an RFC 3339 string.
+
+`status.kind` is `upcoming` (with `at`), `due` (with `occurrence`, `ringsAt`, and
+`snoozed`), `idle`, or `unscheduled`. Archive is a soft delete; read the returned
+`deleted` field rather than assuming an idle item is archived.
+
+Send one of these JSON bodies to `/v1/items/{id}/actions`:
+
+```json
+{ "action": "done", "occurrence": 1791766800000 }
+```
+
+```json
+{ "action": "snooze", "occurrence": 1791766800000, "minutes": 5 }
+```
+
+```json
+{ "action": "pause" }
+```
+
+Other actions without parameters: `start`, `resume`, `reset`, `archive`, `restore`.
+Timer controls reject non-timers. Snooze accepts 1–1440 minutes. For `done`, use
+`status.occurrence` (due items) or `status.at` (finish an upcoming item early).
+For `snooze`, use `status.occurrence`; a stale occurrence or an item that isn't due
+does nothing. A repeated `done` for the same occurrence doesn't complete the next
+recurrence. Required occurrence timestamps protect against accidentally acting on a
+new recurrence after reading an old snapshot. Unknown actions/fields are rejected.
+
+Unlike creation, **do not blindly retry actions**. Snooze, start, and reset depend on
+the current time and state. After a timeout, read the item before deciding to try again.
+
+## Deep links
+
+| Link | Result |
+|---|---|
+| `dun://open` | Bring Dun forward |
+| `dun://item?id=api-...` | Open a live item for editing |
+| `dun://reminder?title=Review&dueAt=2026-10-12T09%3A00%3A00%2B08%3A00` | Prefill a reminder |
+| `dun://timer?title=Tea&durationSeconds=300` | Prefill a timer |
+
+Creation links require `title` and the appropriate time parameter; optional `notes`
+can contain up to 4,000 UTF-8 bytes. Titles are limited to 300 bytes; IDs to 512;
+the complete URL to 8,192 bytes. Timer durations use the same bounds as the API.
+Encode query parameters with `URLSearchParams` (especially `+` in timezone offsets,
+ampersands and Unicode). Unknown routes, extra/duplicate parameters, fragments,
+credentials, invalid dates, and malformed escapes are rejected.
+
+Links never silently save, complete, delete, or snooze an item. They need no connection
+key and work with App connections disabled. Creation opens the existing form and
+requires **Save**; cancelling leaves storage unchanged. Links received during editing
+wait until the form closes. Up to 16 links wait in memory; excess links are ignored.
+The queue is not persisted across exits. Missing or archived item links display an
+error. A synced item link only works after that item reaches the receiving device.
+
+Windows installers register the scheme through Tauri's deep-link plugin. Android
+builds declare a custom scheme intent filter, with no web domain verification.
+This follows [Tauri's deep-link integration](https://v2.tauri.app/plugin/deep-linking/).
+Development builds do not overwrite the installed Windows scheme registration:
+pass a URI as the development executable's only argument, e.g. `dun.exe 'dun://open'`,
+with the Vite dev server running.
+
+## Client examples
+
+The Node client reads the connection descriptor on every call and keeps credentials
+out of links. Existing `sendReminder` callers remain compatible.
+
+```js
+import { sendReminder, getItem, actOnItem, deepLink } from './scripts/integrations/dun-client.mjs';
+
+const result = await sendReminder({
+  source: 'My app', externalId: 'task-42/2026-10-12',
+  title: 'Review the draft', dueAt: '2026-10-12T09:00:00+08:00',
+});
+const item = await getItem(result.id);
+const occurrence = item.status.kind === 'due' ? item.status.occurrence : item.status.at;
+if (occurrence !== undefined) await actOnItem(item.id, { action: 'done', occurrence });
+console.log(deepLink('item', { id: item.id }));
+console.log(deepLink('timer', { title: 'Tea & biscuits', durationSeconds: 300 }));
+```
+
+PowerShell, with Dun's App connections enabled:
+
+```powershell
+$connection = Get-Content "$env:APPDATA\app.dun\integration-connection.json" | ConvertFrom-Json
+$headers = @{ Authorization = "Bearer $($connection.token)" }
+Invoke-RestMethod "$($connection.url)/v1/items" -Headers $headers
+Start-Process 'dun://timer?title=Tea&durationSeconds=300'
+```
 
 ## Local services and key rotation
 

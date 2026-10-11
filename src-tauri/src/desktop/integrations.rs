@@ -2,7 +2,7 @@
 use std::net::TcpListener;
 use std::sync::{Arc, Mutex, RwLock, Weak};
 
-use axum::extract::{DefaultBodyLimit, State};
+use axum::extract::{DefaultBodyLimit, Path, Query, State};
 use axum::http::{HeaderMap, StatusCode};
 use axum::routing::{get, post};
 use axum::{Json, Router};
@@ -44,6 +44,68 @@ pub struct IntegrationHub {
 }
 
 impl IntegrationHub {
+    fn items(&self, archived: bool) -> serde_json::Value {
+        let mut snapshot = self.core.snapshot_json();
+        let mut items = snapshot["items"]
+            .take()
+            .as_array()
+            .cloned()
+            .unwrap_or_default();
+        if archived {
+            items.extend(
+                snapshot["archived"]
+                    .take()
+                    .as_array()
+                    .cloned()
+                    .unwrap_or_default(),
+            );
+        }
+        items.sort_by(|a, b| a["id"].as_str().cmp(&b["id"].as_str()));
+        serde_json::json!({ "items": items })
+    }
+
+    fn item(&self, id: &str) -> ApiResult<Json<serde_json::Value>> {
+        self.items(true)["items"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|item| item["id"].as_str() == Some(id))
+            .cloned()
+            .map(Json)
+            .ok_or_else(|| fail(StatusCode::NOT_FOUND, "Item not found"))
+    }
+
+    fn act(&self, id: &str, action: ItemAction) -> ApiResult<Json<serde_json::Value>> {
+        let (now, tz) = (self.core.now(), self.core.tz());
+        let mut engine = self.core.engine();
+        let result = match action {
+            ItemAction::Done { occurrence } => engine.done(now, &tz, id, Some(occurrence)),
+            ItemAction::Snooze {
+                occurrence,
+                minutes,
+            } => engine.snooze(now, &tz, id, Some(occurrence), minutes),
+            ItemAction::Archive {} => engine.set_deleted(now, id, true),
+            ItemAction::Restore {} => engine.set_deleted(now, id, false),
+            ItemAction::Start {} => engine.start_timer(now, id),
+            ItemAction::Pause {} => engine.pause_timer(now, id),
+            ItemAction::Resume {} => engine.resume_timer(now, id),
+            ItemAction::Reset {} => engine.reset_timer(now, id),
+        };
+        result.map_err(|error| {
+            use dun_core::{actions::ActionError, engine::EngineError};
+            match error {
+                EngineError::Action(ActionError::NotFound) => {
+                    fail(StatusCode::NOT_FOUND, "Item not found")
+                }
+                EngineError::Action(e) => fail(StatusCode::UNPROCESSABLE_ENTITY, &e.to_string()),
+                _ => fail(StatusCode::INTERNAL_SERVER_ERROR, "Couldn't save the item"),
+            }
+        })?;
+        drop(engine);
+        (self.changed)();
+        self.item(id)
+    }
+
     pub fn new(
         core: Arc<AppCore>,
         changed: impl Fn() + Send + Sync + 'static,
@@ -328,6 +390,61 @@ struct Created {
     archived: bool,
 }
 type ApiResult<T> = Result<T, (StatusCode, Json<serde_json::Value>)>;
+
+#[derive(Deserialize)]
+#[serde(tag = "action", rename_all = "camelCase", deny_unknown_fields)]
+enum ItemAction {
+    Done { occurrence: Timestamp },
+    Snooze { occurrence: Timestamp, minutes: u32 },
+    Archive {},
+    Restore {},
+    Start {},
+    Pause {},
+    Resume {},
+    Reset {},
+}
+
+#[derive(Default, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct ListOptions {
+    #[serde(default)]
+    include_archived: bool,
+}
+
+async fn items(
+    State(hub): State<Weak<IntegrationHub>>,
+    headers: HeaderMap,
+    Query(options): Query<ListOptions>,
+) -> ApiResult<Json<serde_json::Value>> {
+    let hub = authorized(&hub, &headers)?;
+    Ok(Json(hub.items(options.include_archived)))
+}
+
+async fn item(
+    State(hub): State<Weak<IntegrationHub>>,
+    headers: HeaderMap,
+    Path(id): Path<String>,
+) -> ApiResult<Json<serde_json::Value>> {
+    authorized(&hub, &headers)?.item(&id)
+}
+
+async fn action(
+    State(hub): State<Weak<IntegrationHub>>,
+    headers: HeaderMap,
+    Path(id): Path<String>,
+    Json(action): Json<ItemAction>,
+) -> ApiResult<Json<serde_json::Value>> {
+    authorized(&hub, &headers)?.act(&id, action)
+}
+
+fn authorized(hub: &Weak<IntegrationHub>, headers: &HeaderMap) -> ApiResult<Arc<IntegrationHub>> {
+    let hub = hub
+        .upgrade()
+        .ok_or_else(|| fail(StatusCode::SERVICE_UNAVAILABLE, "Dun is stopping"))?;
+    hub.authorize(headers)?;
+    Ok(hub)
+}
+
 fn fail(status: StatusCode, message: &str) -> (StatusCode, Json<serde_json::Value>) {
     (status, Json(serde_json::json!({ "error": message })))
 }
@@ -384,6 +501,9 @@ impl LocalServer {
             .route("/v1/health", get(health))
             .route("/v1/reminders", post(reminder))
             .route("/v1/timers", post(timer))
+            .route("/v1/items", get(items))
+            .route("/v1/items/{id}", get(item))
+            .route("/v1/items/{id}/actions", post(action))
             .layer(DefaultBodyLimit::max(24 * 1024))
             .with_state(Arc::downgrade(&hub));
         let (stop, stopped) = tokio::sync::oneshot::channel();
@@ -419,6 +539,123 @@ impl Drop for LocalServer {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn action_schema_is_strict() {
+        for body in [
+            serde_json::json!({"action":"done"}),
+            serde_json::json!({"action":"pause", "minutes":2}),
+            serde_json::json!({"action":"snooze", "occurrence":123, "minutes":1, "extra":true}),
+        ] {
+            assert!(
+                serde_json::from_value::<ItemAction>(body.clone()).is_err(),
+                "{body}"
+            );
+        }
+    }
+
+    #[test]
+    fn snooze_changes_only_the_requested_due_occurrence() {
+        let dir = tempfile::tempdir().unwrap();
+        let core = Arc::new(AppCore::open(dir.path()).unwrap());
+        let hub = IntegrationHub::with_port(core.clone(), || {}, 0).unwrap();
+        let due = core.now().minus(60_000);
+        let Json(created) = hub
+            .create(
+                Request {
+                    source: "Test".into(),
+                    external_id: "due".into(),
+                    title: "Test snooze".into(),
+                    notes: String::new(),
+                    url: None,
+                    due_at: Some(due.to_jiff().to_string()),
+                    duration_seconds: None,
+                },
+                false,
+            )
+            .unwrap();
+        let Json(item) = hub
+            .act(
+                &created.id,
+                ItemAction::Snooze {
+                    occurrence: due,
+                    minutes: 5,
+                },
+            )
+            .unwrap();
+        assert_eq!(item["status"]["snoozed"], true);
+        let until = item["status"]["ringsAt"].clone();
+        let Json(item) = hub
+            .act(
+                &created.id,
+                ItemAction::Snooze {
+                    occurrence: due.minus(1),
+                    minutes: 15,
+                },
+            )
+            .unwrap();
+        assert_eq!(item["status"]["ringsAt"], until);
+    }
+
+    #[test]
+    fn http_reads_and_actions_use_the_engine_and_require_auth() {
+        dun_sync::pin::install_crypto_provider();
+        let dir = tempfile::tempdir().unwrap();
+        let core = Arc::new(AppCore::open(dir.path()).unwrap());
+        let changes = Arc::new(std::sync::atomic::AtomicUsize::new(0));
+        let counter = changes.clone();
+        let hub = IntegrationHub::with_port(
+            core.clone(),
+            move || {
+                counter.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+            },
+            0,
+        )
+        .unwrap();
+        let status = hub.set_enabled(true).unwrap();
+        tokio::runtime::Runtime::new().unwrap().block_on(async {
+            let client = reqwest::Client::new();
+            let base = &status.url;
+            let created: Created = client.post(format!("{base}/v1/timers")).bearer_auth(&status.token)
+                .json(&serde_json::json!({"source":"Test", "externalId":"tea", "title":"Tea", "durationSeconds":300}))
+                .send().await.unwrap().json().await.unwrap();
+            let item_url = format!("{base}/v1/items/{}", created.id);
+            let actions_url = format!("{item_url}/actions");
+            for path in [format!("{base}/v1/items"), item_url.clone()] {
+                assert_eq!(client.get(&path).send().await.unwrap().status(), 401);
+                assert_eq!(client.get(&path).bearer_auth(&status.token).header("Origin", "null").send().await.unwrap().status(), 403);
+            }
+            assert_eq!(client.post(&actions_url).json(&serde_json::json!({"action":"archive"})).send().await.unwrap().status(), 401);
+            assert_eq!(client.post(&actions_url).bearer_auth(&status.token).header("Origin", "null").json(&serde_json::json!({"action":"archive"})).send().await.unwrap().status(), 403);
+            for (action, state) in [("pause", "paused"), ("resume", "running"), ("reset", "idle"), ("start", "running")] {
+                let response = client.post(&actions_url).bearer_auth(&status.token).json(&serde_json::json!({"action": action})).send().await.unwrap();
+                assert_eq!(response.status(), 200);
+                let item: serde_json::Value = response.json().await.unwrap();
+                assert_eq!(item["timer"]["state"], state);
+            }
+            let item: serde_json::Value = client.get(&item_url).bearer_auth(&status.token).send().await.unwrap().json().await.unwrap();
+            let occurrence = item["status"]["at"].as_i64().unwrap();
+            for _ in 0..2 {
+                assert_eq!(client.post(&actions_url).bearer_auth(&status.token).json(&serde_json::json!({"action":"done", "occurrence":occurrence})).send().await.unwrap().status(), 200);
+            }
+            assert_eq!(core.engine().history(Some(&created.id), None, 100).unwrap().iter().filter(|h| h.kind == dun_core::sync::HistoryKind::Done).count(), 1);
+            for body in [serde_json::json!({"action":"done"}), serde_json::json!({"action":"snooze","occurrence":occurrence,"minutes":0}), serde_json::json!({"action":"launch"})] {
+                assert_eq!(client.post(&actions_url).bearer_auth(&status.token).json(&body).send().await.unwrap().status(), 422);
+            }
+            assert_eq!(client.get(format!("{base}/v1/items/missing")).bearer_auth(&status.token).send().await.unwrap().status(), 404);
+            assert_eq!(client.post(format!("{base}/v1/items/missing/actions")).bearer_auth(&status.token).json(&serde_json::json!({"action":"archive"})).send().await.unwrap().status(), 404);
+            for action in ["archive", "restore", "archive"] {
+                assert_eq!(client.post(&actions_url).bearer_auth(&status.token).json(&serde_json::json!({"action":action})).send().await.unwrap().status(), 200);
+            }
+            let live: serde_json::Value = client.get(format!("{base}/v1/items")).bearer_auth(&status.token).send().await.unwrap().json().await.unwrap();
+            assert!(live["items"].as_array().unwrap().is_empty());
+            let all: serde_json::Value = client.get(format!("{base}/v1/items?includeArchived=true")).bearer_auth(&status.token).send().await.unwrap().json().await.unwrap();
+            assert_eq!(all["items"][0]["deleted"], true);
+            assert!(all.get("token").is_none());
+        });
+        assert_eq!(changes.load(std::sync::atomic::Ordering::SeqCst), 10);
+        hub.set_enabled(false).unwrap();
+    }
 
     #[test]
     fn http_auth_validation_retries_rotation_and_restart() {

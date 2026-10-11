@@ -20,7 +20,7 @@ Inspired by Due for iOS.
 | [docs/SYNC-PROTOCOL.md](docs/SYNC-PROTOCOL.md)                       | Pairing, the wire format, merge rules, handoff timings                                                      |
 | [docs/TESTING.md](docs/TESTING.md)                                   | What the tests cover, the manual matrices, debug flags                                                      |
 | [docs/RELEASE.md](docs/RELEASE.md)                                   | Building the installer and a signed APK                                                                     |
-| [docs/APP-API.md](docs/APP-API.md)                                   | App API, Memos routing, and Arbor reminders                                                                 |
+| [docs/APP-API.md](docs/APP-API.md)                                   | Local API, deep links, Node client, Memos routing, and Arbor reminders                                       |
 | [docs/ANDROID-DEVICE-CHECKLIST.md](docs/ANDROID-DEVICE-CHECKLIST.md) | Batched checks for the next phone session                                                                   |
 
 ## Development setup (Windows)

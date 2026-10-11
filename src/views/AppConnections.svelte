@@ -22,7 +22,7 @@
 
 <section class="card connections">
   <h3>App connections <span class="scope">this PC</span></h3>
-  <p class="hint muted">Let Memos, Arbor, and other apps add reminders and start timers. Items sync to your paired phone like anything you add in Dun.</p>
+  <p class="hint muted">Let trusted apps read your items, add reminders, and control timers. Changes sync to your paired phone like anything you do in Dun.</p>
   {#if connection}
     <label class="switch">
       <span>Allow apps to send to Dun</span>

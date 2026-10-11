@@ -6,7 +6,7 @@ export function connectionFile() {
   return process.env.DUN_CONNECTION_FILE || (process.env.APPDATA && join(process.env.APPDATA, 'app.dun', 'integration-connection.json'));
 }
 
-export async function sendReminder(payload, file = connectionFile(), fetcher = fetch) {
+async function request(path, method, payload, file = connectionFile(), fetcher = fetch) {
   if (!file) throw new Error('Set DUN_CONNECTION_FILE to Dun’s integration-connection.json on its PC.');
   let config;
   try { config = JSON.parse(readFileSync(file, 'utf8')); }
@@ -18,14 +18,47 @@ export async function sendReminder(payload, file = connectionFile(), fetcher = f
   }
   let response;
   try {
-    response = await fetcher(new URL('/v1/reminders', target), {
-      method: 'POST', signal: AbortSignal.timeout(5000),
+    response = await fetcher(new URL(path, target), {
+      method, signal: AbortSignal.timeout(5000), redirect: 'error',
       headers: { Authorization: `Bearer ${config.token}`, 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
     });
   } catch { throw new Error('Dun is unavailable. Keep it running in the tray and try again.'); }
   const body = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(body.error || `Dun refused the reminder (${response.status}).`);
+  if (!response.ok) throw new Error(body.error || `Dun refused the request (${response.status}).`);
+  return body;
+}
+
+async function create(path, payload, file, fetcher) {
+  const body = await request(path, 'POST', payload, file, fetcher);
   if (typeof body.id !== 'string' || typeof body.created !== 'boolean') throw new Error('Dun returned an unexpected response. The reminder has not been confirmed.');
   return body;
+}
+
+export function sendReminder(payload, file, fetcher) {
+  return create('/v1/reminders', payload, file, fetcher);
+}
+
+export function sendTimer(payload, file, fetcher) {
+  return create('/v1/timers', payload, file, fetcher);
+}
+
+export function listItems(includeArchived = false, file, fetcher) {
+  return request(`/v1/items?includeArchived=${includeArchived ? 'true' : 'false'}`, 'GET', undefined, file, fetcher);
+}
+
+export function getItem(id, file, fetcher) {
+  return request(`/v1/items/${encodeURIComponent(id)}`, 'GET', undefined, file, fetcher);
+}
+
+// No automatic retries: snooze/start/reset are time-relative actions.
+export function actOnItem(id, action, file, fetcher) {
+  return request(`/v1/items/${encodeURIComponent(id)}/actions`, 'POST', action, file, fetcher);
+}
+
+// No credentials in links. Opening a creation link prepares a form to review.
+export function deepLink(kind, params = {}) {
+  if (!['open', 'item', 'reminder', 'timer'].includes(kind)) throw new Error('Unsupported Dun link kind.');
+  const query = new URLSearchParams(params).toString();
+  return `dun://${kind}${query ? `?${query}` : ''}`;
 }
