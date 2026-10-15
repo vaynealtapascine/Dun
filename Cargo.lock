@@ -1166,7 +1166,7 @@ checksum = "f678cf4a922c215c63e0de95eb1ff08a958a81d47e485cf9da1e27bf6305cfa5"
 
 [[package]]
 name = "dun"
-version = "1.5.0"
+version = "1.5.2"
 dependencies = [
  "axum",
  "dun-core",
@@ -1199,7 +1199,7 @@ dependencies = [
 
 [[package]]
 name = "dun-core"
-version = "1.5.0"
+version = "1.5.2"
 dependencies = [
  "jiff",
  "proptest",
@@ -1212,7 +1212,7 @@ dependencies = [
 
 [[package]]
 name = "dun-sync"
-version = "1.5.0"
+version = "1.5.2"
 dependencies = [
  "axum",
  "axum-server",
@@ -4869,7 +4869,7 @@ dependencies = [
 
 [[package]]
 name = "tauri-plugin-dun-android"
-version = "1.5.0"
+version = "1.5.2"
 dependencies = [
  "serde",
  "serde_json",

@@ -242,6 +242,7 @@ fn plan_from(
         }
     }
     countdowns(&mut plan, engine, now);
+    plan.widget_items = super::widget::items(engine, now, tz);
     plan
 }
 

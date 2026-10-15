@@ -28,6 +28,19 @@
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
 
     <application>
+        <receiver android:name="app.dun.android.CountdownWidget" android:exported="false"
+            android:label="@string/widget_name">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/countdown_widget_info" />
+        </receiver>
+        <activity android:name="app.dun.android.WidgetConfigureActivity" android:exported="true"
+            android:label="@string/widget_name" android:theme="@style/WidgetConfigurationTheme">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE" />
+            </intent-filter>
+        </activity>
         <service android:name="app.dun.android.TimerSoundService"
             android:exported="false" android:foregroundServiceType="mediaPlayback" />
         <!-- Alarm fires, notification buttons and swipe-away. Only our own

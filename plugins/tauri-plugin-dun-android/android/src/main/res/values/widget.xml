@@ -1,0 +1,15 @@
+<resources>
+    <style name="WidgetConfigurationTheme" parent="android:style/Theme.Material.Light.NoActionBar">
+        <item name="android:colorAccent">@color/widget_accent</item>
+        <item name="android:windowBackground">@color/widget_surface</item>
+    </style>
+    <string name="widget_name">Dun countdown</string>
+    <string name="widget_description">Next due or one chosen timer, reminder or countdown. Resize taller for Done and Snooze on alerts.</string>
+    <color name="widget_surface">#f7f9fa</color>
+    <color name="widget_border">#cbd7df</color>
+    <color name="widget_ink">#162b37</color>
+    <color name="widget_muted">#546873</color>
+    <color name="widget_accent">#287d87</color>
+    <color name="widget_accent_text">#ffffff</color>
+    <color name="widget_secondary">#dfe7ec</color>
+</resources>

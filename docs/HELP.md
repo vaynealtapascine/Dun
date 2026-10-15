@@ -209,6 +209,39 @@ ways:
 - **Replace** makes this device — and, once they sync, your other devices —
   match the file exactly.
 
+## Android home-screen widget
+
+Add **Dun countdown** from your launcher's widget picker. It starts at **3×1**;
+resize it to **3×2** to reveal **Done** and **+5m Snooze**. These buttons become
+available for due or snoozed items. Tap the name/countdown to open Dun, or the
+settings icon to choose what this widget follows.
+
+- **Next due** follows the earliest effective deadline across timers, reminders
+  and upcoming countdowns.
+  Snoozed items use the snooze end. Overdue items stay visible until handled;
+  paused, ready, completed and archived items are excluded.
+- **Pinned** follows one chosen item, including future runs of the same timer or
+  occurrences of a repeating reminder. Paused timers show their remaining time;
+  completed reminders show Done. An archived or missing item shows Item unavailable
+  until you restore it or choose another.
+- **Ignore repeating reminders** excludes recurring reminders from Next due for
+  this widget. It does not exclude repeating countdowns or prevent you from
+  explicitly pinning a repeating reminder. Each widget saves its own checkbox.
+- **Countdowns** can be pinned, including dates in the past. They follow their
+  until/since direction and weekly/monthly/yearly repeat, using the saved banner
+  color and solid/soft/outline fill. They have no Done or Snooze actions. Past
+  countdowns do not displace upcoming entries in Next due.
+
+The widget uses a live hours:minutes:seconds readout, including for countdowns;
+the banner's selected calendar units and other decorations are not copied.
+Each widget keeps its own selection. Uncustomized colors follow Android's light/dark theme.
+Countdowns tick in the launcher; schedule changes refresh through Dun's existing
+alarm, sync and app updates. A due item shows time elapsed since its effective
+deadline. Launcher grids determine exact sizing; the action row appears when
+the widget has enough height.
+Countdown date rollovers use a display-only update that does not ring or wake
+the phone; Android may defer that update while asleep.
+
 ## Small print
 
 - Repeating reminders can count **from the schedule** (every Monday at 9,

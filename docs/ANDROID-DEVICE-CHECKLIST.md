@@ -26,6 +26,42 @@ performed from the remaining matrix. Use this checklist for subsequent sessions.
    focused Dun receiver/service logs in this one session. Record actual device findings
    here before claiming Android visual or delivery behavior verified.
 
+## Countdown widget checks (2026-10-15)
+
+Verified on the Android 16 emulator through the plugin instrumentation test:
+native RemoteViews inflate for compact/expanded sizes in light/dark mode;
+Next due selects a nearer snooze over a later timer; pinned selection stays on
+the chosen timer; paused, due, empty and missing-item states render; actions are
+enabled only for due/snoozed occurrences. Render captures use 260×80dp and
+260×160dp, with a layout assertion preventing status-line clipping.
+
+Rust mobile tests cover effective snooze deadlines, expiry, pause, completion
+and archive. The widget uses the existing occurrence-guarded notification actions.
+
+Still check on a physical launcher with the full APK:
+
+- Add two widgets, keep one on Next due and pin the other. Resize 3×1 to 3×2;
+  confirm independent settings survive launcher/app restart and reboot.
+- Tap Done and +5m Snooze, including after sync changes the current occurrence;
+  verify the app, widget and paired PC agree. Test recurrence and timer restart.
+- Change device time, rotate the launcher, switch theme and increase font size.
+  Check long names and long-duration countdowns. Archive/restore the pinned item.
+- Repeat with Dun's UI closed and under Doze. Alarm delivery remains subject to
+  the permission and battery checks above.
+
+Run the native test with `:tauri-plugin-dun-android:connectedDebugAndroidTest`.
+The countdown extension additionally verifies repeating-reminder filtering,
+explicit pin overrides, upcoming/past countdown selection, all banner fill styles,
+short/invalid color fallback, month-end and leap-day repeats, DST gaps/folds, and
+filter restoration/deletion. All three instrumentation tests and 15 Rust mobile
+tests pass; six native banner renders were inspected in light/dark themes.
+On a physical launcher, also check that the filter checkbox saves independently
+for each widget, countdown edits sync through to colors, and date rollovers resume
+after sleep without sound or an alarm-clock indicator.
+Plugin lint currently reports 13 pre-existing errors in alarm permission/channel
+code (library target SDK and API-26 guards); widget compilation and runtime tests
+pass. These emulator checks do not verify full-app launcher binding or JNI delivery.
+
 ## Pending: v1.5.0 permission flow
 
 - On Android 12/12L with exact-alarm access off, launch Dun and verify the

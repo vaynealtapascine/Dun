@@ -48,6 +48,9 @@ pub struct Post {
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Plan {
+    /// Complete widget read model, including inactive items that can be pinned.
+    #[serde(default)]
+    pub widget_items: Vec<WidgetItem>,
     pub post: Vec<Post>,
     pub cancel: Vec<i32>,
     pub next_wake_at: Option<i64>,
@@ -55,6 +58,35 @@ pub struct Plan {
     /// Free text for logcat; not shown to the user.
     #[serde(skip_serializing_if = "String::is_empty", default)]
     pub log: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WidgetItem {
+    pub id: String,
+    pub title: String,
+    pub timer: bool,
+    pub state: String,
+    /// Effective deadline: snooze end takes precedence over the occurrence.
+    pub at: Option<i64>,
+    pub remaining_ms: Option<i64>,
+    pub occurrence: Option<i64>,
+    #[serde(default)]
+    pub repeating_reminder: bool,
+    #[serde(default)]
+    pub countdown: Option<WidgetCountdown>,
+}
+
+/// Civil countdown inputs let Android roll dates forward without starting the app.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WidgetCountdown {
+    pub date: jiff::civil::Date,
+    pub time: Option<jiff::civil::Time>,
+    pub repeat: dun_core::model::CountdownRepeat,
+    pub direction: dun_core::model::CountDirection,
+    pub color: Option<String>,
+    pub fill: dun_core::model::CountdownFill,
 }
 
 /// What Kotlin sends in. Unknown fields are ignored so Kotlin can add
@@ -138,6 +170,7 @@ mod tests {
     #[test]
     fn plan_serializes_with_kotlin_field_names() {
         let plan = Plan {
+            widget_items: Vec::new(),
             post: vec![Post {
                 notif_id: 1,
                 item_id: "a".into(),

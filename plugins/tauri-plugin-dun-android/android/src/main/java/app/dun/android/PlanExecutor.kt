@@ -53,6 +53,9 @@ object PlanExecutor {
     fun apply(context: Context, plan: JSONObject, fromWorker: Boolean = false) {
         Channels.ensure(context)
         val nm = NotificationManagerCompat.from(context)
+        // A launcher failure must never prevent alarm or notification delivery.
+        try { CountdownWidget.accept(context, plan) }
+        catch (e: Exception) { Log.w(TAG, "widget update failed", e) }
 
         plan.optJSONArray("cancel")?.let { ids ->
             for (i in 0 until ids.length()) {
